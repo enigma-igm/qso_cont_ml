@@ -5,7 +5,7 @@ from sklearn.utils import shuffle
 import numpy as np
 from qso_fitting.models.utils.QuasarScaler import QuasarScaler
 from network import normalise, rescale_backward
-from errorfuncs import MSE
+from errorfuncs import MSE, corr_matrix_relresids
 
 def create_learners(parameters, learning_rate=0.1):
     optimizer = torch.optim.AdamW(parameters, lr=learning_rate)
@@ -90,4 +90,6 @@ def test_model(X_test, y_test, scaler_X, scaler_y, net):
 
     res_test = net.full_predict(X_test, scaler_X, scaler_y)
     mse = MSE(y_test, res_test)
-    return mse
+    corr_matrix = corr_matrix_relresids(y_test, res_test, len(y_test))
+
+    return mse, corr_matrix
