@@ -16,6 +16,9 @@ class Net(torch.nn.Module):
         return x_res
 
     def full_predict(self, x_regscale, scaler_X, scaler_y):
+        '''Direct method for predicting the continuum without manually normalising the input
+        and rescaling the output again.'''
+
         x_normed = normalise(scaler_X, x_regscale)
         input = Variable(torch.FloatTensor(x_normed.numpy()))
         res_normed = self(input)
