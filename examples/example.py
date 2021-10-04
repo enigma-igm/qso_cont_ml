@@ -57,4 +57,8 @@ fig2.show()
 # visualise the correlation matrix
 fig3, ax3 = plt.subplots()
 im = ax3.pcolormesh(wave_grid, wave_grid, corr_matrix)
+ax3.set_xlabel("Rest-frame wavelength ($\AA$)")
+ax3.set_ylabel("Rest-frame wavelength ($\AA$)")
+ax3.set_title("Correlation matrix")
+#cbar = fig3.add_colorbar(im, ax=ax3)
 fig3.show()
