@@ -4,7 +4,7 @@ from torch.autograd import Variable
 from sklearn.utils import shuffle
 import numpy as np
 from qso_fitting.models.utils.QuasarScaler import QuasarScaler
-from models.network import normalise, rescale_backward
+from models.network import normalise, rescale_backward, Net
 from utils.errorfuncs import MSE, corr_matrix_relresids
 
 def create_learners(parameters, learning_rate=0.1):
@@ -89,7 +89,10 @@ def train_model(wave_grid, X_train, y_train, X_valid, y_valid, net,\
         validlabels = Variable(torch.FloatTensor(y_valid_new.numpy()))
         validoutputs = net(validinputs)
         validlossfunc = criterion(validoutputs, validlabels)
-        valid_loss = validlossfunc.item() * validinputs.size(0)
+        #valid_loss = validlossfunc.item() * validinputs.size(0)
+        #if not epoch%100:
+        #    print (validinputs.size(0))
+        valid_loss += validlossfunc.item()
         mse_loss_valid[epoch] = valid_loss
 
         #output_valid = net(input_valid)
@@ -99,14 +102,24 @@ def train_model(wave_grid, X_train, y_train, X_valid, y_valid, net,\
         if min_valid_loss > valid_loss:
             print ("Validation loss decreased.")
             min_valid_loss = valid_loss
-            torch.save(net.state_dict(), "saved_model.pth")
+            torch.save({
+                "epoch": epoch,
+                "model_state_dict": net.state_dict(),
+                "optimizer_state_dict": optimizer.state_dict(),
+                "valid_loss": valid_loss
+            }, "saved_model.pth")
 
     # divide the loss arrays by the lengths of the data sets to be able to compare
     running_loss = running_loss/len(X_train)
     mse_loss_valid = mse_loss_valid/len(X_valid)
 
     # after completing the training route, load the model with lowest validation loss
-    net.load_state_dict(torch.load("saved_model.pth"))
+    bestmodel = Net(len(X_train[1]), 100, len(y_train[1]))
+    checkpoint = torch.load("saved_model.pth")
+    #bestmodel.load_state_dict(checkpoint["model_state_dict"])
+    net.load_state_dict(checkpoint["model_state_dict"])   # this should update net
+    print ("Best epoch:", checkpoint["epoch"])
+    #net.eval()
 
     return running_loss, mse_loss_valid, scaler_X, scaler_y
 
