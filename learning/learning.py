@@ -46,6 +46,8 @@ def train_model(wave_grid, X_train, y_train, X_valid, y_valid, net,\
     #n_output = y_train.shape[1]
 
     running_loss = np.zeros(num_epochs)
+    # also calculate the MSE on the rescaled output spectra for the training set
+    #training_loss = np.zeros(num_epochs)
 
     # setup the validation set for computing the MSE
     X_valid_normed = normalise(scaler_X, X_valid)
@@ -53,6 +55,9 @@ def train_model(wave_grid, X_train, y_train, X_valid, y_valid, net,\
     input_valid = Variable(torch.FloatTensor(X_valid_normed.numpy()))
     labels_valid = Variable(torch.FloatTensor(y_valid_normed.numpy()))
     mse_loss_valid = np.zeros(num_epochs)
+    # setup a validation loss criterion
+    # save the model parameters if the validation loss decreases
+    min_valid_loss = np.inf
 
     for epoch in range(num_epochs):
         X_train_new, y_train_new = shuffle(X_train_normed, y_train_normed)
@@ -78,8 +83,30 @@ def train_model(wave_grid, X_train, y_train, X_valid, y_valid, net,\
         #print ("Loss: "+str(running_loss[epoch]))
 
         # now use the validation set
-        output_valid = net(input_valid)
-        mse_loss_valid[epoch] = MSE(labels_valid.detach().numpy(), output_valid.detach().numpy())
+        valid_loss = 0.0
+        X_valid_new, y_valid_new = shuffle(X_valid_normed, y_valid_normed)
+        validinputs = Variable(torch.FloatTensor(X_valid_new.numpy()))
+        validlabels = Variable(torch.FloatTensor(y_valid_new.numpy()))
+        validoutputs = net(validinputs)
+        validlossfunc = criterion(validoutputs, validlabels)
+        valid_loss = validlossfunc.item() * validinputs.size(0)
+        mse_loss_valid[epoch] = valid_loss
+
+        #output_valid = net(input_valid)
+        #mse_loss_valid[epoch] = MSE(labels_valid.detach().numpy(), output_valid.detach().numpy())
+
+        # save the model if the validation loss decreases
+        if min_valid_loss > valid_loss:
+            print ("Validation loss decreased.")
+            min_valid_loss = valid_loss
+            torch.save(net.state_dict(), "saved_model.pth")
+
+    # divide the loss arrays by the lengths of the data sets to be able to compare
+    running_loss = running_loss/len(X_train)
+    mse_loss_valid = mse_loss_valid/len(X_valid)
+
+    # after completing the training route, load the model with lowest validation loss
+    net.load_state_dict(torch.load("saved_model.pth"))
 
     return running_loss, mse_loss_valid, scaler_X, scaler_y
 
