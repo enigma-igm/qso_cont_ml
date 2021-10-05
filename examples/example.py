@@ -9,7 +9,7 @@ from torch.autograd import Variable
 
 plt.rcParams["font.family"] = "serif"
 
-wave_grid, qso_cont, qso_flux = load_synth_spectra(small=True)
+wave_grid, qso_cont, qso_flux = load_synth_spectra(small=False)
 X_train, X_valid, X_test, y_train, y_valid, y_test = split_data(qso_flux, qso_cont)
 
 n_feature = len(X_train[1])
@@ -19,7 +19,7 @@ net = Net(n_feature, 100, n_output)
 optimizer, criterion = create_learners(net.parameters())
 running_loss, mse_loss_valid, scaler_X, scaler_y = train_model(wave_grid, X_train, y_train,\
                                                                X_valid, y_valid,net, optimizer,\
-                                                               criterion, batch_size=50, num_epochs=500)
+                                                               criterion, batch_size=1000, num_epochs=500)
 epochs = np.arange(1, len(running_loss)+1)
 
 # test the final model and print the result
@@ -31,7 +31,7 @@ ax.plot(epochs, running_loss, label="Training set")
 ax.plot(epochs, mse_loss_valid, label="Validation set")
 ax.legend()
 ax.set_xlabel("Epoch number")
-ax.set_ylabel("MSE")
+ax.set_ylabel("MSE per quasar")
 ax.set_yscale("log")
 ax.set_title("Mean squared error on the normalised spectra")
 fig.show()
