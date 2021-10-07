@@ -1,18 +1,25 @@
 import numpy as np
 from sklearn.model_selection import train_test_split
 
-def load_synth_spectra(regridded=True, small=False):
+def load_synth_spectra(regridded=True, small=False, npca=10):
     datapath = "/net/vdesk/data2/buiten/MRP2/pca-sdss-old/"
-    if regridded:
-        if small:
-            data = np.load(datapath+"gen_spectrum_regridded_array.npy")
+    if npca==10:
+        if regridded:
+            if small:
+                data = np.load(datapath+"gen_spectrum_regridded_array.npy")
+            else:
+                data = np.load(datapath+"gen_spectrum_regridded_big_array.npy")
         else:
-            data = np.load(datapath+"gen_spectrum_regridded_big_array.npy")
+            if small:
+                data = np.load(datapath+"gen_spectrum_nonregridded_array.npy")
+            else:
+                data = np.load(datapath+"gen_spectrum_nonregridded_big_array.npy")
+
     else:
-        if small:
-            data = np.load(datapath+"gen_spectrum_nonregridded_array.npy")
+        if regridded:
+            data = np.load(datapath+"gen_spectrum_regridded_big_array_npca"+str(npca)+".npy")
         else:
-            data = np.load(datapath+"gen_spectrum_nonregridded_big_array.npy")
+            data = np.load(datapath+"gen_spectrum_nonregridded_big_array_npca"+str(npca)+".npy")
 
     wave_grid = data[0,:,0]
     qso_cont = data[:,:,1]

@@ -57,12 +57,13 @@ class ResidualStatistics:
         '''Plot the mean relative residuals as a function of wavelength, and add the deviations as shaded areas.'''
 
         fig, ax = plt.subplots(figsize=(7,5), dpi=320)
-        ax.plot(wave_grid, self.mean_spec, label="Mean")
+        ax.plot(wave_grid, self.mean_spec, label="Mean", color="black")
         ax.fill_between(wave_grid, self.mean_spec-self.std_spec, self.mean_spec+self.std_spec, alpha=0.3,\
                         label="Standard deviation")
         ax.fill_between(wave_grid, self.mean_spec-self.mad_std_spec, self.mean_spec+self.mad_std_spec, alpha=0.3,\
                         label="MAD standard deviation")
         ax.legend()
+        ax.grid()
         ax.set_xlabel("Rest-frame wavelength ($\AA$)")
         ax.set_ylabel("Relative residual")
         ax.set_title("Residuals relative to input flux")
