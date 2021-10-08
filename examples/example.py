@@ -1,5 +1,5 @@
 from models.network import Net, normalise
-from learning.learning import create_learners, train_model, test_model
+from learning.learning import create_learners, train_model, test_model, Trainer
 from data.load_data import load_synth_spectra, split_data
 import matplotlib.pyplot as plt
 import numpy as np
@@ -9,7 +9,7 @@ from torch.autograd import Variable
 
 plt.rcParams["font.family"] = "serif"
 
-wave_grid, qso_cont, qso_flux = load_synth_spectra(small=False)
+wave_grid, qso_cont, qso_flux = load_synth_spectra(small=True)
 X_train, X_valid, X_test, y_train, y_valid, y_test = split_data(qso_flux, qso_cont)
 
 n_feature = len(X_train[1])
@@ -17,28 +17,34 @@ n_output = len(y_train[1])
 
 net = Net(n_feature, 100, n_output)
 optimizer, criterion = create_learners(net.parameters())
-running_loss, mse_loss_valid, scaler_X, scaler_y = train_model(wave_grid, X_train, y_train,\
-                                                               X_valid, y_valid,net, optimizer,\
-                                                               criterion, batch_size=1000, num_epochs=400)
-epochs = np.arange(1, len(running_loss)+1)
+trainer = Trainer(net, optimizer, criterion, batch_size=50, num_epochs=400)
+trainer.train(wave_grid, X_train, y_train, X_valid, y_valid)
+#running_loss, mse_loss_valid, scaler_X, scaler_y = train_model(wave_grid, X_train, y_train,\
+#                                                               X_valid, y_valid,net, optimizer,\
+#                                                               criterion, batch_size=1000, num_epochs=500)
+#epochs = np.arange(1, len(running_loss)+1)
 
 # test the final model and print the result
-mse_test, corr_matrix = test_model(X_test, y_test, scaler_X, scaler_y, net)
+mse_test, corr_matrix = test_model(X_test, y_test, trainer.scaler_X, trainer.scaler_y, net)
 print ("MSE on test set:", mse_test)
 
-fig, ax = plt.subplots(figsize=(7,5), dpi=320)
-#ax.plot(epochs, running_loss, label="Training set")
-ax.plot(epochs, mse_loss_valid, label="Validation set")
-ax.legend()
-ax.set_xlabel("Epoch number")
-ax.set_ylabel("MSE")
-ax.set_yscale("log")
-ax.set_title("Mean squared error on the normalised spectra")
+# plot the loss from the training route
+fig, ax = trainer.plot_loss()
 fig.show()
+
+#fig, ax = plt.subplots(figsize=(7,5), dpi=320)
+#ax.plot(epochs, running_loss, label="Training set")
+#ax.plot(epochs, mse_loss_valid, label="Validation set")
+#ax.legend()
+#ax.set_xlabel("Epoch number")
+#ax.set_ylabel("MSE per quasar")
+#ax.set_yscale("log")
+#ax.set_title("Mean squared error on the normalised spectra")
+#fig.show()
 
 # now plot an example result
 rand_indx = np.random.randint(len(X_test))
-rescaled_result = net.full_predict(X_test[rand_indx], scaler_X, scaler_y)
+rescaled_result = net.full_predict(X_test[rand_indx], trainer.scaler_X, trainer.scaler_y)
 #test_input_normed = normalise(scaler_X, X_test[rand_indx])
 #test_input_normed_var = Variable(torch.FloatTensor(test_input_normed.numpy()))
 #normed_result = net(test_input_normed_var)
@@ -60,5 +66,5 @@ im = ax3.pcolormesh(wave_grid, wave_grid, corr_matrix)
 ax3.set_xlabel("Rest-frame wavelength ($\AA$)")
 ax3.set_ylabel("Rest-frame wavelength ($\AA$)")
 ax3.set_title("Correlation matrix")
-#cbar = fig3.add_colorbar(im, ax=ax3)
+cbar = fig3.colorbar(im, ax=ax3, label="Correlation")
 fig3.show()
