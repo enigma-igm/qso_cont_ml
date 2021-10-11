@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from utils.errorfuncs import relative_residuals, corr_matrix_relresids
+from astropy.stats import mad_std
+from scipy.stats import norm
 
 class CorrelationMatrix:
     def __init__(self, flux_test, cont_test, scaler_flux, scaler_cont, net):
@@ -51,7 +53,15 @@ class ResidualStatistics:
         result_test = net.full_predict(self.X_test, self.scaler_X, self.scaler_y)
 
         # compute stats
-        self.rel_resid, self.mean_spec, self.std_spec, self.mad_std_spec = relative_residuals(self.y_test, result_test)
+        self.rel_resid = (self.y_test - result_test)/self.y_test
+        self.mean_spec = np.mean(self.rel_resid, axis=0)
+        self.std_spec = np.std(self.rel_resid, axis=0)
+        self.mad_std_spec = mad_std(self.rel_resid, axis=0)
+
+        self.mean_resid = np.mean(self.rel_resid)
+        self.std_resid = np.std(self.rel_resid)
+        self.mad_resid = mad_std(self.rel_resid)
+        #self.rel_resid, self.mean_spec, self.std_spec, self.mad_std_spec = relative_residuals(self.y_test, result_test)
 
     def plot_means(self, wave_grid):
         '''Plot the mean relative residuals as a function of wavelength, and add the deviations as shaded areas.'''
@@ -68,4 +78,19 @@ class ResidualStatistics:
         ax.set_ylabel("Relative residual")
         ax.set_title("Residuals relative to input flux")
 
+        return fig, ax
+
+    def resid_hist(self):
+
+        fig, ax = plt.subplots()
+        hist, bins, patches = ax.hist(self.rel_resid.flatten(), bins=100, density=True, range=(-0.3, 0.3),\
+                                       label="mean={:5.3f}, std = {:5.3f}, 1.48*mad={:5.3f}".format(self.mean_resid,\
+                                                                                                    self.std_resid,\
+                                                                                                    self.mad_resid))
+        bin_cen = (bins[:-1] + bins[1:])/2
+        ax.plot(bin_cen, norm.pdf(bin_cen, loc=self.mean_resid, scale=self.mad_resid), label="Gaussian (with MAD std)")
+        ax.set_xlabel("Relative residual")
+        ax.set_ylabel("Probability density")
+        ax.set_title("Residuals relative to input flux")
+        ax.legend()
         return fig, ax

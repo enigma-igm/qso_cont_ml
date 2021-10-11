@@ -1,5 +1,6 @@
 from models.network import Net, normalise
 from learning.learning import create_learners, train_model, test_model, Trainer
+from learning.testing import ResidualStatistics
 from data.load_data import load_synth_spectra, split_data
 import matplotlib.pyplot as plt
 import numpy as np
@@ -9,7 +10,7 @@ from torch.autograd import Variable
 
 plt.rcParams["font.family"] = "serif"
 
-wave_grid, qso_cont, qso_flux = load_synth_spectra(small=True)
+wave_grid, qso_cont, qso_flux = load_synth_spectra(small=False)
 X_train, X_valid, X_test, y_train, y_valid, y_test = split_data(qso_flux, qso_cont)
 
 n_feature = len(X_train[1])
@@ -17,7 +18,7 @@ n_output = len(y_train[1])
 
 net = Net(n_feature, 100, n_output)
 optimizer, criterion = create_learners(net.parameters())
-trainer = Trainer(net, optimizer, criterion, batch_size=50, num_epochs=400)
+trainer = Trainer(net, optimizer, criterion, batch_size=1000, num_epochs=400)
 trainer.train(wave_grid, X_train, y_train, X_valid, y_valid)
 #running_loss, mse_loss_valid, scaler_X, scaler_y = train_model(wave_grid, X_train, y_train,\
 #                                                               X_valid, y_valid,net, optimizer,\
@@ -31,6 +32,14 @@ print ("MSE on test set:", mse_test)
 # plot the loss from the training route
 fig, ax = trainer.plot_loss()
 fig.show()
+
+# compute and plot statistics
+stats = ResidualStatistics(X_test, y_test, trainer.scaler_X, trainer.scaler_y, net)
+fig0, ax0 = stats.plot_means(wave_grid)
+fig0.show()
+
+fig1, ax1 = stats.resid_hist()
+fig1.show()
 
 #fig, ax = plt.subplots(figsize=(7,5), dpi=320)
 #ax.plot(epochs, running_loss, label="Training set")
