@@ -1,5 +1,5 @@
 from models.network import Net
-from learning.learning import create_learners, train_model, test_model
+from learning.learning import create_learners, train_model, test_model, Trainer
 from learning.testing import CorrelationMatrix, ResidualStatistics
 from data.load_data import load_synth_spectra, split_data
 import matplotlib.pyplot as plt
@@ -23,13 +23,16 @@ n_output = len(y_train6[1])
 
 net = Net(n_feature, 100, n_output)
 optimizer, criterion = create_learners(net.parameters())
-running_loss, mse_loss_valid, scaler_X, scaler_y = train_model(wave_grid, X_train6, y_train6,\
-                                                               X_valid6, y_valid6, net, optimizer,\
-                                                               criterion, batch_size=1000, num_epochs=400)
-epochs = np.arange(1, len(running_loss)+1)
+
+trainer = Trainer(net, optimizer, criterion, batch_size=1000, num_epochs=400)
+trainer.train(wave_grid, X_train6, y_train6, X_valid6, y_valid6)
+#running_loss, mse_loss_valid, scaler_X, scaler_y = train_model(wave_grid, X_train6, y_train6,\
+#                                                               X_valid6, y_valid6, net, optimizer,\
+#                                                               criterion, batch_size=1000, num_epochs=400)
+#epochs = np.arange(1, len(running_loss)+1)
 
 # plot the test statistics as a function of wavelength
-Stats = ResidualStatistics(X_test6, y_test6, scaler_X, scaler_y, net)
+Stats = ResidualStatistics(X_test15, y_test15, trainer.scaler_X, trainer.scaler_y, net)
 fig0, ax0 = Stats.plot_means(wave_grid)
 fig0.show()
 
@@ -37,19 +40,19 @@ fig0.show()
 #mse_test, corr_matrix = test_model(X_test, y_test, scaler_X, scaler_y, net)
 #print ("MSE on test set:", mse_test)
 
-fig, ax = plt.subplots(figsize=(7,5), dpi=320)
-ax.plot(epochs, running_loss, label="Training set")
-ax.plot(epochs, mse_loss_valid, label="Validation set")
-ax.legend()
-ax.set_xlabel("Epoch number")
-ax.set_ylabel("MSE")
-ax.set_yscale("log")
-ax.set_title("Mean squared error on the normalised spectra")
+fig, ax = trainer.plot_loss()
+#ax.plot(epochs, running_loss, label="Training set")
+#ax.plot(epochs, mse_loss_valid, label="Validation set")
+#ax.legend()
+#ax.set_xlabel("Epoch number")
+#ax.set_ylabel("MSE")
+#ax.set_yscale("log")
+#ax.set_title("Mean squared error on the normalised spectra")
 fig.show()
 
 # now plot an example result on the npca = 15 TEST set
 rand_indx = np.random.randint(len(X_test15))
-rescaled_result = net.full_predict(X_test15[rand_indx], scaler_X, scaler_y)
+rescaled_result = net.full_predict(X_test15[rand_indx], trainer.scaler_X, trainer.scaler_y)
 #test_input_normed = normalise(scaler_X, X_test[rand_indx])
 #test_input_normed_var = Variable(torch.FloatTensor(test_input_normed.numpy()))
 #normed_result = net(test_input_normed_var)
@@ -66,7 +69,7 @@ ax2.set_title("Example of a predicted quasar spectrum")
 fig2.show()
 
 # visualise the correlation matrix for the npca = 15 TEST set
-CorrMat = CorrelationMatrix(X_test15, y_test15, scaler_X, scaler_y, net)
+CorrMat = CorrelationMatrix(X_test15, y_test15, trainer.scaler_X, trainer.scaler_y, net)
 CorrMat.show(wave_grid)
 #fig3, ax3 = plt.subplots()
 #im = ax3.pcolormesh(wave_grid, wave_grid, corr_matrix)
