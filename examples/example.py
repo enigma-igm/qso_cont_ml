@@ -1,6 +1,6 @@
 from models.network import Net, normalise
 from learning.learning import create_learners, train_model, test_model, Trainer
-from learning.testing import ResidualStatistics
+from learning.testing import ResidualStatistics, CorrelationMatrix
 from data.load_data import load_synth_spectra, split_data
 import matplotlib.pyplot as plt
 import numpy as np
@@ -10,7 +10,7 @@ from torch.autograd import Variable
 
 plt.rcParams["font.family"] = "serif"
 
-wave_grid, qso_cont, qso_flux = load_synth_spectra(small=False)
+wave_grid, qso_cont, qso_flux = load_synth_spectra(small=True)
 X_train, X_valid, X_test, y_train, y_valid, y_test = split_data(qso_flux, qso_cont)
 
 n_feature = len(X_train[1])
@@ -18,7 +18,7 @@ n_output = len(y_train[1])
 
 net = Net(n_feature, 100, n_output)
 optimizer, criterion = create_learners(net.parameters())
-trainer = Trainer(net, optimizer, criterion, batch_size=1000, num_epochs=400)
+trainer = Trainer(net, optimizer, criterion, batch_size=50, num_epochs=400)
 trainer.train(wave_grid, X_train, y_train, X_valid, y_valid)
 #running_loss, mse_loss_valid, scaler_X, scaler_y = train_model(wave_grid, X_train, y_train,\
 #                                                               X_valid, y_valid,net, optimizer,\
@@ -26,8 +26,11 @@ trainer.train(wave_grid, X_train, y_train, X_valid, y_valid)
 #epochs = np.arange(1, len(running_loss)+1)
 
 # test the final model and print the result
-mse_test, corr_matrix = test_model(X_test, y_test, trainer.scaler_X, trainer.scaler_y, net)
-print ("MSE on test set:", mse_test)
+
+#mse_test, corr_matrix = test_model(X_test, y_test, trainer.scaler_X, trainer.scaler_y, net)
+#print ("MSE on test set:", mse_test)
+corrmat = CorrelationMatrix(X_test, y_test, trainer.scaler_X, trainer.scaler_y, net)
+
 
 # plot the loss from the training route
 fig, ax = trainer.plot_loss()
@@ -70,10 +73,11 @@ ax2.set_title("Example of a predicted quasar spectrum")
 fig2.show()
 
 # visualise the correlation matrix
-fig3, ax3 = plt.subplots()
-im = ax3.pcolormesh(wave_grid, wave_grid, corr_matrix)
-ax3.set_xlabel("Rest-frame wavelength ($\AA$)")
-ax3.set_ylabel("Rest-frame wavelength ($\AA$)")
-ax3.set_title("Correlation matrix")
-cbar = fig3.colorbar(im, ax=ax3, label="Correlation")
-fig3.show()
+fig3, ax3 = corrmat.show(wave_grid)
+#fig3, ax3 = plt.subplots()
+#im = ax3.pcolormesh(wave_grid, wave_grid, corr_matrix)
+#ax3.set_xlabel("Rest-frame wavelength ($\AA$)")
+#ax3.set_ylabel("Rest-frame wavelength ($\AA$)")
+#ax3.set_title("Correlation matrix")
+#cbar = fig3.colorbar(im, ax=ax3, label="Correlation")
+#fig3.show()
