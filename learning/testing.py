@@ -23,10 +23,10 @@ class CorrelationMatrix:
         self.fig, self.ax = plt.subplots(figsize=(7,5), dpi=320)
         self.im = self.ax.pcolormesh(wave_grid, wave_grid, self.matrix, cmap="bwr", shading="nearest",\
                                      vmin=-1.0, vmax=1.0)
-        self.cbar = self.fig.colorbar(self.im, ax=self.ax, label="Correlation")
+        self.cbar = self.fig.colorbar(self.im, ax=self.ax, label="Residual correlation")
         self.ax.set_xlabel("Rest-frame wavelength ($\AA$)")
         self.ax.set_ylabel("Rest-frame wavelength ($\AA$)")
-        self.ax.set_title("Correlation matrix")
+        self.ax.set_title("Correlation matrix of residuals")
         self.fig.show()
 
         return self.fig, self.ax
@@ -64,15 +64,16 @@ class ResidualStatistics:
         self.mad_resid = mad_std(self.rel_resid)
         #self.rel_resid, self.mean_spec, self.std_spec, self.mad_std_spec = relative_residuals(self.y_test, result_test)
 
-    def plot_means(self, wave_grid):
+    def plot_means(self, wave_grid, show_std=False):
         '''Plot the mean relative residuals as a function of wavelength, and add the deviations as shaded areas.'''
 
         fig, ax = plt.subplots(figsize=(7,5), dpi=320)
         ax.plot(wave_grid, self.mean_spec, label="Mean", color="black")
-        ax.fill_between(wave_grid, self.mean_spec-self.std_spec, self.mean_spec+self.std_spec, alpha=0.3,\
-                        label="Standard deviation")
+        if show_std:
+            ax.fill_between(wave_grid, self.mean_spec-self.std_spec, self.mean_spec+self.std_spec, alpha=0.3,\
+                            label="Standard deviation", color="tab:blue")
         ax.fill_between(wave_grid, self.mean_spec-self.mad_std_spec, self.mean_spec+self.mad_std_spec, alpha=0.3,\
-                        label="MAD standard deviation")
+                        label="MAD standard deviation", color="tab:orange")
         ax.legend()
         ax.grid()
         ax.set_xlabel("Rest-frame wavelength ($\AA$)")
