@@ -133,7 +133,12 @@ class Trainer:
         else:
             print ("yscale must be 'linear' or 'log'.")
             return fig, ax
-        ax.set_ylim(ymin=ymin, ymax=self.valid_loss[epoch_min-1:].max())
+        max_loss_2show = self.valid_loss[epoch_min-1:].max()
+        if max_loss_2show > 100*self.valid_loss.min():
+            yscale = "log"
+            ymin = 0.8
+            print ("Large loss increase detected; yscale set to 'log'.")
+        ax.set_ylim(ymin=ymin, ymax=max_loss_2show)
         ax.set_yscale(yscale)
         print ("ymax = "+str(self.valid_loss[epoch_min-1:].max()))
         ax.set_xlabel("Epoch number")
