@@ -33,7 +33,7 @@ corrmat = CorrelationMatrix(X_test, y_test, trainer.scaler_X, trainer.scaler_y, 
 
 
 # plot the loss from the training route
-fig, ax = trainer.plot_loss()
+fig, ax = trainer.plot_loss(yscale="blabla", epoch_min=1)
 fig.show()
 
 # compute and plot statistics
