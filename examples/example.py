@@ -1,3 +1,4 @@
+import os
 from models.network import Net, normalise
 from learning.learning import create_learners, train_model, test_model, Trainer
 from learning.testing import ResidualStatistics, CorrelationMatrix
@@ -11,14 +12,14 @@ from torch.autograd import Variable
 plt.rcParams["font.family"] = "serif"
 
 wave_grid, qso_cont, qso_flux = load_synth_spectra(small=False)
-X_train, X_valid, X_test, y_train, y_valid, y_test = split_data(qso_flux, qso_cont)
+X_train, X_valid, X_test, y_train, y_valid, y_test = split_data(qso_flux, qso_cont, train_size=0.9, test_size=0.05)
 
 n_feature = len(X_train[1])
 n_output = len(y_train[1])
 
 net = Net(n_feature, 100, n_output)
 optimizer, criterion = create_learners(net.parameters())
-trainer = Trainer(net, optimizer, criterion, batch_size=1000, num_epochs=2000)
+trainer = Trainer(net, optimizer, criterion, batch_size=1000, num_epochs=400)
 trainer.train(wave_grid, X_train, y_train, X_valid, y_valid)
 #running_loss, mse_loss_valid, scaler_X, scaler_y = train_model(wave_grid, X_train, y_train,\
 #                                                               X_valid, y_valid,net, optimizer,\
@@ -33,7 +34,7 @@ corrmat = CorrelationMatrix(X_test, y_test, trainer.scaler_X, trainer.scaler_y, 
 
 
 # plot the loss from the training route
-fig, ax = trainer.plot_loss(yscale="linear", epoch_min=50)
+fig, ax = trainer.plot_loss(yscale="linear", epoch_min=100)
 fig.show()
 
 # compute and plot statistics
