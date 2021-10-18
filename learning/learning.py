@@ -118,17 +118,32 @@ class Trainer:
         self.scaler_X = scaler_X
         self.scaler_y = scaler_y
 
-    def plot_loss(self):
+    def plot_loss(self, epoch_min=50, yscale="linear"):
         '''Plot the loss function for the training set and the validation set as a function of epoch number.'''
 
         epoch_no = np.arange(1, self.num_epochs+1)
         fig, ax = plt.subplots(figsize=(7,5), dpi=320)
         ax.plot(epoch_no, self.training_loss, alpha=0.7, label="Training")
         ax.plot(epoch_no, self.valid_loss, alpha=0.7, label="Validation")
+        ax.set_xlim(xmin=epoch_min)
+        if yscale=="linear":
+            ymin = 0
+        elif yscale=="log":
+            ymin = 0.8
+        else:
+            print ("yscale must be 'linear' or 'log'.")
+            return fig, ax
+        max_loss_2show = self.valid_loss[epoch_min-1:].max()
+        if max_loss_2show > 100*self.valid_loss.min():
+            yscale = "log"
+            ymin = 0.8
+            print ("Large loss increase detected; yscale set to 'log'.")
+        ax.set_ylim(ymin=ymin, ymax=max_loss_2show)
+        ax.set_yscale(yscale)
+        print ("ymax = "+str(self.valid_loss[epoch_min-1:].max()))
         ax.set_xlabel("Epoch number")
         ax.set_ylabel("Loss per quasar")
         ax.grid()
-        ax.set_yscale("log")
         ax.set_title("MSE loss on the normalised spectra")
         ax.legend()
 
