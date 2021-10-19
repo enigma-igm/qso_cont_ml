@@ -40,3 +40,21 @@ def split_data(attributes, targets, train_size=0.9, test_size=0.05):
                                                         random_state=0)
 
     return X_train, X_valid, X_test, y_train, y_valid, y_test
+
+
+def normalise_spectra(wave_grid, flux, cont, windowmin=1270, windowmax=1290):
+
+    try:
+        wave_grid1d = wave_grid[0,:]
+    except:
+        wave_grid1d = wave_grid
+
+    window = (wave_grid1d > windowmin) & (wave_grid1d < windowmax)
+    flux_median_window = np.median(flux[:,window], axis=1)
+    flux_norm = np.zeros(flux.shape)
+    cont_norm = np.zeros(cont.shape)
+    for i in range(len(flux)):
+        flux_norm[i,:] = flux[i,:]/flux_median_window[i]
+        cont_norm[i,:] = cont[i,:]/flux_median_window[i]
+
+    return flux_norm, cont_norm

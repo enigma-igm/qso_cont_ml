@@ -2,15 +2,17 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-from data.load_data import load_synth_spectra, split_data
+from data.load_data import load_synth_spectra, split_data, normalise_spectra
 from models.network import Net
-from learning.learning import Trainer, create_learners
+from learning.learning import Trainer, create_learners, train_scalers
 from learning.testing import ResidualStatistics, CorrelationMatrix
 import torch
 plt.rcParams["font.family"] = "serif"
 
 # first load and split the synthetic spectra with npca = 10
 wave_grid, qso_cont, qso_flux = load_synth_spectra()
+# normalise the synthetic spectra
+qso_flux, qso_cont = normalise_spectra(wave_grid, qso_flux, qso_cont)
 splitted = split_data(qso_flux, qso_cont)
 X_train, X_valid, X_test, y_train, y_valid, y_test = splitted
 
@@ -21,6 +23,9 @@ handfitdata = np.load(path+handfitfile)
 wave_grid_handfit = handfitdata[0,:,0]
 cont_handfit = handfitdata[:,:,1]
 flux_handfit = handfitdata[:,:,2]
+
+# normalise the hand-fit spectra
+flux_handfit, cont_handfit = normalise_spectra(wave_grid_handfit, flux_handfit, cont_handfit)
 
 # compare the two grids
 print ("Training grid:", wave_grid.shape)
@@ -42,6 +47,9 @@ fig.show()
 #modelfile = "/net/vdesk/data2/buiten/MRP2/code/qso_cont_ml/examples/saved_model.pth"
 #model.load_state_dict(torch.load(modelfile)["model_state_dict"])
 
+# hack for now: train separate scalers for the hand-fit spectra
+#scaler_flux_handfit, scaler_cont_handfit = train_scalers(wave_grid_handfit, flux_handfit, cont_handfit)
+
 # evaluate
 residstats = ResidualStatistics(flux_handfit, cont_handfit, trainer.scaler_X,\
                                 trainer.scaler_y, model)
@@ -60,9 +68,9 @@ rand_indx = np.random.randint(low=0, high=len(cont_handfit))
 result = model.full_predict(flux_handfit[rand_indx], trainer.scaler_X,\
                            trainer.scaler_y)
 fig3, ax3 = plt.subplots(figsize=(7,5), dpi=320)
-ax3.plot(wave_grid_handfit, flux_handfit[rand_indx], alpha=0.8, label="Input")
+ax3.plot(wave_grid_handfit, flux_handfit[rand_indx], alpha=0.8, label="Input", lw=1)
 ax3.plot(wave_grid_handfit, cont_handfit[rand_indx], alpha=0.8, label="Target")
-ax3.plot(wave_grid_handfit, result, alpha=0.8, label="Output")
+ax3.plot(wave_grid_handfit, result, alpha=0.8, label="Output", ls="--")
 ax3.set_xlabel("Wavelength (Angstrom)")
 ax3.set_ylabel("Flux")
 ax3.legend()
