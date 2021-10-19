@@ -31,7 +31,10 @@ def relative_residuals(y_obs, y_pred):
 def corr_matrix_relresids(y_obs, y_pred, n_samples):
 
     rel_resid, mean_spec, std_spec, mad_std_spec = relative_residuals(y_obs, y_pred)
+
+    # try using the median instead of the mean
     diff = rel_resid - mean_spec
+    #diff = rel_resid - np.median(rel_resid, axis=0)
     covar_delta = 1/(n_samples-1) * np.matmul(diff.T, diff)
     corr_delta = covar_delta/np.sqrt(np.outer(np.diag(covar_delta), np.diag(covar_delta)))
 
