@@ -39,7 +39,9 @@ class Trainer:
         self.num_epochs = num_epochs
         self.batch_size = batch_size
 
-    def train(self, wave_grid, X_train, y_train, X_valid, y_valid):
+
+    def train(self, wave_grid, X_train, y_train, X_valid, y_valid, \
+              savefile="simple_AdamW_net.pth"):
         '''Train the model.'''
 
         # first train the QSO scalers
@@ -100,15 +102,17 @@ class Trainer:
                     "epoch": epoch,
                     "model_state_dict": self.net.state_dict(),
                     "optimizer_state_dict": self.optimizer.state_dict(),
-                    "valid_loss": valid_loss[epoch]
-                }, "saved_model.pth")
+                    "valid_loss": valid_loss[epoch],
+                    "scaler_X": scaler_X,
+                    "scaler_y": scaler_y
+                }, savefile)
 
         # divide the loss arrays by the lengths of the data sets to be able to compare
         running_loss = running_loss / len(X_train)
         valid_loss = valid_loss / len(X_valid)
 
         # after completing the training route, load the model with lowest validation loss
-        checkpoint = torch.load("saved_model.pth")
+        checkpoint = torch.load(savefile)
         self.net.load_state_dict(checkpoint["model_state_dict"])  # this should update net
         print("Best epoch:", checkpoint["epoch"])
 
