@@ -2,7 +2,7 @@ import os
 from models.network import Net, normalise
 from learning.learning import create_learners, train_model, test_model, Trainer
 from learning.testing import ResidualStatistics, CorrelationMatrix
-from data.load_data import load_synth_spectra, split_data
+from data.load_data import load_synth_spectra, split_data, normalise_spectra
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -12,6 +12,8 @@ from torch.autograd import Variable
 plt.rcParams["font.family"] = "serif"
 
 wave_grid, qso_cont, qso_flux = load_synth_spectra(small=False)
+# normalise the spectra
+qso_flux, qso_cont = normalise_spectra(wave_grid, qso_flux, qso_cont)
 X_train, X_valid, X_test, y_train, y_valid, y_test = split_data(qso_flux, qso_cont, train_size=0.9, test_size=0.05)
 
 n_feature = len(X_train[1])
@@ -65,7 +67,7 @@ rescaled_result = net.full_predict(X_test[rand_indx], trainer.scaler_X, trainer.
 fig2, ax2 = plt.subplots(figsize=(7,5), dpi=320)
 ax2.plot(wave_grid, X_test[rand_indx], alpha=0.8, lw=2, label="Input")
 ax2.plot(wave_grid, y_test[rand_indx], alpha=0.8, lw=2, label="Target")
-ax2.plot(wave_grid, rescaled_result, alpha=0.8, lw=2, label="Output")
+ax2.plot(wave_grid, rescaled_result, alpha=0.8, lw=2, ls="--", label="Output")
 ax2.set_xlabel("Rest-frame wavelength ($\AA$)")
 ax2.set_ylabel("Flux (a.u.)")
 ax2.legend()

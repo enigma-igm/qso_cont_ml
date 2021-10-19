@@ -23,6 +23,7 @@ class CorrelationMatrix:
         self.fig, self.ax = plt.subplots(figsize=(7,5), dpi=320)
         self.im = self.ax.pcolormesh(wave_grid, wave_grid, self.matrix, cmap="bwr", shading="nearest",\
                                      vmin=-1.0, vmax=1.0)
+        self.ax.set_aspect("equal")
         self.cbar = self.fig.colorbar(self.im, ax=self.ax, label="Residual correlation")
         self.ax.set_xlabel("Rest-frame wavelength ($\AA$)")
         self.ax.set_ylabel("Rest-frame wavelength ($\AA$)")
