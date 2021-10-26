@@ -58,10 +58,10 @@ class Trainer:
             y_valid_normed = normalise(self.scaler_y, y_valid)
 
         else:
-            X_train_normed = X_train
-            y_train_normed= y_train
-            X_valid_normed = X_valid
-            y_valid_normed= y_valid
+            X_train_normed = torch.tensor(X_train)
+            y_train_normed= torch.tensor(y_train)
+            X_valid_normed = torch.tensor(X_valid)
+            y_valid_normed= torch.tensor(y_valid)
 
         # set the number of mini-batches
         n_batches = len(X_train) // self.batch_size

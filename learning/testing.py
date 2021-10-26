@@ -19,8 +19,12 @@ class CorrelationMatrix:
 
         # compute the correlation matrix
         # first forward the model
-        if self.use_QSOScaler:
-            result_test = net.full_predict(flux_test, self.scaler_X, self.scaler_y)
+        result_test = net.full_predict(flux_test, scaler_flux, scaler_cont)
+        #if self.use_QSOScaler:
+        #    result_test = net.full_predict(flux_test, self.scaler_X, self.scaler_y)
+        #else:
+        #    result_test = net.forward(flux_test)
+
         self.matrix = corr_matrix_relresids(self.y_test, result_test, len(self.y_test))
 
     def show(self, wave_grid):
@@ -55,10 +59,19 @@ class ResidualStatistics:
         self.scaler_y = scaler_cont
         self.net = net
 
+        if scaler_flux is None:
+            self.use_QSOScaler = False
+        else:
+            self.use_QSOScaler = True
+
         # compute residuals relative to flux in absorption spectrum (for every point on the wavelength grid)
         # compute some statistics
         # first forward the model to get predictions
-        result_test = net.full_predict(self.X_test, self.scaler_X, self.scaler_y)
+        result_test = net.full_predict(flux_test, scaler_flux, scaler_cont)
+        #if self.use_QSOScaler:
+        #    result_test = net.full_predict(self.X_test, self.scaler_X, self.scaler_y)
+        #else:
+        #    result_test = net.forward(self.X_test)
 
         # compute stats
         self.rel_resid = (self.y_test - result_test)/self.y_test
