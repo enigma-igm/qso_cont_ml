@@ -12,9 +12,15 @@ class CorrelationMatrix:
         self.scaler_y = scaler_cont
         self.net = net
 
+        if scaler_flux is None:
+            self.use_QSOScaler = False
+        else:
+            self.use_QSOScaler = True
+
         # compute the correlation matrix
         # first forward the model
-        result_test = net.full_predict(flux_test, self.scaler_X, self.scaler_y)
+        if self.use_QSOScaler:
+            result_test = net.full_predict(flux_test, self.scaler_X, self.scaler_y)
         self.matrix = corr_matrix_relresids(self.y_test, result_test, len(self.y_test))
 
     def show(self, wave_grid):

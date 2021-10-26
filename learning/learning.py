@@ -37,21 +37,31 @@ class Trainer:
         self.criterion = criterion
         self.batch_size = batch_size
         self.num_epochs = num_epochs
-        self.batch_size = batch_size
+
+
+    def train_QSOScalers(self, wave_grid, X_train, y_train):
+        self.scaler_X, self.scaler_y = train_scalers(wave_grid, X_train, y_train)
 
 
     def train(self, wave_grid, X_train, y_train, X_valid, y_valid, \
-              savefile="simple_AdamW_net.pth"):
+              savefile="simple_AdamW_net.pth", use_QSOScalers=True):
         '''Train the model.'''
 
-        # first train the QSO scalers
-        scaler_X, scaler_y = train_scalers(wave_grid, X_train, y_train)
+        # first train the QSO scalers if use_QSOScalers==True
+        if use_QSOScalers:
+            self.train_QSOScalers(wave_grid, X_train, y_train)
 
-        # normalise input and target for both the training set and the validation set
-        X_train_normed = normalise(scaler_X, X_train)
-        y_train_normed = normalise(scaler_y, y_train)
-        X_valid_normed = normalise(scaler_X, X_valid)
-        y_valid_normed = normalise(scaler_y, y_valid)
+            # normalise input and target for both the training set and the validation set
+            X_train_normed = normalise(self.scaler_X, X_train)
+            y_train_normed = normalise(self.scaler_y, y_train)
+            X_valid_normed = normalise(self.scaler_X, X_valid)
+            y_valid_normed = normalise(self.scaler_y, y_valid)
+
+        else:
+            X_train_normed = X_train
+            y_train_normed= y_train
+            X_valid_normed = X_valid
+            y_valid_normed= y_valid
 
         # set the number of mini-batches
         n_batches = len(X_train) // self.batch_size
@@ -98,14 +108,22 @@ class Trainer:
             if min_valid_loss > valid_loss[epoch]:
                 print("Validation loss decreased.")
                 min_valid_loss = valid_loss[epoch]
-                torch.save({
-                    "epoch": epoch,
-                    "model_state_dict": self.net.state_dict(),
-                    "optimizer_state_dict": self.optimizer.state_dict(),
-                    "valid_loss": valid_loss[epoch],
-                    "scaler_X": scaler_X,
-                    "scaler_y": scaler_y
-                }, savefile)
+                if use_QSOScalers:
+                    torch.save({
+                        "epoch": epoch,
+                        "model_state_dict": self.net.state_dict(),
+                        "optimizer_state_dict": self.optimizer.state_dict(),
+                        "valid_loss": valid_loss[epoch],
+                        "scaler_X": self.scaler_X,
+                        "scaler_y": self.scaler_y
+                    }, savefile)
+                else:
+                    torch.save({
+                        "epoch": epoch,
+                        "model_state_dict": self.net.state_dict(),
+                        "optimizer_state_dict": self.optimizer.state_dict(),
+                        "valid_loss": valid_loss[epoch],
+                    }, savefile)
 
         # divide the loss arrays by the lengths of the data sets to be able to compare
         running_loss = running_loss / len(X_train)
@@ -116,11 +134,10 @@ class Trainer:
         self.net.load_state_dict(checkpoint["model_state_dict"])  # this should update net
         print("Best epoch:", checkpoint["epoch"])
 
-        # save the diagnostics and QSO scalers in the Trainer object
+        # save the diagnostics in the Trainer object
         self.training_loss = running_loss
         self.valid_loss = valid_loss
-        self.scaler_X = scaler_X
-        self.scaler_y = scaler_y
+
 
     def plot_loss(self, epoch_min=50, yscale="linear"):
         '''Plot the loss function for the training set and the validation set as a function of epoch number.'''
