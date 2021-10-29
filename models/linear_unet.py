@@ -2,6 +2,7 @@
 import torch
 from torch import nn
 import torch.nn.functional as F
+from torch.autograd import Variable
 
 
 def get_rel_resids(flux, cont):
@@ -18,18 +19,20 @@ class LinearUNet(torch.nn.Module):
         # first try one layer
         self.hidden = nn.Linear(in_out_dim, size_hidden)
         self.predict = nn.Linear(size_hidden, in_out_dim)
+        self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
         # first perform the transformation to the latent space (dim size_hidden)
         # then apply the activation function to the result
-        x_activ = F.elu(self.hidden(x))
+        x_activ = F.relu(self.hidden(x))
 
         # now go back to real space (dim in_out_dim)
         x_res = self.predict(x_activ)
 
         # compute relative residuals in output space
         # we want our training routine to find the right residuals
-        self.rel_resids = get_rel_resids(x, x_res)
+        # use a sigmioid activation function to force the residuals to be +
+        self.rel_resids = self.sigmoid(get_rel_resids(x, x_res))
 
         return x_res
 
@@ -37,6 +40,16 @@ class LinearUNet(torch.nn.Module):
 
         x_flux = x / (self.rel_resids + 1)
         return x_flux
+
+
+    def full_predict(self, x, scaler_X=None, scaler_y=None):
+
+        x = torch.FloatTensor(x)
+        input = Variable(x)
+        res = self(input)
+        res_np = res.detach().numpy()
+
+        return res_np
 
 
 class NeuralNet(nn.Module):

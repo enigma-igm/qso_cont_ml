@@ -5,6 +5,7 @@ from learning.testing import ResidualStatistics, CorrelationMatrix
 from data.load_data import load_synth_spectra, split_data, normalise_spectra
 import matplotlib.pyplot as plt
 import numpy as np
+import torch
 
 plt.rcParams["font.family"] = "serif"
 
@@ -20,11 +21,12 @@ n_feature = flux_train.shape[1]
 
 # initialize the simple network and train WITHOUT using the QSOScalers
 unet = LinearUNet(n_feature, 100)
-optimizer, criterion = create_learners(unet.parameters())
-trainer = UNetTrainer(wave_grid, flux_train, cont_train, flux_valid, cont_valid)
+optimizer, criterion = create_learners(unet.parameters(), learning_rate=0.1)
+trainer = UNetTrainer(unet, optimizer, criterion)
+trainer.train(wave_grid, flux_train, cont_train, flux_valid, cont_valid)
 
 # plot the loss from the training routine
-fig, ax = trainer.plot_loss(epoch_min=100)
+fig, ax = trainer.plot_loss(epoch_min=0)
 fig.show()
 
 # run some tests on the test set
@@ -43,7 +45,7 @@ fig3, ax3 = corrmat.show(wave_grid)
 
 # plot a random result
 rand_indx = np.random.randint(len(flux_test))
-rand_result_output = unet(flux_test[rand_indx])
+rand_result_output = unet(torch.FloatTensor(flux_test[rand_indx]))
 rand_result = rand_result_output.detach().numpy()
 
 fig4, ax4 = plt.subplots(figsize=(7,5), dpi=320)
