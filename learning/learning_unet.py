@@ -8,14 +8,14 @@ from models.linear_unet import get_rel_resids
 
 class UNetTrainer(Trainer):
     def __init__(self, net, optimizer, criterion, batch_size=1000, num_epochs=400):
-        super(UNetTrainer, self).__init__()
+        super(UNetTrainer, self).__init__(net, optimizer, criterion, batch_size=batch_size, num_epochs=num_epochs)
 
     def train(self, wave_grid, X_train, y_train, X_valid, y_valid, \
               savefile="LinearUNet.pth"):
 
         # no QSOScaler preprocessing here yet
-        X_train, y_train = torch.tensor(X_train), torch.tensor(y_train)
-        X_valid, y_valid = torch.tensor(X_valid), torch.tensor(y_valid)
+        X_train, y_train = torch.FloatTensor(X_train), torch.tensor(y_train)
+        X_valid, y_valid = torch.FloatTensor(X_valid), torch.tensor(y_valid)
 
         # set the number of batches
         n_batches = len(X_train) // self.batch_size
@@ -34,24 +34,29 @@ class UNetTrainer(Trainer):
             for i in range(n_batches):
                 start = i * self.batch_size
                 end = start + self.batch_size
-                inputs_np = X_train_new[start:end].numpy()
-                targets_np = y_train_new[start:end].numpy()
-                inputs = Variable(torch.FloatTensor(inputs_np))
+                #inputs_np = X_train_new[start:end].numpy()
+                inputs = Variable(X_train_new[start:end])
+                targets = Variable(y_train_new[start:end])
+                #targets_np = y_train_new[start:end].numpy()
+                #inputs = Variable(torch.FloatTensor(inputs_np))
 
                 # compute the target residuals
-                target_resids = get_rel_resids(inputs_np, targets_np)
-                target_resids = Variable(torch.FloatTensor(target_resids))
+                target_resids = get_rel_resids(inputs, targets)
+                #target_resids = get_rel_resids(inputs_np, targets_np)
+                #target_resids = Variable(torch.FloatTensor(target_resids))
 
                 # set gradients to zero
                 self.optimizer.zero_grad()
 
                 # forward
                 outputs = self.net(inputs)
-                output_resids = get_rel_resids(inputs_np, outputs.detach().numpy())
-                output_resids = Variable(torch.FloatTensor(output_resids))
+                output_resids = get_rel_resids(inputs, outputs)
+                #output_resids = get_rel_resids(inputs_np, outputs.detach().numpy())
+                #output_resids = Variable(torch.FloatTensor(output_resids))
 
                 # backward
                 loss = self.criterion(output_resids, target_resids)
+                loss = Variable(loss, requires_grad=True)
                 loss.backward()
 
                 # optimize
