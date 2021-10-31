@@ -6,6 +6,7 @@ from data.load_data import load_synth_spectra, split_data, normalise_spectra
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+from models.network import normalise
 
 plt.rcParams["font.family"] = "serif"
 
@@ -20,18 +21,23 @@ flux_train, flux_valid, flux_test, cont_train, cont_valid, cont_test = split_dat
 n_feature = flux_train.shape[1]
 
 # initialize the simple network and train WITHOUT using the QSOScalers
-unet = LinearUNet(n_feature, 100)
+unet = LinearUNet(n_feature, [100,200])
 optimizer, criterion = create_learners(unet.parameters(), learning_rate=0.1)
 trainer = UNetTrainer(unet, optimizer, criterion)
-trainer.train(wave_grid, flux_train, cont_train, flux_valid, cont_valid)
+trainer.train(wave_grid, flux_train, cont_train, flux_valid, cont_valid, use_QSOScalers=True)
 
 # plot the loss from the training routine
 fig, ax = trainer.plot_loss(epoch_min=0)
 fig.show()
 
 # run some tests on the test set
+# use the QSOScalers on input and output
+flux_test_scaled = trainer.scaler_X.forward(torch.FloatTensor(flux_test))
+cont_test_scaled = trainer.scaler_y.forward(torch.FloatTensor(cont_test))
+
 # plot the residuals vs wavelength
-stats = ResidualStatistics(flux_test, cont_test, None, None, unet)
+stats = ResidualStatistics(flux_test, cont_test, scaler_flux=trainer.scaler_X,\
+                           scaler_cont=trainer.scaler_y, net=unet)
 fig1, ax1 = stats.plot_means(wave_grid, show_std=False)
 fig1.show()
 
@@ -40,13 +46,14 @@ fig2, ax2 = stats.resid_hist()
 fig2.show()
 
 # plot the correlation matrix
-corrmat = CorrelationMatrix(flux_test, cont_test, None, None, unet)
+corrmat = CorrelationMatrix(flux_test, cont_test, trainer.scaler_X, trainer.scaler_y, unet)
 fig3, ax3 = corrmat.show(wave_grid)
 
 # plot a random result
 rand_indx = np.random.randint(len(flux_test))
-rand_result_output = unet(torch.FloatTensor(flux_test[rand_indx]))
-rand_result = rand_result_output.detach().numpy()
+rand_result_output = unet(flux_test_scaled[rand_indx])
+rand_result_descaled = trainer.scaler_y.backward(rand_result_output)
+rand_result = rand_result_descaled.detach().numpy()
 
 fig4, ax4 = plt.subplots(figsize=(7,5), dpi=320)
 ax4.plot(wave_grid, flux_test[rand_indx], alpha=0.8, lw=1, label="Input")
