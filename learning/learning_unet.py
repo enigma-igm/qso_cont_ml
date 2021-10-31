@@ -5,17 +5,27 @@ from sklearn.utils import shuffle
 import numpy as np
 from learning.learning import Trainer
 from models.linear_unet import get_rel_resids
+from models.network import normalise
 
 class UNetTrainer(Trainer):
     def __init__(self, net, optimizer, criterion, batch_size=1000, num_epochs=400):
         super(UNetTrainer, self).__init__(net, optimizer, criterion, batch_size=batch_size, num_epochs=num_epochs)
 
-    def train(self, wave_grid, X_train, y_train, X_valid, y_valid, \
-              savefile="LinearUNet.pth"):
+    def train(self, wave_grid, X_train, y_train, X_valid, y_valid,\
+              savefile="LinearUNet.pth", use_QSOScalers=False):
 
-        # no QSOScaler preprocessing here yet
-        X_train, y_train = torch.FloatTensor(X_train), torch.tensor(y_train)
-        X_valid, y_valid = torch.FloatTensor(X_valid), torch.tensor(y_valid)
+        # use the QSOScaler
+        if use_QSOScalers:
+            self.train_QSOScalers(wave_grid, X_train, y_train)
+            X_train = self.scaler_X.forward(torch.FloatTensor(X_train))
+            y_train = self.scaler_y.forward(torch.FloatTensor(y_train))
+            X_valid = self.scaler_X.forward(torch.FloatTensor(X_valid))
+            y_valid = self.scaler_y.forward(torch.FloatTensor(y_valid))
+
+        else:
+            # no QSOScaler preprocessing here yet
+            X_train, y_train = torch.FloatTensor(X_train), torch.FloatTensor(y_train)
+            X_valid, y_valid = torch.FloatTensor(X_valid), torch.FloatTensor(y_valid)
 
         # set the number of batches
         n_batches = len(X_train) // self.batch_size
@@ -41,7 +51,7 @@ class UNetTrainer(Trainer):
                 #inputs = Variable(torch.FloatTensor(inputs_np))
 
                 # compute the target residuals
-                target_resids = get_rel_resids(inputs, targets)
+                #target_resids = get_rel_resids(inputs, targets)
                 #target_resids = get_rel_resids(inputs_np, targets_np)
                 #target_resids = Variable(torch.FloatTensor(target_resids))
 
@@ -50,12 +60,13 @@ class UNetTrainer(Trainer):
 
                 # forward
                 outputs = self.net(inputs)
-                output_resids = get_rel_resids(inputs, outputs)
+                #output_resids = get_rel_resids(inputs, outputs)
                 #output_resids = get_rel_resids(inputs_np, outputs.detach().numpy())
                 #output_resids = Variable(torch.FloatTensor(output_resids))
 
                 # backward
-                loss = self.criterion(output_resids, target_resids)
+                loss = self.criterion(outputs, targets)
+                #loss = self.criterion(output_resids, target_resids)
                 loss = Variable(loss, requires_grad=True)
                 loss.backward()
 
@@ -70,14 +81,15 @@ class UNetTrainer(Trainer):
             X_valid_new, y_valid_new = shuffle(X_valid, y_valid)
             validinputs = Variable(torch.FloatTensor(X_valid_new.numpy()))
             validtargets = Variable(torch.FloatTensor(y_valid_new.numpy()))
-            valid_target_resids = get_rel_resids(validinputs, validtargets)
+            #valid_target_resids = get_rel_resids(validinputs, validtargets)
 
             # compute the validation set output residuals
             validoutputs = self.net(validinputs)
-            valid_output_resids = get_rel_resids(validinputs, validoutputs)
+            #valid_output_resids = get_rel_resids(validinputs, validoutputs)
 
             # compute the loss
-            validlossfunc = self.criterion(valid_output_resids, valid_target_resids)
+            validlossfunc = self.criterion(validoutputs, validtargets)
+            #validlossfunc = self.criterion(valid_output_resids, valid_target_resids)
             valid_loss[epoch] += validlossfunc.item()
 
             # save the model if the validation loss decreases
