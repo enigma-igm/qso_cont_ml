@@ -67,7 +67,8 @@ class UNetTrainer(Trainer):
                 # backward
                 loss = self.criterion(outputs, targets)
                 #loss = self.criterion(output_resids, target_resids)
-                loss = Variable(loss, requires_grad=True)
+                #loss = Variable(loss, requires_grad=True)   # this may not be necessary
+                #print("Training loss (mini-batch): {:12.3f}".format(loss))
                 loss.backward()
 
                 # optimize
@@ -90,7 +91,8 @@ class UNetTrainer(Trainer):
             # compute the loss
             validlossfunc = self.criterion(validoutputs, validtargets)
             #validlossfunc = self.criterion(valid_output_resids, valid_target_resids)
-            valid_loss[epoch] += validlossfunc.item()
+            valid_loss[epoch] = validlossfunc.item()
+            print("Validation loss: {:12.3f}".format(valid_loss[epoch]/len(X_valid)))
 
             # save the model if the validation loss decreases
             if min_valid_loss > valid_loss[epoch]:
