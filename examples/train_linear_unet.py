@@ -21,14 +21,13 @@ flux_train, flux_valid, flux_test, cont_train, cont_valid, cont_test = split_dat
 n_feature = flux_train.shape[1]
 
 # initialize the simple network and train WITHOUT using the QSOScalers
-unet = LinearUNet(n_feature, [100,200,300], activfunc="elu", operator="multiplication")
-optimizer, criterion = create_learners(unet.parameters(), learning_rate=0.0001)
-trainer = UNetTrainer(unet, optimizer, criterion)
+unet = LinearUNet(n_feature, [100,200,300], activfunc="elu", operator="addition")
+optimizer, criterion = create_learners(unet.parameters(), learning_rate=0.001)
+trainer = UNetTrainer(unet, optimizer, criterion, num_epochs=300)
 trainer.train(wave_grid, flux_train, cont_train, flux_valid, cont_valid, use_QSOScalers=True)
 
 # plot the loss from the training routine
 fig, ax = trainer.plot_loss(epoch_min=0)
-ax.set_ylim(300,600)
 fig.show()
 
 # run some tests on the test set

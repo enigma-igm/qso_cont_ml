@@ -3,6 +3,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 from torch.autograd import Variable
+from pypeit.utils import fast_running_median
 
 
 class Operator:
@@ -111,24 +112,14 @@ class LinearUNet(torch.nn.Module):
         Yup2 = self.activ(Yup2)
 
         Yup3 = self.uplayer3(Yup2)
-        Yup3 = self.operator(Yup3, x)
-        result = self.activ(Yup3)
+        # smooth the input x before adding it
+        #x_smooth = fast_running_median(x, 20)   # gives rise to an error
+        #result = self.operator(Yup3, x_smooth)
+        result = self.operator(Yup3, x)
+        # result = self.activ(Yup3)   # not necessary --> forces positives
 
         return result
 
-        # this Y should be the relative residual (cont - flux)/flux
-        # this should be positive in the absence of noise
-        # compute the residuals and apply an acitvation function
-        #Y += x
-        #return F.elu(Y)
-        #x_res = self.predict(x_activ)
-
-        # compute relative residuals in output space
-        # we want our training routine to find the right residuals
-        # use a sigmioid activation function to force the residuals to be +
-        #self.rel_resids = self.sigmoid(get_rel_resids(x, x_res))
-
-        #return x_res
 
     def backward(self, x):
 
