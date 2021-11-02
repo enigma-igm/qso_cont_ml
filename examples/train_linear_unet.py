@@ -1,7 +1,7 @@
 from models.linear_unet import LinearUNet
 from learning.learning_unet import UNetTrainer
 from learning.learning import create_learners
-from learning.testing import ResidualStatistics, CorrelationMatrix
+from learning.testing import ResidualStatistics, CorrelationMatrix, ModelResults
 from data.load_data import load_synth_spectra, split_data, normalise_spectra
 import matplotlib.pyplot as plt
 import numpy as np
@@ -20,14 +20,14 @@ flux_train, flux_valid, flux_test, cont_train, cont_valid, cont_test = split_dat
 # derive dimensions
 n_feature = flux_train.shape[1]
 
-# initialize the simple network and train WITHOUT using the QSOScalers
+# initialize the simple network and train with the QSOScalers
 unet = LinearUNet(n_feature, [100,200,300], activfunc="elu", operator="addition")
 optimizer, criterion = create_learners(unet.parameters(), learning_rate=0.001)
 trainer = UNetTrainer(unet, optimizer, criterion, num_epochs=300)
 trainer.train(wave_grid, flux_train, cont_train, flux_valid, cont_valid, use_QSOScalers=True)
 
 # plot the loss from the training routine
-fig, ax = trainer.plot_loss(epoch_min=0)
+fig, ax = trainer.plot_loss(epoch_min=1)
 fig.show()
 
 # run some tests on the test set
@@ -50,18 +50,27 @@ corrmat = CorrelationMatrix(flux_test, cont_test, trainer.scaler_X, trainer.scal
 fig3, ax3 = corrmat.show(wave_grid)
 
 # plot a random result
-rand_indx = np.random.randint(len(flux_test))
-rand_result_output = unet(flux_test_scaled[rand_indx])
-rand_result_descaled = trainer.scaler_y.backward(rand_result_output)
-rand_result = rand_result_descaled.detach().numpy()
+testres = ModelResults(wave_grid, flux_test, cont_test, unet, scaler_flux=trainer.scaler_X,\
+                       scaler_cont=trainer.scaler_y)
+rand_indx = testres.random_index(4)
+testres.create_figure(figsize=(15,10))
+for i in range(len(rand_indx)):
+    loc = int("22"+str(i+1))
+    testres.plot(rand_indx[i], subplotloc=loc)
 
-fig4, ax4 = plt.subplots(figsize=(7,5), dpi=320)
-ax4.plot(wave_grid, flux_test[rand_indx], alpha=0.8, lw=1, label="Input")
-ax4.plot(wave_grid, cont_test[rand_indx], alpha=0.7, lw=2, label="Target")
-ax4.plot(wave_grid, rand_result, alpha=0.8, lw=1, ls="--", label="Output")
-ax4.set_xlabel("Rest-frame wavelength ($\AA$)")
-ax4.set_ylabel("Normalised flux")
-ax4.legend()
-ax4.grid()
-ax4.set_title("Random example of a predicted QSO spectrum")
-fig4.show()
+testres.show_figure()
+#rand_indx = np.random.randint(len(flux_test))
+#rand_result_output = unet(flux_test_scaled[rand_indx])
+#rand_result_descaled = trainer.scaler_y.backward(rand_result_output)
+#rand_result = rand_result_descaled.detach().numpy()
+
+#fig4, ax4 = plt.subplots(figsize=(7,5), dpi=320)
+#ax4.plot(wave_grid, flux_test[rand_indx], alpha=0.8, lw=1, label="Input")
+#ax4.plot(wave_grid, cont_test[rand_indx], alpha=0.7, lw=2, label="Target")
+#ax4.plot(wave_grid, rand_result, alpha=0.8, lw=1, ls="--", label="Output")
+#ax4.set_xlabel("Rest-frame wavelength ($\AA$)")
+#ax4.set_ylabel("Normalised flux")
+#ax4.legend()
+#ax4.grid()
+#ax4.set_title("Random example of a predicted QSO spectrum")
+#fig4.show()
