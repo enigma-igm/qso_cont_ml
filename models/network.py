@@ -15,7 +15,7 @@ class Net(torch.nn.Module):
         x_res = self.predict(x_activ)         # linear output
         return x_res
 
-    def full_predict(self, x_regscale, scaler_X=None, scaler_y=None):
+    def full_predict(self, x_regscale, scaler_X=None, scaler_y=None, smooth=False):
         '''Direct method for predicting the continuum without manually normalising the input
         and rescaling the output again.'''
 
