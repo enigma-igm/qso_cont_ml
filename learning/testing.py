@@ -3,6 +3,104 @@ import matplotlib.pyplot as plt
 from utils.errorfuncs import relative_residuals, corr_matrix_relresids
 from astropy.stats import mad_std
 from scipy.stats import norm
+import torch
+
+
+class ModelResults:
+    '''Class for easily plotting model output on test spectra.'''
+
+    def __init__(self, wave_grid, flux_test, cont_test, net, scaler_flux=None, scaler_cont=None):
+        self.wave_grid = wave_grid
+        self.flux_test = flux_test
+        self.cont_test = cont_test
+        self.scaler_flux = scaler_flux
+        self.scaler_cont = scaler_cont
+        self.net = net
+
+        if scaler_flux is None:
+            self.use_QSOScaler = False
+        else:
+            self.use_QSOScaler = True
+
+
+    def predict_numpy(self):
+        '''Gets all the predictions on the test set and converts everything to
+        numpy arrays.'''
+
+        flux_tensor = torch.FloatTensor(self.flux_test)
+
+        if self.use_QSOScaler:
+            input = self.scaler_flux.forward(flux_tensor)
+            res = self.net(input)
+            res_descaled = self.scaler_cont.backward(res)
+            res_np = res_descaled.detach().numpy()
+
+        else:
+            res = self.net(flux_tensor)
+            res_np = res.detach().numpy()
+
+        self.cont_pred_np = res_np
+        return self.cont_pred_np
+
+
+    def random_index(self, size=1):
+        '''Draw size random indices in order to plot random predictions.'''
+
+        rand_indx = np.random.randint(0, len(self.flux_test), size)
+
+        return rand_indx
+
+
+    def create_figure(self, figsize=(7,5), dpi=320):
+        '''Create a figure to add subplots to.'''
+
+        self.fig = plt.figure(figsize=figsize, dpi=dpi)
+        self.axes = []
+
+        return self.fig
+
+
+    def plot(self, index, figsize=(7,5), dpi=320, subplotloc=111):
+        '''Plot the prediction for the spectrum of a certain index.'''
+
+        try:
+            preds = self.cont_pred_np
+        except:
+            preds = self.predict_numpy()
+
+        cont_pred = preds[index]
+
+        try:
+            fig = self.fig
+        except:
+            fig = self.create_figure(figsize=figsize, dpi=dpi)
+
+        ax = fig.add_subplot(subplotloc)
+
+        ax.plot(self.wave_grid, self.flux_test[index], alpha=0.8, lw=1,\
+                label="Mock spectrum")
+        ax.plot(self.wave_grid, self.cont_test[index], alpha=0.7, lw=2,\
+                label="True continuum")
+        ax.plot(self.wave_grid, cont_pred, alpha=0.8, lw=1, ls="--",\
+                label="Predicted continuum")
+
+        ax.set_xlabel("Rest-frame wavelength ($\AA$)")
+        ax.set_ylabel("Normalised flux")
+        ax.legend()
+        ax.grid()
+        ax.set_title("Results for test spectrum "+str(index+1))
+
+        self.axes.append(ax)
+
+        return ax
+
+
+    def show_figure(self):
+
+        self.fig.tight_layout()
+        self.fig.show()
+
+
 
 class CorrelationMatrix:
     def __init__(self, flux_test, cont_test, scaler_flux, scaler_cont, net):

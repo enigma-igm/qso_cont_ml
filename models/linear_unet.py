@@ -1,4 +1,5 @@
 # contains the model class for U-Net-like structures
+import numpy as np
 import torch
 from torch import nn
 import torch.nn.functional as F
@@ -90,8 +91,7 @@ class LinearUNet(torch.nn.Module):
         #downblock = LinearDownBlock(in_out_dim, size_hidden_down, activfunc=activfunc)
         # set up the up block
 
-
-    def forward(self, x):
+    def forward(self, x, x_smooth=None):
         # first perform the transformation to the latent space (dim size_hidden)
         # then apply the activation function to the result
         Ydown1 = self.activ(self.downlayer1(x))
@@ -112,27 +112,40 @@ class LinearUNet(torch.nn.Module):
         Yup2 = self.activ(Yup2)
 
         Yup3 = self.uplayer3(Yup2)
-        # smooth the input x before adding it
-        #x_smooth = fast_running_median(x, 20)   # gives rise to an error
-        #result = self.operator(Yup3, x_smooth)
-        result = self.operator(Yup3, x)
+
+        if x_smooth is None:
+            # smooth the input x before adding it
+            # we need to do this in a loop
+            # and we need to turn the input into an array
+            x_smooth = np.zeros(x.shape)
+            for i in range(len(x)):
+                x_smooth[i,:] = fast_running_median(x.detach().numpy()[i], 20)
+            #x_smooth = fast_running_median(x, 20)   # gives rise to an error
+            result = self.operator(Yup3, Variable(torch.FloatTensor(x_smooth)))
+
+        else:
+            result = self.operator(Yup3, x_smooth)
+        #result = self.operator(Yup3, x)
         # result = self.activ(Yup3)   # not necessary --> forces positives
 
         return result
 
 
-    def backward(self, x):
-
-        x_flux = x / (self.rel_resids + 1)
-        return x_flux
-
-
     def full_predict(self, x, scaler_X=None, scaler_y=None):
 
         x = torch.FloatTensor(x)
-        input = Variable(x)
-        res = self(input)
-        res_np = res.detach().numpy()
+
+        if scaler_X is None:
+            input = Variable(x)
+            res = self(input)
+            res_np = res.detach().numpy()
+
+        else:
+            x_scaled = scaler_X.forward(x)
+            input = Variable(x_scaled)
+            res = self(input)
+            res_descaled = scaler_y.backward(res)
+            res_np = res_descaled.detach().numpy()
 
         return res_np
 
