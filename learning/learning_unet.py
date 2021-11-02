@@ -13,7 +13,7 @@ class UNetTrainer(Trainer):
         super(UNetTrainer, self).__init__(net, optimizer, criterion, batch_size=batch_size, num_epochs=num_epochs)
 
     def train(self, wave_grid, X_train, y_train, X_valid, y_valid,\
-              savefile="LinearUNet.pth", use_QSOScalers=False):
+              savefile="LinearUNet.pth", use_QSOScalers=False, smooth=False):
 
         # use the QSOScaler
         if use_QSOScalers:
@@ -36,19 +36,23 @@ class UNetTrainer(Trainer):
         valid_loss = np.zeros(self.num_epochs)
         min_valid_loss = np.inf
 
-        # smooth the input for the last skip connection
-        X_train_smooth, X_valid_smooth = np.zeros(X_train.shape), np.zeros(X_valid.shape)
-        for i in range(len(X_train)):
-            X_train_smooth[i] = fast_running_median(X_train.detach().numpy()[i], 20)
-        for i in range(len(X_valid)):
-            X_valid_smooth[i] = fast_running_median(X_valid.detach().numpy()[i], 20)
-        X_train_smooth = Variable(torch.FloatTensor(X_train_smooth))
-        X_valid_smooth = Variable(torch.FloatTensor(X_valid_smooth))
+        if smooth:
+            # smooth the input for the last skip connection
+            X_train_smooth, X_valid_smooth = np.zeros(X_train.shape), np.zeros(X_valid.shape)
+            for i in range(len(X_train)):
+                X_train_smooth[i] = fast_running_median(X_train.detach().numpy()[i], 20)
+            for i in range(len(X_valid)):
+                X_valid_smooth[i] = fast_running_median(X_valid.detach().numpy()[i], 20)
+            X_train_smooth = Variable(torch.FloatTensor(X_train_smooth))
+            X_valid_smooth = Variable(torch.FloatTensor(X_valid_smooth))
 
         # train the model to find good relative residuals
         for epoch in range(self.num_epochs):
             # shuffle training data
-            X_train_new, y_train_new, X_train_smooth_new = shuffle(X_train, y_train, X_train_smooth)
+            if smooth:
+                X_train_new, y_train_new, X_train_smooth_new = shuffle(X_train, y_train, X_train_smooth)
+            else:
+                X_train_new, y_train_new = shuffle(X_train, y_train)
 
             # train in batches
             for i in range(n_batches):
@@ -57,7 +61,9 @@ class UNetTrainer(Trainer):
                 #inputs_np = X_train_new[start:end].numpy()
                 inputs = Variable(X_train_new[start:end])
                 targets = Variable(y_train_new[start:end])
-                inputs_smooth = X_train_smooth_new[start:end]
+
+                if smooth:
+                    inputs_smooth = X_train_smooth_new[start:end]
                 #targets_np = y_train_new[start:end].numpy()
                 #inputs = Variable(torch.FloatTensor(inputs_np))
 
@@ -70,7 +76,10 @@ class UNetTrainer(Trainer):
                 self.optimizer.zero_grad()
 
                 # forward
-                outputs = self.net(inputs, inputs_smooth)
+                if smooth:
+                    outputs = self.net(inputs, inputs_smooth)
+                else:
+                    outputs = self.net(inputs)
                 #output_resids = get_rel_resids(inputs, outputs)
                 #output_resids = get_rel_resids(inputs_np, outputs.detach().numpy())
                 #output_resids = Variable(torch.FloatTensor(output_resids))
@@ -90,13 +99,19 @@ class UNetTrainer(Trainer):
             print("Epoch " + str(epoch+1) + "/" + str(self.num_epochs) + "completed.")
 
             # now use the validation set
-            X_valid_new, y_valid_new, X_valid_smooth_new = shuffle(X_valid, y_valid, X_valid_smooth)
+            if smooth:
+                X_valid_new, y_valid_new, X_valid_smooth_new = shuffle(X_valid, y_valid, X_valid_smooth)
+            else:
+                X_valid_new, y_valid_new = shuffle(X_valid, y_valid)
             validinputs = Variable(torch.FloatTensor(X_valid_new.numpy()))
             validtargets = Variable(torch.FloatTensor(y_valid_new.numpy()))
             #valid_target_resids = get_rel_resids(validinputs, validtargets)
 
             # compute the validation set output residuals
-            validoutputs = self.net(validinputs, X_valid_smooth_new)
+            if smooth:
+                validoutputs = self.net(validinputs, X_valid_smooth_new)
+            else:
+                validoutputs = self.net(validinputs)
             #valid_output_resids = get_rel_resids(validinputs, validoutputs)
 
             # compute the loss

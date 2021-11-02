@@ -91,7 +91,7 @@ class LinearUNet(torch.nn.Module):
         #downblock = LinearDownBlock(in_out_dim, size_hidden_down, activfunc=activfunc)
         # set up the up block
 
-    def forward(self, x, x_smooth=None):
+    def forward(self, x, x_smooth=None, smooth=False):
         # first perform the transformation to the latent space (dim size_hidden)
         # then apply the activation function to the result
         Ydown1 = self.activ(self.downlayer1(x))
@@ -114,15 +114,17 @@ class LinearUNet(torch.nn.Module):
         Yup3 = self.uplayer3(Yup2)
 
         if x_smooth is None:
-            # smooth the input x before adding it
-            # we need to do this in a loop
-            # and we need to turn the input into an array
-            x_smooth = np.zeros(x.shape)
-            for i in range(len(x)):
-                x_smooth[i,:] = fast_running_median(x.detach().numpy()[i], 20)
-            #x_smooth = fast_running_median(x, 20)   # gives rise to an error
-            result = self.operator(Yup3, Variable(torch.FloatTensor(x_smooth)))
+            if smooth:
+                # smooth the input x before adding it
+                # we need to do this in a loop
+                # and we need to turn the input into an array
+                x_smooth = np.zeros(x.shape)
+                for i in range(len(x)):
+                    x_smooth[i,:] = fast_running_median(x.detach().numpy()[i], 20)
+                #x_smooth = fast_running_median(x, 20)   # gives rise to an error
+                result = self.operator(Yup3, Variable(torch.FloatTensor(x_smooth)))
 
+            else: result = self.operator(Yup3, x)
         else:
             result = self.operator(Yup3, x_smooth)
         #result = self.operator(Yup3, x)
@@ -131,19 +133,19 @@ class LinearUNet(torch.nn.Module):
         return result
 
 
-    def full_predict(self, x, scaler_X=None, scaler_y=None):
+    def full_predict(self, x, scaler_X=None, scaler_y=None, smooth=False):
 
         x = torch.FloatTensor(x)
 
         if scaler_X is None:
             input = Variable(x)
-            res = self(input)
+            res = self(input, smooth=smooth)
             res_np = res.detach().numpy()
 
         else:
             x_scaled = scaler_X.forward(x)
             input = Variable(x_scaled)
-            res = self(input)
+            res = self(input, smooth=smooth)
             res_descaled = scaler_y.backward(res)
             res_np = res_descaled.detach().numpy()
 

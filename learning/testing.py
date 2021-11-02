@@ -9,13 +9,15 @@ import torch
 class ModelResults:
     '''Class for easily plotting model output on test spectra.'''
 
-    def __init__(self, wave_grid, flux_test, cont_test, net, scaler_flux=None, scaler_cont=None):
+    def __init__(self, wave_grid, flux_test, cont_test, net, scaler_flux=None,\
+                 scaler_cont=None, smooth=False):
         self.wave_grid = wave_grid
         self.flux_test = flux_test
         self.cont_test = cont_test
         self.scaler_flux = scaler_flux
         self.scaler_cont = scaler_cont
         self.net = net
+        self.smooth = smooth
 
         if scaler_flux is None:
             self.use_QSOScaler = False
@@ -31,12 +33,12 @@ class ModelResults:
 
         if self.use_QSOScaler:
             input = self.scaler_flux.forward(flux_tensor)
-            res = self.net(input)
+            res = self.net(input, smooth=self.smooth)
             res_descaled = self.scaler_cont.backward(res)
             res_np = res_descaled.detach().numpy()
 
         else:
-            res = self.net(flux_tensor)
+            res = self.net(flux_tensor, smooth=self.smooth)
             res_np = res.detach().numpy()
 
         self.cont_pred_np = res_np
@@ -103,7 +105,8 @@ class ModelResults:
 
 
 class CorrelationMatrix:
-    def __init__(self, flux_test, cont_test, scaler_flux, scaler_cont, net):
+    def __init__(self, flux_test, cont_test, scaler_flux, scaler_cont, net,\
+                 smooth=False):
         self.X_test = flux_test
         self.y_test = cont_test
         self.scaler_X = scaler_flux
@@ -117,7 +120,8 @@ class CorrelationMatrix:
 
         # compute the correlation matrix
         # first forward the model
-        result_test = net.full_predict(flux_test, scaler_flux, scaler_cont)
+        result_test = net.full_predict(flux_test, scaler_flux, scaler_cont,\
+                                       smooth=smooth)
         #if self.use_QSOScaler:
         #    result_test = net.full_predict(flux_test, self.scaler_X, self.scaler_y)
         #else:
@@ -150,7 +154,8 @@ class CorrelationMatrix:
 
 
 class ResidualStatistics:
-    def __init__(self, flux_test, cont_test, scaler_flux, scaler_cont, net):
+    def __init__(self, flux_test, cont_test, scaler_flux, scaler_cont, net,\
+                 smooth=False):
         self.X_test = flux_test
         self.y_test = cont_test
         self.scaler_X = scaler_flux
@@ -165,7 +170,8 @@ class ResidualStatistics:
         # compute residuals relative to flux in absorption spectrum (for every point on the wavelength grid)
         # compute some statistics
         # first forward the model to get predictions
-        result_test = net.full_predict(flux_test, scaler_flux, scaler_cont)
+        result_test = net.full_predict(flux_test, scaler_flux, scaler_cont,\
+                                       smooth=smooth)
         #if self.use_QSOScaler:
         #    result_test = net.full_predict(self.X_test, self.scaler_X, self.scaler_y)
         #else:
