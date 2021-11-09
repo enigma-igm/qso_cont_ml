@@ -15,15 +15,30 @@ class Net(torch.nn.Module):
         x_res = self.predict(x_activ)         # linear output
         return x_res
 
-    def full_predict(self, x_regscale, scaler_X, scaler_y):
+    def full_predict(self, x_regscale, scaler_X=None, scaler_y=None, smooth=False):
         '''Direct method for predicting the continuum without manually normalising the input
         and rescaling the output again.'''
 
-        x_normed = normalise(scaler_X, x_regscale)
+        if scaler_X is None:
+            use_QSOScaler = False
+        else:
+            use_QSOScaler = True
+
+        if use_QSOScaler:
+            x_normed = normalise(scaler_X, x_regscale)
+        else:
+            x_normed = torch.tensor(x_regscale)
+
         input = Variable(torch.FloatTensor(x_normed.numpy()))
         res_normed = self(input)
-        res = scaler_y.backward(res_normed)
-        res_regscale = res.detach().numpy()
+
+        if use_QSOScaler:
+            res = scaler_y.backward(res_normed)
+            res_regscale = res.detach().numpy()
+
+        else:
+            res_regscale = res_normed.detach().numpy()
+
         return res_regscale
 
 
