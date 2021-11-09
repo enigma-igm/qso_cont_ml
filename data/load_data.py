@@ -1,25 +1,44 @@
 import numpy as np
 from sklearn.model_selection import train_test_split
 
-def load_synth_spectra(regridded=True, small=False, npca=10):
+def load_synth_spectra(regridded=True, small=False, npca=10,\
+                       noise=False):
     datapath = "/net/vdesk/data2/buiten/MRP2/pca-sdss-old/"
     if npca==10:
-        if regridded:
-            if small:
-                data = np.load(datapath+"gen_spectrum_regridded_array.npy")
-            else:
-                data = np.load(datapath+"gen_spectrum_regridded_big_array.npy")
+        if noise:
+            data = np.load(datapath+"forest_spectra_with_noise_regridded.npy")
         else:
-            if small:
-                data = np.load(datapath+"gen_spectrum_nonregridded_array.npy")
+            if regridded:
+                if small:
+                    data = np.load(datapath+"gen_spectrum_regridded_array.npy")
+                else:
+                    data = np.load(datapath+"gen_spectrum_regridded_big_array.npy")
             else:
-                data = np.load(datapath+"gen_spectrum_nonregridded_big_array.npy")
+                if small:
+                    data = np.load(datapath+"gen_spectrum_nonregridded_array.npy")
+                else:
+                    data = np.load(datapath+"gen_spectrum_nonregridded_big_array.npy")
 
     else:
         if regridded:
             data = np.load(datapath+"gen_spectrum_regridded_big_array_npca"+str(npca)+".npy")
         else:
             data = np.load(datapath+"gen_spectrum_nonregridded_big_array_npca"+str(npca)+".npy")
+
+    wave_grid = data[0,:,0]
+    qso_cont = data[:,:,1]
+    qso_flux = data[:,:,2]
+
+    return wave_grid, qso_cont, qso_flux
+
+
+def load_synth_noisy_cont():
+    '''Convenience function for loading the synthetic continua with homoscedastic
+    noise. qso_cont contains the continua, qso_flux contain the noisy continua.'''
+
+    datapath = "/net/vdesk/data2/buiten/MRP2/pca-sdss-old/"
+
+    data = np.load(datapath+"continua_with_noise_regridded.npy")
 
     wave_grid = data[0,:,0]
     qso_cont = data[:,:,1]
