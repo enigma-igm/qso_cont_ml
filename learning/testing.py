@@ -62,7 +62,8 @@ class ModelResults:
         return self.fig
 
 
-    def plot(self, index, figsize=(7,5), dpi=320, subplotloc=111):
+    def plot(self, index, figsize=(7,5), dpi=320, subplotloc=111,\
+             alpha=0.7, contpredcolor="darkred"):
         '''Plot the prediction for the spectrum of a certain index.'''
 
         try:
@@ -79,12 +80,12 @@ class ModelResults:
 
         ax = fig.add_subplot(subplotloc)
 
-        ax.plot(self.wave_grid, self.flux_test[index], alpha=0.8, lw=1,\
+        ax.plot(self.wave_grid, self.flux_test[index], alpha=alpha, lw=1,\
                 label="Mock spectrum")
-        ax.plot(self.wave_grid, self.cont_test[index], alpha=0.7, lw=2,\
+        ax.plot(self.wave_grid, self.cont_test[index], alpha=alpha, lw=2,\
                 label="True continuum")
-        ax.plot(self.wave_grid, cont_pred, alpha=0.8, lw=1, ls="--",\
-                label="Predicted continuum")
+        ax.plot(self.wave_grid, cont_pred, alpha=alpha, lw=1, ls="--",\
+                label="Predicted continuum", color=contpredcolor)
 
         ax.set_xlabel("Rest-frame wavelength ($\AA$)")
         ax.set_ylabel("Normalised flux")

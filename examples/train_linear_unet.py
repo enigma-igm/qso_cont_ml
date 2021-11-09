@@ -7,11 +7,18 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from models.network import normalise
+from data.load_data import load_synth_noisy_cont
 
 plt.rcParams["font.family"] = "serif"
 
 # load the synthetic spectra with npca=10 and normalise to 1 around 1280 \AA
-wave_grid, qso_cont, qso_flux = load_synth_spectra(small=False)
+#wave_grid, qso_cont, qso_flux = load_synth_spectra(small=False)
+
+# load the synthetic continua with homoscedastic noise
+#wave_grid, qso_cont, qso_flux = load_synth_noisy_cont()
+
+# load the synthetic spectra with homoscedastic noise and forest
+wave_grid, qso_cont, qso_flux = load_synth_spectra(noise=True)
 flux_norm, cont_norm = normalise_spectra(wave_grid, qso_flux, qso_cont)
 
 # split into training set, validation set and test set
@@ -21,10 +28,11 @@ flux_train, flux_valid, flux_test, cont_train, cont_valid, cont_test = split_dat
 n_feature = flux_train.shape[1]
 
 # set whether we want to smooth the input in the last skip connection
-smooth = True
+smooth = False
 
 # initialize the simple network and train with the QSOScalers
-unet = LinearUNet(n_feature, [100,200,300], activfunc="elu", operator="addition")
+unet = LinearUNet(n_feature, [100,200,300], activfunc="elu", operator="addition",\
+                  no_final_skip=True)
 optimizer, criterion = create_learners(unet.parameters(), learning_rate=0.001)
 trainer = UNetTrainer(unet, optimizer, criterion, num_epochs=300)
 trainer.train(wave_grid, flux_train, cont_train, flux_valid, cont_valid,\

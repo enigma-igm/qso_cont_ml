@@ -71,7 +71,8 @@ class LinearUpBlock(torch.nn.Module):
 
 
 class LinearUNet(torch.nn.Module):
-    def __init__(self, in_out_dim, size_hidden, activfunc="relu", operator="addition"):
+    def __init__(self, in_out_dim, size_hidden, activfunc="relu",\
+                 operator="addition", no_final_skip=False):
         '''Linear additive U-Net-like model where the input and output have the
         same dimensions.'''
 
@@ -88,6 +89,7 @@ class LinearUNet(torch.nn.Module):
 
         self.activ = get_activfunc(activfunc=activfunc)
         self.operator = Operator(operator=operator)
+        self.no_final_skip = no_final_skip
         #downblock = LinearDownBlock(in_out_dim, size_hidden_down, activfunc=activfunc)
         # set up the up block
 
@@ -113,24 +115,28 @@ class LinearUNet(torch.nn.Module):
 
         Yup3 = self.uplayer3(Yup2)
 
-        if x_smooth is None:
-            if smooth:
-                # smooth the input x before adding it
-                # we need to do this in a loop
-                # and we need to turn the input into an array
-                x_smooth = np.zeros(x.shape)
-                for i in range(len(x)):
-                    x_smooth[i,:] = fast_running_median(x.detach().numpy()[i], 20)
-                #x_smooth = fast_running_median(x, 20)   # gives rise to an error
-                result = self.operator(Yup3, Variable(torch.FloatTensor(x_smooth)))
+        if self.no_final_skip:
+            return Yup3
 
-            else: result = self.operator(Yup3, x)
         else:
-            result = self.operator(Yup3, x_smooth)
-        #result = self.operator(Yup3, x)
-        # result = self.activ(Yup3)   # not necessary --> forces positives
+            if x_smooth is None:
+                if smooth:
+                    # smooth the input x before adding it
+                    # we need to do this in a loop
+                    # and we need to turn the input into an array
+                    x_smooth = np.zeros(x.shape)
+                    for i in range(len(x)):
+                        x_smooth[i,:] = fast_running_median(x.detach().numpy()[i], 20)
+                    #x_smooth = fast_running_median(x, 20)   # gives rise to an error
+                    result = self.operator(Yup3, Variable(torch.FloatTensor(x_smooth)))
 
-        return result
+                else: result = self.operator(Yup3, x)
+            else:
+                result = self.operator(Yup3, x_smooth)
+            #result = self.operator(Yup3, x)
+            # result = self.activ(Yup3)   # not necessary --> forces positives
+
+            return result
 
 
     def full_predict(self, x, scaler_X=None, scaler_y=None, smooth=False):
