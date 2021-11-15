@@ -20,10 +20,13 @@ def load_synth_spectra(regridded=True, small=False, npca=10,\
                     data = np.load(datapath+"gen_spectrum_nonregridded_big_array.npy")
 
     else:
-        if regridded:
-            data = np.load(datapath+"gen_spectrum_regridded_big_array_npca"+str(npca)+".npy")
+        if noise:
+            data = np.load(datapath+"forest_spectra_with_noise_regridded_npca"+str(npca)+".npy")
         else:
-            data = np.load(datapath+"gen_spectrum_nonregridded_big_array_npca"+str(npca)+".npy")
+            if regridded:
+                data = np.load(datapath+"gen_spectrum_regridded_big_array_npca"+str(npca)+".npy")
+            else:
+                data = np.load(datapath+"gen_spectrum_nonregridded_big_array_npca"+str(npca)+".npy")
 
     wave_grid = data[0,:,0]
     qso_cont = data[:,:,1]
