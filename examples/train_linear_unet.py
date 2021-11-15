@@ -34,8 +34,11 @@ n_feature = flux_train.shape[1]
 smooth = True
 no_final_skip = False
 
+# set the hidden layer dimensions
+layerdims = [100,200,300,400,500]
+
 # initialize the simple network and train with the QSOScalers
-unet = LinearUNet(n_feature, [100,200,300], activfunc="elu", operator="addition",\
+unet = LinearUNet(n_feature, layerdims, activfunc="elu", operator="addition",\
                   no_final_skip=no_final_skip)
 optimizer, criterion = create_learners(unet.parameters(), learning_rate=0.001)
 trainer = UNetTrainer(unet, optimizer, criterion, num_epochs=200)
@@ -57,10 +60,10 @@ fig.show()
 #                                      fill_value="extrapolate", axis=1)(wave_grid)
 
 # use the hand-fit continua + simulated forest + simulated noise
-wave_hf, cont_hf, flux_hf = load_paris_spectra(noise=True)
+#wave_hf, cont_hf, flux_hf = load_paris_spectra(noise=True)
 
 # normalise the hand-fit spectra
-flux_test, cont_test = normalise_spectra(wave_hf, flux_hf, cont_hf)
+#flux_test, cont_test = normalise_spectra(wave_hf, flux_hf, cont_hf)
 #flux_test, cont_test = normalise_spectra(wave_grid, flux_hf_hybrid, cont_hf_hybrid)
 wave_test = wave_grid
 
@@ -68,20 +71,29 @@ wave_test = wave_grid
 flux_test_scaled = trainer.scaler_X.forward(torch.FloatTensor(flux_test))
 cont_test_scaled = trainer.scaler_y.forward(torch.FloatTensor(cont_test))
 
+plotpath = "/net/vdesk/data2/buiten/MRP2/misc-figures/LinearUNet/"
+plotpathadd = "/runmed-smoothing/"
+filenamestart = plotpath+plotpathadd+str(len(layerdims))+"layers_smooth_"
+filenameend = "_15_11.png"
+
 # plot the residuals vs wavelength
 stats = ResidualStatistics(flux_test, cont_test, scaler_flux=trainer.scaler_X,\
                            scaler_cont=trainer.scaler_y, net=unet, smooth=smooth)
 fig1, ax1 = stats.plot_means(wave_test, show_std=False)
 fig1.show()
+fig1.savefig(filenamestart+"residspec"+filenameend)
 
 # plot the residuals in a histogram
 fig2, ax2 = stats.resid_hist()
 fig2.show()
+fig2.savefig(filenamestart+"residhist"+filenameend)
 
 # plot the correlation matrix
 corrmat = CorrelationMatrix(flux_test, cont_test, trainer.scaler_X,\
                             trainer.scaler_y, unet, smooth=smooth)
 fig3, ax3 = corrmat.show(wave_test)
+fig3.savefig(filenamestart+"corrmat"+filenameend)
+
 
 # plot a random result
 testres = ModelResults(wave_test, flux_test, cont_test, unet, scaler_flux=trainer.scaler_X,\
@@ -91,9 +103,10 @@ testres.create_figure(figsize=(15,10))
 for i in range(len(rand_indx)):
     loc = int("22"+str(i+1))
     ax = testres.plot(rand_indx[i], subplotloc=loc)
-testres.fig.suptitle("Test on Paris hand-fit spectra")
+testres.fig.suptitle("Test on synthetic spectra (npca = 10)")
 
 testres.show_figure()
+testres.fig.savefig(filenamestart+"examples"+filenameend)
 #rand_indx = np.random.randint(len(flux_test))
 #rand_result_output = unet(flux_test_scaled[rand_indx])
 #rand_result_descaled = trainer.scaler_y.backward(rand_result_output)
