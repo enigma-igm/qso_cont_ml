@@ -37,7 +37,7 @@ true_mean_flux = np.mean(mean_flux_z)
 mean_flux_range = np.clip([true_mean_flux-0.1, true_mean_flux+0.1], 0.01, 1.0)
 
 nskew = 1000
-npca = 15
+npca = 10
 
 pcafilename = 'COARSE_PCA_150_1000_2000_forest.pkl' # File holding (the old) PCA vectors
 nF = 10 # Number of mean flux

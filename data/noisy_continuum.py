@@ -86,5 +86,5 @@ for i in range(nsamp):
     savearray[i,:,2] = flux_blu_red[i,:]
 
 savepath = "/net/vdesk/data2/buiten/MRP2/pca-sdss-old/"
-np.save(savepath+"continua_with_noise_regridded.npy", savearray)
+np.save(savepath+"continua_with_noise_regridded_npca"+str(npca)+".npy", savearray)
 print ("Array saved.")
