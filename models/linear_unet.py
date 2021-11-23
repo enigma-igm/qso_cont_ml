@@ -223,19 +223,25 @@ class LinearUNet(torch.nn.Module):
         #    return result
 
 
-    def full_predict(self, x, scaler_X=None, scaler_y=None, smooth=False):
+    def full_predict(self, x, scaler_X=None, scaler_y=None, smooth=False, x_smooth=None):
 
         x = torch.FloatTensor(x)
 
         if scaler_X is None:
             input = Variable(x)
-            res = self(input, smooth=smooth)
+            res = self(input, smooth=smooth, x_smooth=x_smooth)
             res_np = res.detach().numpy()
 
         else:
+            # apply the scaler after smoothing
+            if smooth:
+                x_smooth_scaled = scaler_X.forward(torch.FloatTensor(x_smooth))
+            else:
+                x_smooth_scaled = None
+
             x_scaled = scaler_X.forward(x)
             input = Variable(x_scaled)
-            res = self(input, smooth=smooth)
+            res = self(input, smooth=smooth, x_smooth=x_smooth_scaled)
             res_descaled = scaler_y.backward(res)
             res_np = res_descaled.detach().numpy()
 
