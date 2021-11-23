@@ -23,17 +23,17 @@ plt.rcParams["font.family"] = "serif"
 # load the synthetic spectra with homoscedastic noise and forest
 # load the npca = 10 spectra as for training
 # and load the npca = 15 spectra for testing
-wave_grid, qso_cont, qso_flux = load_synth_spectra(noise=True)
+wave_grid, qso_cont, qso_flux = load_synth_spectra(noise=True, npca=15)
 flux_norm, cont_norm = normalise_spectra(wave_grid, qso_flux, qso_cont)
 
-wave_grid15, qso_cont15, qso_flux15 = load_synth_spectra(noise=True, npca=15)
-flux_norm15, cont_norm15 = normalise_spectra(wave_grid15, qso_flux15,\
-                                             qso_cont15)
+#wave_grid15, qso_cont15, qso_flux15 = load_synth_spectra(noise=True, npca=15)
+#flux_norm15, cont_norm15 = normalise_spectra(wave_grid15, qso_flux15,\
+#                                             qso_cont15)
 
 # split into training set, validation set and test set
 flux_train, flux_valid, flux_test, cont_train, cont_valid, cont_test = split_data(flux_norm,\
                                                                                   cont_norm)
-_, _, flux_test, _, _, cont_test = split_data(flux_norm15, cont_norm15)
+#_, _, flux_test, _, _, cont_test = split_data(flux_norm15, cont_norm15)
 
 # derive dimensions
 n_feature = flux_train.shape[1]
@@ -55,13 +55,13 @@ trainer.train(wave_grid, flux_train, cont_train, flux_valid, cont_valid,\
 
 plotpath = "/net/vdesk/data2/buiten/MRP2/misc-figures/LinearUNet/"
 plotpathadd = "/runmed-smoothing/"
-filenamestart = plotpath+plotpathadd+str(len(layerdims))+"layers_smooth_testnpca15_"
-filenameend = "_15_11.png"
+filenamestart = plotpath+plotpathadd+str(len(layerdims))+"layers_smooth_train15test15_"
+filenameend = "_23_11.png"
 
 # plot the loss from the training routine
 fig, ax = trainer.plot_loss(epoch_min=1)
 fig.show()
-fig.savefig(filenamestart+"loss"+filenameend)
+#fig.savefig(filenamestart+"loss"+filenameend)
 
 # run some tests on the test set
 # use the hand-fit continua test set (half of it)
@@ -92,18 +92,18 @@ stats = ResidualStatistics(flux_test, cont_test, scaler_flux=trainer.scaler_X,\
                            scaler_cont=trainer.scaler_y, net=unet, smooth=smooth)
 fig1, ax1 = stats.plot_means(wave_test, show_std=False)
 fig1.show()
-fig1.savefig(filenamestart+"residspec"+filenameend)
+#fig1.savefig(filenamestart+"residspec"+filenameend)
 
 # plot the residuals in a histogram
 fig2, ax2 = stats.resid_hist()
 fig2.show()
-fig2.savefig(filenamestart+"residhist"+filenameend)
+#fig2.savefig(filenamestart+"residhist"+filenameend)
 
 # plot the correlation matrix
 corrmat = CorrelationMatrix(flux_test, cont_test, trainer.scaler_X,\
                             trainer.scaler_y, unet, smooth=smooth)
 fig3, ax3 = corrmat.show(wave_test)
-fig3.savefig(filenamestart+"corrmat"+filenameend)
+#fig3.savefig(filenamestart+"corrmat"+filenameend)
 
 
 # plot a random result
@@ -117,7 +117,7 @@ for i in range(len(rand_indx)):
 testres.fig.suptitle("Test on synthetic spectra (npca = 15)")
 
 testres.show_figure()
-testres.fig.savefig(filenamestart+"examples"+filenameend)
+#testres.fig.savefig(filenamestart+"examples"+filenameend)
 #rand_indx = np.random.randint(len(flux_test))
 #rand_result_output = unet(flux_test_scaled[rand_indx])
 #rand_result_descaled = trainer.scaler_y.backward(rand_result_output)
