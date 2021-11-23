@@ -47,6 +47,9 @@ class UNetTrainer(Trainer):
                 X_train_smooth = Variable(torch.FloatTensor(X_train_smooth))
                 X_valid_smooth = Variable(torch.FloatTensor(X_valid_smooth))
 
+            self.scaler_X = None
+            self.scaler_y = None
+
         # set the number of batches
         n_batches = len(X_train) // self.batch_size
 
