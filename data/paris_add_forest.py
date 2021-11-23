@@ -7,6 +7,7 @@ from dw_inference.simulator.utils import get_blu_red_wave_grid
 from linetools.lists.linelist import LineList
 from qso_fitting.data.sdss.paris import read_paris_continua
 from dw_inference.simulator.proximity.proximity import Proximity
+from scipy.stats import norm
 
 plt.rcParams["font.family"] = "serif"
 
@@ -53,8 +54,13 @@ print (true_mean_flux)
 theta = Prox.sample_theta(nsamp)
 t_prox = Prox.simulator_lya(theta)
 
-testcont = np.ones(len(wave_rest))
+#testcont = np.ones(len(wave_rest))
 testflux = t_prox*cont_norm
+
+# now add homoscedastic noise
+#gauss = norm(scale=0.1)
+#noise = gauss.rvs(size=cont_norm.shape)
+#flux_noisy = testflux + noise
 
 # now we want to interpolate onto the hybrid grid
 dvpix_red = 500.0
