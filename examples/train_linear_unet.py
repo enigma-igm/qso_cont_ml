@@ -61,7 +61,7 @@ filenameend = "_23_11.png"
 # plot the loss from the training routine
 fig, ax = trainer.plot_loss(epoch_min=1)
 fig.show()
-#fig.savefig(filenamestart+"loss"+filenameend)
+fig.savefig(filenamestart+"loss"+filenameend)
 
 # run some tests on the test set
 # use the hand-fit continua test set (half of it)
@@ -92,18 +92,18 @@ stats = ResidualStatistics(flux_test, cont_test, scaler_flux=trainer.scaler_X,\
                            scaler_cont=trainer.scaler_y, net=unet, smooth=smooth)
 fig1, ax1 = stats.plot_means(wave_test, show_std=False)
 fig1.show()
-#fig1.savefig(filenamestart+"residspec"+filenameend)
+fig1.savefig(filenamestart+"residspec"+filenameend)
 
 # plot the residuals in a histogram
 fig2, ax2 = stats.resid_hist()
 fig2.show()
-#fig2.savefig(filenamestart+"residhist"+filenameend)
+fig2.savefig(filenamestart+"residhist"+filenameend)
 
 # plot the correlation matrix
 corrmat = CorrelationMatrix(flux_test, cont_test, trainer.scaler_X,\
                             trainer.scaler_y, unet, smooth=smooth)
 fig3, ax3 = corrmat.show(wave_test)
-#fig3.savefig(filenamestart+"corrmat"+filenameend)
+fig3.savefig(filenamestart+"corrmat"+filenameend)
 
 
 # plot a random result
@@ -117,7 +117,7 @@ for i in range(len(rand_indx)):
 testres.fig.suptitle("Test on synthetic spectra (npca = 15)")
 
 testres.show_figure()
-#testres.fig.savefig(filenamestart+"examples"+filenameend)
+testres.fig.savefig(filenamestart+"examples"+filenameend)
 #rand_indx = np.random.randint(len(flux_test))
 #rand_result_output = unet(flux_test_scaled[rand_indx])
 #rand_result_descaled = trainer.scaler_y.backward(rand_result_output)

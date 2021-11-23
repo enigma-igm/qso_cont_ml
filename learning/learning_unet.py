@@ -15,6 +15,15 @@ class UNetTrainer(Trainer):
     def train(self, wave_grid, X_train, y_train, X_valid, y_valid,\
               savefile="LinearUNet.pth", use_QSOScalers=False, smooth=False):
 
+        # do the smoothing before applying the QSOScalers
+        if smooth:
+            # smooth the input for the last skip connection
+            X_train_smooth, X_valid_smooth = np.zeros(X_train.shape), np.zeros(X_valid.shape)
+            for i in range(len(X_train)):
+                X_train_smooth[i] = fast_running_median(X_train[i], 20)
+            for i in range(len(X_valid)):
+                X_valid_smooth[i] = fast_running_median(X_valid[i], 20)
+
         # use the QSOScaler
         if use_QSOScalers:
             self.train_QSOScalers(wave_grid, X_train, y_train)
@@ -23,10 +32,20 @@ class UNetTrainer(Trainer):
             X_valid = self.scaler_X.forward(torch.FloatTensor(X_valid))
             y_valid = self.scaler_y.forward(torch.FloatTensor(y_valid))
 
+            # also apply QSOScalers to the smoothed input
+            # note: we may need to train new QSOScalers for smoothed spectra
+            if smooth:
+                X_train_smooth = self.scaler_X.forward(torch.FloatTensor(X_train_smooth))
+                X_valid_smooth = self.scaler_X.forward(torch.FloatTensor(X_valid_smooth))
+
         else:
             # no QSOScaler preprocessing here yet
             X_train, y_train = torch.FloatTensor(X_train), torch.FloatTensor(y_train)
             X_valid, y_valid = torch.FloatTensor(X_valid), torch.FloatTensor(y_valid)
+
+            if smooth:
+                X_train_smooth = Variable(torch.FloatTensor(X_train_smooth))
+                X_valid_smooth = Variable(torch.FloatTensor(X_valid_smooth))
 
         # set the number of batches
         n_batches = len(X_train) // self.batch_size
@@ -36,17 +55,7 @@ class UNetTrainer(Trainer):
         valid_loss = np.zeros(self.num_epochs)
         min_valid_loss = np.inf
 
-        if smooth:
-            # smooth the input for the last skip connection
-            X_train_smooth, X_valid_smooth = np.zeros(X_train.shape), np.zeros(X_valid.shape)
-            for i in range(len(X_train)):
-                X_train_smooth[i] = fast_running_median(X_train.detach().numpy()[i], 20)
-            for i in range(len(X_valid)):
-                X_valid_smooth[i] = fast_running_median(X_valid.detach().numpy()[i], 20)
-            X_train_smooth = Variable(torch.FloatTensor(X_train_smooth))
-            X_valid_smooth = Variable(torch.FloatTensor(X_valid_smooth))
-
-        # train the model to find good relative residuals
+        # train the model to find good residuals
         for epoch in range(self.num_epochs):
             # shuffle training data
             if smooth:

@@ -4,6 +4,7 @@ from utils.errorfuncs import relative_residuals, corr_matrix_relresids
 from astropy.stats import mad_std
 from scipy.stats import norm
 import torch
+from pypeit.utils import fast_running_median
 
 
 class ModelResults:
@@ -31,14 +32,29 @@ class ModelResults:
 
         flux_tensor = torch.FloatTensor(self.flux_test)
 
+        # smooth input for the final skip connection before applying the QSOScaler
+        if self.smooth:
+            input_smooth = np.zeros(self.flux_test.shape)
+            for i in range(len(input_smooth)):
+                input_smooth[i] = fast_running_median(self.flux_test[i], 20)
+            input_smooth = torch.FloatTensor(input_smooth)
+            self.flux_smooth = input_smooth.detach().numpy()
+
+        else:
+            input_smooth = None
+
         if self.use_QSOScaler:
             input = self.scaler_flux.forward(flux_tensor)
-            res = self.net(input, smooth=self.smooth)
+
+            if self.smooth:
+                input_smooth = self.scaler_flux.forward(input_smooth)
+
+            res = self.net(input, smooth=self.smooth, x_smooth=input_smooth)
             res_descaled = self.scaler_cont.backward(res)
             res_np = res_descaled.detach().numpy()
 
         else:
-            res = self.net(flux_tensor, smooth=self.smooth)
+            res = self.net(flux_tensor, smooth=self.smooth, x_smooth=input_smooth)
             res_np = res.detach().numpy()
 
         self.cont_pred_np = res_np
@@ -63,7 +79,8 @@ class ModelResults:
 
 
     def plot(self, index, figsize=(7,5), dpi=320, subplotloc=111,\
-             alpha=0.7, contpredcolor="darkred"):
+             alpha=0.7, contpredcolor="darkred", includesmooth=True,\
+             fluxsmoothcolor="navy"):
         '''Plot the prediction for the spectrum of a certain index.'''
 
         try:
@@ -86,6 +103,14 @@ class ModelResults:
                 label="True continuum")
         ax.plot(self.wave_grid, cont_pred, alpha=alpha, lw=1, ls="--",\
                 label="Predicted continuum", color=contpredcolor)
+        if includesmooth:
+            try:
+                flux_smooth = self.flux_smooth
+                ax.plot(self.wave_grid, flux_smooth[index], alpha=alpha, lw=1,\
+                        ls="dashdot", label="Smoothed spectrum",\
+                        color=fluxsmoothcolor)
+            except:
+                print ("Warning: flux has not been smoothed.")
 
         ax.set_xlabel("Rest-frame wavelength ($\AA$)")
         ax.set_ylabel("Normalised flux")
@@ -119,10 +144,18 @@ class CorrelationMatrix:
         else:
             self.use_QSOScaler = True
 
+        if smooth:
+            x_smooth = np.zeros(flux_test.shape)
+            for i in range(len(flux_test)):
+                x_smooth[i] = fast_running_median(flux_test[i], 20)
+
+        else:
+            x_smooth = None
+
         # compute the correlation matrix
         # first forward the model
         result_test = net.full_predict(flux_test, scaler_flux, scaler_cont,\
-                                       smooth=smooth)
+                                       smooth=smooth, x_smooth=x_smooth)
         #if self.use_QSOScaler:
         #    result_test = net.full_predict(flux_test, self.scaler_X, self.scaler_y)
         #else:
@@ -168,11 +201,19 @@ class ResidualStatistics:
         else:
             self.use_QSOScaler = True
 
+        if smooth:
+            x_smooth = np.zeros(flux_test.shape)
+            for i in range(len(flux_test)):
+                x_smooth[i] = fast_running_median(flux_test[i], 20)
+
+        else:
+            x_smooth = None
+
         # compute residuals relative to flux in absorption spectrum (for every point on the wavelength grid)
         # compute some statistics
         # first forward the model to get predictions
         result_test = net.full_predict(flux_test, scaler_flux, scaler_cont,\
-                                       smooth=smooth)
+                                       smooth=smooth, x_smooth=x_smooth)
         #if self.use_QSOScaler:
         #    result_test = net.full_predict(self.X_test, self.scaler_X, self.scaler_y)
         #else:
