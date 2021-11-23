@@ -18,6 +18,11 @@ class Operator:
             return a+b
         elif self.name=="multiplication":
             return a*b
+        elif self.name=="relative-addition":
+            return (1 + a)*b
+        else:
+            print ("Warning: unsupported operator given; defaulted to addition.")
+            return a+b
 
     def parameters(self):
         return self._parameters
@@ -229,6 +234,8 @@ class LinearUNet(torch.nn.Module):
 
         if scaler_X is None:
             input = Variable(x)
+            if smooth:
+                x_smooth = Variable(torch.FloatTensor(x_smooth))
             res = self(input, smooth=smooth, x_smooth=x_smooth)
             res_np = res.detach().numpy()
 

@@ -23,7 +23,7 @@ plt.rcParams["font.family"] = "serif"
 # load the synthetic spectra with homoscedastic noise and forest
 # load the npca = 10 spectra as for training
 # and load the npca = 15 spectra for testing
-wave_grid, qso_cont, qso_flux = load_synth_spectra(noise=True, npca=15)
+wave_grid, qso_cont, qso_flux = load_synth_spectra(noise=True, npca=10)
 flux_norm, cont_norm = normalise_spectra(wave_grid, qso_flux, qso_cont)
 
 #wave_grid15, qso_cont15, qso_flux15 = load_synth_spectra(noise=True, npca=15)
@@ -41,12 +41,13 @@ n_feature = flux_train.shape[1]
 # set whether we want to smooth the input in the last skip connection
 smooth = True
 no_final_skip = False
+operator = "relative-addition"
 
 # set the hidden layer dimensions
 layerdims = [100,200,300]
 
 # initialize the simple network and train with the QSOScalers
-unet = LinearUNet(n_feature, layerdims, activfunc="elu", operator="addition",\
+unet = LinearUNet(n_feature, layerdims, activfunc="elu", operator=operator,\
                   no_final_skip=no_final_skip)
 optimizer, criterion = create_learners(unet.parameters(), learning_rate=0.001)
 trainer = UNetTrainer(unet, optimizer, criterion, num_epochs=200)
@@ -55,7 +56,7 @@ trainer.train(wave_grid, flux_train, cont_train, flux_valid, cont_valid,\
 
 plotpath = "/net/vdesk/data2/buiten/MRP2/misc-figures/LinearUNet/"
 plotpathadd = "/runmed-smoothing/"
-filenamestart = plotpath+plotpathadd+str(len(layerdims))+"layers_smooth_train15test15_"
+filenamestart = plotpath+plotpathadd+str(len(layerdims))+"layers_smooth_reladd_noscaler_lr0.001_train10test10_"
 filenameend = "_23_11.png"
 
 # plot the loss from the training routine
@@ -82,8 +83,8 @@ fig.savefig(filenamestart+"loss"+filenameend)
 wave_test = wave_grid
 
 # use the QSOScalers on input and output
-flux_test_scaled = trainer.scaler_X.forward(torch.FloatTensor(flux_test))
-cont_test_scaled = trainer.scaler_y.forward(torch.FloatTensor(cont_test))
+#flux_test_scaled = trainer.scaler_X.forward(torch.FloatTensor(flux_test))
+#cont_test_scaled = trainer.scaler_y.forward(torch.FloatTensor(cont_test))
 
 
 
@@ -114,7 +115,7 @@ testres.create_figure(figsize=(15,10))
 for i in range(len(rand_indx)):
     loc = int("22"+str(i+1))
     ax = testres.plot(rand_indx[i], subplotloc=loc)
-testres.fig.suptitle("Test on synthetic spectra (npca = 15)")
+testres.fig.suptitle("Test on synthetic spectra (npca = 10)")
 
 testres.show_figure()
 testres.fig.savefig(filenamestart+"examples"+filenameend)
