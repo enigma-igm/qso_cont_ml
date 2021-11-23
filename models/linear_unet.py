@@ -10,6 +10,7 @@ from pypeit.utils import fast_running_median
 class Operator:
     def __init__(self, operator="addition"):
         self.name = operator
+        self._parameters = nn.ParameterList(None)
 
     def __call__(self, a, b):
 
@@ -17,6 +18,9 @@ class Operator:
             return a+b
         elif self.name=="multiplication":
             return a*b
+
+    def parameters(self):
+        return self._parameters
 
 def get_rel_resids(flux, cont):
 
@@ -78,45 +82,77 @@ class LinearUNet(torch.nn.Module):
 
         super(LinearUNet, self).__init__()
 
-        self.downlayer1 = nn.Linear(in_out_dim, size_hidden[0])
-        self.downlayer2 = nn.Linear(size_hidden[0], size_hidden[1])
-        self.downlayer3 = nn.Linear(size_hidden[1], size_hidden[2])
-        self.uplayer1 = nn.Linear(size_hidden[2], size_hidden[1])
-        self.uplayer2 = nn.Linear(size_hidden[1], size_hidden[0])
-        self.uplayer3 = nn.Linear(size_hidden[0], in_out_dim)
+        #self.downlayer1 = nn.Linear(in_out_dim, size_hidden[0])
+        #self.downlayer2 = nn.Linear(size_hidden[0], size_hidden[1])
+        #self.downlayer3 = nn.Linear(size_hidden[1], size_hidden[2])
+        #self.uplayer1 = nn.Linear(size_hidden[2], size_hidden[1])
+        #self.uplayer2 = nn.Linear(size_hidden[1], size_hidden[0])
+        #self.uplayer3 = nn.Linear(size_hidden[0], in_out_dim)
 
         #self.predict = nn.Linear(size_hidden, in_out_dim)
 
         self.activ = get_activfunc(activfunc=activfunc)
         self.operator = Operator(operator=operator)
         self.no_final_skip = no_final_skip
+
+        layers = []
+        dims = [in_out_dim] + size_hidden
+
+        self.Ndown = len(size_hidden)
+
+        # create the down block
+        for i in range(self.Ndown):
+            layers.append(nn.Linear(dims[i], dims[i+1]))
+            layers.append(self.activ)
+
+        # create the up block
+        for i in range(self.Ndown):
+            layers.append(nn.Linear(dims[-i-1], dims[-i-2]))
+            layers.append(self.operator)
+            if i != len(size_hidden)-1:
+                layers.append(self.activ)
+
+        self.model_layers = layers
+        #self.parameters = []
+        self.params = nn.ParameterList([])
+
+        for layer in layers:
+            self.params.extend(layer.parameters())
+#                print ("Parameters:", layers._parameters)
+            #self.parameters.append(layer._parameters)
+
+        #self._parameters = nn.ParameterList(self.parameters)
+
         #downblock = LinearDownBlock(in_out_dim, size_hidden_down, activfunc=activfunc)
         # set up the up block
 
     def forward(self, x, x_smooth=None, smooth=False):
-        # first perform the transformation to the latent space (dim size_hidden)
-        # then apply the activation function to the result
-        Ydown1 = self.activ(self.downlayer1(x))
 
-        # do the same for the second layer
-        Ydown2 = self.activ(self.downlayer2(Ydown1))
-        Ydown3 = self.activ(self.downlayer3(Ydown2))
+        # go through every layer in self.model_layers
+        # save the result of each down-layer + activation function
 
-        # now we go up
-        # add Ydown2 to the result before applying the activation function
-        Yup1 = self.uplayer1(Ydown3)
-        Yup1 = self.operator(Yup1, Ydown2)
-        Yup1 = self.activ(Yup1)
+        layeroutputs = []
+        oper_counter = 1
+        layeroutputs.append(self.model_layers[0](x))
 
-        # do the same thing for the second up layer
-        Yup2 = self.uplayer2(Yup1)
-        Yup2 = self.operator(Yup2, Ydown1)
-        Yup2 = self.activ(Yup2)
+        for i in range(1,len(self.model_layers)-1):
 
-        Yup3 = self.uplayer3(Yup2)
+            try:
+                res = self.model_layers[i](layeroutputs[i-1])
 
+            except:
+                #print (i)
+                #print (2*self.Ndown-2*oper_counter-1)
+
+                res = self.model_layers[i](layeroutputs[i-1],\
+                                           layeroutputs[2*self.Ndown-2*oper_counter-1])
+                oper_counter += 1
+
+            layeroutputs.append(res)
+
+        # apply the final skip connection
         if self.no_final_skip:
-            return Yup3
+            return layeroutputs[-1]
 
         else:
             if x_smooth is None:
@@ -126,17 +162,65 @@ class LinearUNet(torch.nn.Module):
                     # and we need to turn the input into an array
                     x_smooth = np.zeros(x.shape)
                     for i in range(len(x)):
-                        x_smooth[i,:] = fast_running_median(x.detach().numpy()[i], 20)
-                    #x_smooth = fast_running_median(x, 20)   # gives rise to an error
-                    result = self.operator(Yup3, Variable(torch.FloatTensor(x_smooth)))
+                        x_smooth[i, :] = fast_running_median(x.detach().numpy()[i], 20)
+                    # x_smooth = fast_running_median(x, 20)   # gives rise to an error
+                    result = self.model_layers[-1](layeroutputs[-1],\
+                                                Variable(torch.FloatTensor(x_smooth)))
 
-                else: result = self.operator(Yup3, x)
+                else:
+                    result = self.model_layers[-1](layeroutputs[-1],\
+                                                   x)
+
             else:
-                result = self.operator(Yup3, x_smooth)
+                result = self.model_layers[-1](layeroutputs[-1],\
+                                               x_smooth)
+
+            return result
+
+
+        # first perform the transformation to the latent space (dim size_hidden)
+        # then apply the activation function to the result
+        #Ydown1 = self.activ(self.downlayer1(x))
+
+        # do the same for the second layer
+        #Ydown2 = self.activ(self.downlayer2(Ydown1))
+        #Ydown3 = self.activ(self.downlayer3(Ydown2))
+
+        # now we go up
+        # add Ydown2 to the result before applying the activation function
+        #Yup1 = self.uplayer1(Ydown3)
+        #Yup1 = self.operator(Yup1, Ydown2)
+        #Yup1 = self.activ(Yup1)
+
+        # do the same thing for the second up layer
+        #Yup2 = self.uplayer2(Yup1)
+        #Yup2 = self.operator(Yup2, Ydown1)
+        #Yup2 = self.activ(Yup2)
+
+        #Yup3 = self.uplayer3(Yup2)
+
+        #if self.no_final_skip:
+        #    return Yup3
+
+        #else:
+        #    if x_smooth is None:
+        #        if smooth:
+        #            # smooth the input x before adding it
+                    # we need to do this in a loop
+                    # and we need to turn the input into an array
+        #            x_smooth = np.zeros(x.shape)
+        #            for i in range(len(x)):
+        #                x_smooth[i,:] = fast_running_median(x.detach().numpy()[i], 20)
+                    #x_smooth = fast_running_median(x, 20)   # gives rise to an error
+        #            result = self.operator(Yup3, Variable(torch.FloatTensor(x_smooth)))
+
+        #        else: result = self.operator(Yup3, x)
+        #    else:
+        #        result = self.operator(Yup3, x_smooth)
             #result = self.operator(Yup3, x)
             # result = self.activ(Yup3)   # not necessary --> forces positives
 
-            return result
+        #    return result
 
 
     def full_predict(self, x, scaler_X=None, scaler_y=None, smooth=False):
