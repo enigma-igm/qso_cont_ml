@@ -7,13 +7,32 @@ from learning.learning import Trainer
 from models.linear_unet import get_rel_resids
 from models.network import normalise
 from pypeit.utils import fast_running_median
+from utils.smooth_scaler import SmoothScaler, DoubleScaler
+from qso_fitting.models.utils import QuasarScaler
+from data.load_datasets import SynthSpectra
+from torch.utils.data import DataLoader
 
 class UNetTrainer(Trainer):
     def __init__(self, net, optimizer, criterion, batch_size=1000, num_epochs=400):
         super(UNetTrainer, self).__init__(net, optimizer, criterion, batch_size=batch_size, num_epochs=num_epochs)
 
+
+    def _train_DoubleScalers(self, wave_grid, flux_train, cont_train,\
+                             smoothwindow=20, floorval=0.05):
+
+        doubscaler_flux = DoubleScaler(wave_grid, flux_train, smoothwindow=smoothwindow,\
+                                       floorval=floorval)
+        doubscaler_cont = DoubleScaler(wave_grid, flux_train, smoothwindow=smoothwindow,\
+                                       floorval=floorval, cont_train=cont_train)
+
+        self.scaler_X = doubscaler_flux
+        self.scaler_y = doubscaler_cont
+
+
     def train(self, wave_grid, X_train, y_train, X_valid, y_valid,\
-              savefile="LinearUNet.pth", use_QSOScalers=False, smooth=False):
+              savefile="LinearUNet.pth", use_QSOScalers=False, smooth=False,\
+              use_DoubleScalers=False):
+        '''DoubleScaler training currently does not work properly!'''
 
         # do the smoothing before applying the QSOScalers
         if smooth:
@@ -37,6 +56,13 @@ class UNetTrainer(Trainer):
             if smooth:
                 X_train_smooth = self.scaler_X.forward(torch.FloatTensor(X_train_smooth))
                 X_valid_smooth = self.scaler_X.forward(torch.FloatTensor(X_valid_smooth))
+
+        elif use_DoubleScalers:
+            self._train_DoubleScalers(wave_grid, X_train, y_train)
+            X_train = self.scaler_X.forward(torch.FloatTensor(X_train))
+            y_train = self.scaler_y.forward(torch.FloatTensor(y_train))
+            X_valid = self.scaler_X.forward(torch.FloatTensor(X_valid))
+            y_valid = self.scaler_y.forward(torch.FloatTensor(y_valid))
 
         else:
             # no QSOScaler preprocessing here yet
@@ -97,7 +123,9 @@ class UNetTrainer(Trainer):
                 #output_resids = Variable(torch.FloatTensor(output_resids))
 
                 # backward
-                loss = self.criterion(outputs, targets)
+                outputs_real = self.scaler_y.backward(outputs)
+                targets_real = self.scaler_y.backward(targets)
+                loss = self.criterion(outputs_real, targets_real)
                 #loss = self.criterion(output_resids, target_resids)
                 #loss = Variable(loss, requires_grad=True)   # this may not be necessary
                 #print("Training loss (mini-batch): {:12.3f}".format(loss))
@@ -127,7 +155,9 @@ class UNetTrainer(Trainer):
             #valid_output_resids = get_rel_resids(validinputs, validoutputs)
 
             # compute the loss
-            validlossfunc = self.criterion(validoutputs, validtargets)
+            validoutputs_real = self.scaler_y.backward(validoutputs)
+            validtargets_real = self.scaler_y.backward(validtargets)
+            validlossfunc = self.criterion(validoutputs_real, validtargets_real)
             #validlossfunc = self.criterion(valid_output_resids, valid_target_resids)
             valid_loss[epoch] = validlossfunc.item()
             print("Validation loss: {:12.3f}".format(valid_loss[epoch]/len(X_valid)))
@@ -152,6 +182,137 @@ class UNetTrainer(Trainer):
         checkpoint = torch.load(savefile)
         self.net.load_state_dict(checkpoint["model_state_dict"])
         print ("Best epoch:", checkpoint["epoch"])
+
+        # save the diagnostics in the object
+        self.training_loss = running_loss
+        self.valid_loss = valid_loss
+
+
+class DoubleScalingTrainer(Trainer):
+    def __init__(self, net, optimizer, criterion, batch_size=1000, num_epochs=400):
+        super(DoubleScalingTrainer, self).__init__(net, optimizer, criterion,\
+                                          batch_size=batch_size, num_epochs=num_epochs)
+
+    def _train_glob_scalers(self, trainset,\
+                            smoothwindow=20, floorval=0.05):
+        '''Trains the global QSOScaler on the locally scaled training set.'''
+
+        # first do the local transformation
+        wave_grid = trainset.wave_grid
+        flux = trainset.flux
+        flux_smooth = trainset.flux_smooth
+        cont = trainset.cont
+
+        loc_scaler_train = SmoothScaler(wave_grid, flux_smooth)
+        flux_train_locscaled = loc_scaler_train.forward(torch.FloatTensor(flux))
+        cont_train_locscaled = loc_scaler_train.forward(torch.FloatTensor(cont))
+
+        # now train the global scaler
+        flux_train_locscaled_np = flux_train_locscaled.detach().numpy()
+        cont_train_locscaled_np = cont_train_locscaled.detach().numpy()
+
+        flux_mean = np.mean(flux_train_locscaled_np, axis=0)
+        flux_std = np.std(flux_train_locscaled_np, axis=0) + floorval * np.median(flux_mean)
+        cont_mean = np.mean(cont_train_locscaled_np, axis=0)
+        cont_std = np.std(cont_train_locscaled_np, axis=0) + floorval * np.median(cont_mean)
+
+        self.glob_scaler_flux = QuasarScaler(wave_grid, flux_mean, flux_std)
+        self.glob_scaler_cont = QuasarScaler(wave_grid, cont_mean, cont_std)
+
+
+    def train_unet(self, trainset, validset, savefile="LinearUNet.pth"):
+        '''Train the network.'''
+
+        # train the global scalers
+        self._train_glob_scalers(trainset)
+
+        wave_grid = trainset.wave_grid
+
+        # set the number of batches
+        n_batches = len(trainset.flux) // self.batch_size
+
+        # set up the arrays for storing and checking the loss
+        running_loss = np.zeros(self.num_epochs)
+        valid_loss = np.zeros(self.num_epochs)
+        min_valid_loss = np.inf
+
+        # set up DataLoaders for the training and validation set
+        train_loader = DataLoader(trainset, batch_size=self.batch_size,\
+                                  shuffle=True)
+        valid_loader = DataLoader(validset, batch_size=self.batch_size,\
+                                  shuffle=True)
+
+        # now do mini-batch learning
+        for epoch in range(self.num_epochs):
+
+            for flux_train, flux_smooth_train, cont_train in train_loader:
+
+                # set up the local scaler for this batch
+                loc_scaler = SmoothScaler(wave_grid, flux_smooth_train)
+
+                # doubly transform the batch input spectra
+                flux_train_scaled = loc_scaler.forward(flux_train)
+                flux_train_scaled = self.glob_scaler_flux.forward(flux_train_scaled)
+                flux_train_scaled = Variable(torch.FloatTensor(flux_train_scaled.numpy()))
+
+                # set gradients to zero
+                self.optimizer.zero_grad()
+
+                # forward the network
+                outputs = self.net(flux_train_scaled)
+
+                # backward
+                # compute loss in physical space
+                outputs = self.glob_scaler_cont.backward(outputs)
+                outputs_real = loc_scaler.backward(outputs)
+
+                loss = self.criterion(outputs_real, torch.FloatTensor(cont_train.numpy()))
+                loss.backward()
+
+                # optimize
+                self.optimizer.step()
+
+                running_loss[epoch] += loss.item()
+
+            print("Epoch " + str(epoch + 1) + "/" + str(self.num_epochs) + "completed.")
+
+            # now use the validation set
+            for flux_valid, flux_smooth_valid, cont_valid in valid_loader:
+
+                loc_scaler_valid = SmoothScaler(wave_grid, flux_smooth_valid)
+                flux_valid_scaled = loc_scaler_valid.forward(flux_valid)
+                flux_valid_scaled = self.glob_scaler_flux.forward(flux_valid_scaled)
+                flux_valid_scaled = Variable(torch.FloatTensor(flux_valid_scaled.numpy()))
+
+                validoutputs = self.net(flux_valid_scaled)
+                validoutputs = self.glob_scaler_cont.backward(validoutputs)
+                validoutputs_real = loc_scaler_valid.backward(validoutputs)
+
+                validlossfunc = self.criterion(validoutputs_real, torch.FloatTensor(cont_valid.numpy()))
+                valid_loss[epoch] += validlossfunc.item()
+
+            print("Validation loss: {:12.3f}".format(valid_loss[epoch] / len(validset.flux)))
+
+            # save the model if the validation loss decreases
+            if min_valid_loss > valid_loss[epoch]:
+                print("Validation loss decreased.")
+                min_valid_loss = valid_loss[epoch]
+
+                torch.save({
+                    "epoch": epoch,
+                    "model_state_dict": self.net.state_dict(),
+                    "optimizer_state_dict": self.optimizer.state_dict(),
+                    "valid_loss": valid_loss[epoch],
+                }, savefile)
+
+        # compute the loss per quasar
+        running_loss = running_loss / len(trainset.flux)
+        valid_loss = valid_loss / len(validset.flux)
+
+        # load the model with lowest validation loss
+        checkpoint = torch.load(savefile)
+        self.net.load_state_dict(checkpoint["model_state_dict"])
+        print("Best epoch:", checkpoint["epoch"])
 
         # save the diagnostics in the object
         self.training_loss = running_loss
