@@ -1,6 +1,7 @@
 import numpy as np
 from sklearn.model_selection import train_test_split
 
+
 def load_synth_spectra(regridded=True, small=False, npca=10,\
                        noise=False):
     datapath = "/net/vdesk/data2/buiten/MRP2/pca-sdss-old/"

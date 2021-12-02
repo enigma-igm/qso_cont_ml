@@ -41,31 +41,9 @@ flux_train, flux_valid, flux_test, cont_train, cont_valid, cont_test = split_dat
 n_feature = flux_train.shape[1]
 
 # set whether we want to smooth the input in the last skip connection
-smooth = False
+smooth = True
 no_final_skip = False
 operator = "addition"
-
-# create the local scalers and scale input flux and target continuum
-flux_train_smooth = np.zeros(flux_train.shape)
-for i in range(len(flux_train)):
-    flux_train_smooth[i,:] = fast_running_median(flux_train[i], 20)
-flux_test_smooth = np.zeros(flux_test.shape)
-for i in range(len(flux_test)):
-    flux_test_smooth[i,:] = fast_running_median(flux_test[i], 20)
-flux_valid_smooth = np.zeros(flux_valid.shape)
-for i in range(len(flux_valid)):
-    flux_valid_smooth[i,:] = fast_running_median(flux_valid[i], 20)
-
-smooth_scaler_train = SmoothScaler(wave_grid, flux_train_smooth)
-smooth_scaler_test = SmoothScaler(wave_grid, flux_test_smooth)
-smooth_scaler_valid = SmoothScaler(wave_grid, flux_valid_smooth)
-
-flux_train_scaled = smooth_scaler_train.forward(torch.FloatTensor(flux_train))
-flux_test_scaled = smooth_scaler_test.forward(torch.FloatTensor(flux_test))
-cont_train_scaled = smooth_scaler_train.forward(torch.FloatTensor(cont_train))
-cont_test_scaled = smooth_scaler_test.forward(torch.FloatTensor(cont_test))
-flux_valid_scaled = smooth_scaler_valid.forward(torch.FloatTensor(flux_valid))
-cont_valid_scaled = smooth_scaler_valid.forward(torch.FloatTensor(cont_valid))
 
 # set the hidden layer dimensions
 layerdims = [100,200,300]
@@ -75,9 +53,9 @@ unet = LinearUNet(n_feature, layerdims, activfunc="elu", operator=operator,\
                   no_final_skip=no_final_skip)
 optimizer, criterion = create_learners(unet.parameters(), learning_rate=0.001)
 trainer = UNetTrainer(unet, optimizer, criterion, num_epochs=300)
-trainer.train(wave_grid, flux_train_scaled, cont_train_scaled,\
-              flux_valid_scaled, cont_valid_scaled,\
-              use_QSOScalers=False, smooth=smooth)
+trainer.train(wave_grid, flux_train, cont_train,\
+              flux_valid, cont_valid,\
+              use_QSOScalers=True, smooth=smooth)
 
 plotpath = "/net/vdesk/data2/buiten/MRP2/misc-figures/LinearUNet/"
 plotpathadd = "/runmed-smoothing/"
@@ -114,26 +92,26 @@ wave_test = wave_grid
 
 
 # plot the residuals vs wavelength
-stats = ResidualStatistics(flux_test_scaled, cont_test_scaled, scaler_flux=trainer.scaler_X,\
+stats = ResidualStatistics(flux_test, cont_test, scaler_flux=trainer.scaler_X,\
                            scaler_cont=trainer.scaler_y, net=unet, smooth=smooth)
 fig1, ax1 = stats.plot_means(wave_test, show_std=False)
 fig1.show()
-fig1.savefig(filenamestart+"residspec"+filenameend)
+#fig1.savefig(filenamestart+"residspec"+filenameend)
 
 # plot the residuals in a histogram
 fig2, ax2 = stats.resid_hist()
 fig2.show()
-fig2.savefig(filenamestart+"residhist"+filenameend)
+#fig2.savefig(filenamestart+"residhist"+filenameend)
 
 # plot the correlation matrix
-corrmat = CorrelationMatrix(flux_test_scaled, cont_test_scaled, trainer.scaler_X,\
+corrmat = CorrelationMatrix(flux_test, cont_test, trainer.scaler_X,\
                             trainer.scaler_y, unet, smooth=smooth)
 fig3, ax3 = corrmat.show(wave_test)
-fig3.savefig(filenamestart+"corrmat"+filenameend)
+#fig3.savefig(filenamestart+"corrmat"+filenameend)
 
 
 # plot a random result
-testres = ModelResults(wave_test, flux_test_scaled, cont_test_scaled, unet, scaler_flux=trainer.scaler_X,\
+testres = ModelResults(wave_test, flux_test, cont_test, unet, scaler_flux=trainer.scaler_X,\
                        scaler_cont=trainer.scaler_y, smooth=smooth)
 rand_indx = testres.random_index(4)
 testres.create_figure(figsize=(15,10))
@@ -143,7 +121,15 @@ for i in range(len(rand_indx)):
 testres.fig.suptitle("Test on synthetic spectra (npca=10)")
 
 testres.show_figure()
-testres.fig.savefig(filenamestart+"examples"+filenameend)
+
+testres2 = ModelResults(wave_test, flux_test, cont_test, unet, scaler_flux=trainer.scaler_X,\
+                        scaler_cont=trainer.scaler_y, smooth=smooth)
+idx = testres2.random_index(1)
+testres2.create_figure(figsize=(7,5))
+testres2.plot(idx)
+testres.fig.suptitle("Example of a predicted quasar continuum", size=15)
+
+#testres.fig.savefig(filenamestart+"examples"+filenameend)
 #rand_indx = np.random.randint(len(flux_test))
 #rand_result_output = unet(flux_test_scaled[rand_indx])
 #rand_result_descaled = trainer.scaler_y.backward(rand_result_output)
