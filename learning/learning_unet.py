@@ -262,11 +262,14 @@ class DoubleScalingTrainer(Trainer):
                 outputs = self.net(flux_train_scaled)
 
                 # backward
-                # compute loss in physical space
-                outputs = self.glob_scaler_cont.backward(outputs)
-                outputs_real = loc_scaler.backward(outputs)
+                # compute loss in locally scaled space
+                outputs_locscaled = self.glob_scaler_cont.backward(outputs)
+                #outputs_real = loc_scaler.backward(outputs)
+                cont_train_locscaled = loc_scaler.forward(cont_train)
 
-                loss = self.criterion(outputs_real, torch.FloatTensor(cont_train.numpy()))
+
+                #loss = self.criterion(outputs_real, torch.FloatTensor(cont_train.numpy()))
+                loss = self.criterion(outputs_locscaled, torch.FloatTensor(cont_train_locscaled.numpy()))
                 loss.backward()
 
                 # optimize
@@ -288,7 +291,10 @@ class DoubleScalingTrainer(Trainer):
                 validoutputs = self.glob_scaler_cont.backward(validoutputs)
                 validoutputs_real = loc_scaler_valid.backward(validoutputs)
 
-                validlossfunc = self.criterion(validoutputs_real, torch.FloatTensor(cont_valid.numpy()))
+                # compute the loss in locally scaled space
+                cont_valid_locscaled = loc_scaler_valid.forward(cont_valid)
+                validlossfunc = self.criterion(validoutputs, torch.FloatTensor(cont_valid_locscaled.numpy()))
+                #validlossfunc = self.criterion(validoutputs_real, torch.FloatTensor(cont_valid.numpy()))
                 valid_loss[epoch] += validlossfunc.item()
 
             print("Validation loss: {:12.3f}".format(valid_loss[epoch] / len(validset.flux)))

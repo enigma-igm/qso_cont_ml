@@ -17,13 +17,13 @@ trainset, validset, testset = synthspec.split()
 n_feature = trainset.flux.shape[1]
 
 # set the hidden layer dimensions
-layerdims = [100,200,300]
+layerdims = [100,200,300,400,500]
 
 # initialise the LinearUNet and train with the DoubleScalingTrainer
 unet = LinearUNet(n_feature, layerdims, activfunc="elu", operator="addition",\
                   no_final_skip=True)
 optimizer, criterion = create_learners(unet.parameters(), learning_rate=0.001)
-trainer = DoubleScalingTrainer(unet, optimizer, criterion, num_epochs=300)
+trainer = DoubleScalingTrainer(unet, optimizer, criterion, num_epochs=500)
 trainer.train_unet(trainset, validset)
 
 # plot the loss from the training routine
@@ -44,7 +44,7 @@ rand_indx = testres.random_index(4)
 testres.create_figure(figsize=(15,10))
 for i in range(len(rand_indx)):
     loc = int("22"+str(i+1))
-    ax = testres.plot(rand_indx[i], subplotloc=loc)
+    ax = testres.plot(rand_indx[i], subplotloc=loc, includesmooth=False)
 testres.fig.suptitle("Test on synthetic spectra (npca=10)")
 
 testres.show_figure()
