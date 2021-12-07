@@ -4,6 +4,7 @@ from learning.learning import create_learners
 from learning.testing_doublyscaled import ModelResultsDoublyScaled, ResidualStatisticsDoublyScaled
 from data.load_datasets import SynthSpectra
 import matplotlib.pyplot as plt
+from learning.testing_doublyscaled import DoubleScalingResidStats, DoubleScalingCorrelationMatrix, DoubleScalingResultsSpectra
 
 plt.rcParams["font.family"] = "serif"
 
@@ -17,13 +18,13 @@ trainset, validset, testset = synthspec.split()
 n_feature = trainset.flux.shape[1]
 
 # set the hidden layer dimensions
-layerdims = [100,200,300,400,500]
+layerdims = [100,200,300]
 
 # initialise the LinearUNet and train with the DoubleScalingTrainer
 unet = LinearUNet(n_feature, layerdims, activfunc="elu", operator="addition",\
-                  no_final_skip=True)
+                  no_final_skip=False)
 optimizer, criterion = create_learners(unet.parameters(), learning_rate=0.001)
-trainer = DoubleScalingTrainer(unet, optimizer, criterion, num_epochs=500)
+trainer = DoubleScalingTrainer(unet, optimizer, criterion, num_epochs=300)
 trainer.train_unet(trainset, validset)
 
 # plot the loss from the training routine
@@ -31,15 +32,26 @@ fig, ax = trainer.plot_loss(epoch_min=1)
 fig.show()
 
 # plot the residuals
-stats = ResidualStatisticsDoublyScaled(testset, unet, trainer.glob_scaler_flux,\
-                                       trainer.glob_scaler_cont)
-stats.compute_stats()
+#stats = ResidualStatisticsDoublyScaled(testset, unet, trainer.glob_scaler_flux,\
+#                                       trainer.glob_scaler_cont)
+#stats.compute_stats()
+stats = DoubleScalingResidStats(testset, unet, trainer.glob_scaler_flux,\
+                                trainer.glob_scaler_cont)
+fig0, ax0 = stats.resid_hist()
+fig0.show()
 fig1, ax1 = stats.plot_means(show_std=False)
 fig1.show()
 
+# plot the correlation matrix
+corrmat = DoubleScalingCorrelationMatrix(testset, unet, trainer.glob_scaler_flux,\
+                                         trainer.glob_scaler_cont)
+fig2, ax2 = corrmat.show()
+
 # show some examples
-testres = ModelResultsDoublyScaled(testset, unet, trainer.glob_scaler_flux,\
-                                   trainer.glob_scaler_cont)
+#testres = ModelResultsDoublyScaled(testset, unet, trainer.glob_scaler_flux,\
+#                                   trainer.glob_scaler_cont)
+testres = DoubleScalingResultsSpectra(testset, unet, trainer.glob_scaler_flux,\
+                                      trainer.glob_scaler_cont)
 rand_indx = testres.random_index(4)
 testres.create_figure(figsize=(15,10))
 for i in range(len(rand_indx)):
