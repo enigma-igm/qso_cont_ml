@@ -14,6 +14,10 @@ synthspec = SynthSpectra(noise=True)
 wave_grid = synthspec.wave_grid
 trainset, validset, testset = synthspec.split()
 
+# test on npca = 15
+synthspec15 = SynthSpectra(noise=True, npca=15)
+#_, _, testset = synthspec15.split()
+
 # derive dimensions
 n_feature = trainset.flux.shape[1]
 
@@ -22,7 +26,7 @@ layerdims = [100,200,300]
 
 # initialise the LinearUNet and train with the DoubleScalingTrainer
 unet = LinearUNet(n_feature, layerdims, activfunc="elu", operator="addition",\
-                  no_final_skip=False)
+                  no_final_skip=True)
 optimizer, criterion = create_learners(unet.parameters(), learning_rate=0.001)
 trainer = DoubleScalingTrainer(unet, optimizer, criterion, num_epochs=300)
 trainer.train_unet(trainset, validset)

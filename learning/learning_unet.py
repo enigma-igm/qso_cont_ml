@@ -253,7 +253,8 @@ class DoubleScalingTrainer(Trainer):
                 # doubly transform the batch input spectra
                 flux_train_scaled = loc_scaler.forward(flux_train)
                 flux_train_scaled = self.glob_scaler_flux.forward(flux_train_scaled)
-                flux_train_scaled = Variable(torch.FloatTensor(flux_train_scaled.numpy()))
+                flux_train_scaled = flux_train_scaled.type(torch.FloatTensor)
+                #flux_train_scaled = Variable(torch.FloatTensor(flux_train_scaled.numpy()))
 
                 # set gradients to zero
                 self.optimizer.zero_grad()
@@ -263,13 +264,18 @@ class DoubleScalingTrainer(Trainer):
 
                 # backward
                 # compute loss in locally scaled space
-                outputs_locscaled = self.glob_scaler_cont.backward(outputs)
-                #outputs_real = loc_scaler.backward(outputs)
-                cont_train_locscaled = loc_scaler.forward(cont_train)
+                #outputs_locscaled = self.glob_scaler_cont.backward(outputs)
 
+                # compute loss in physical flux quantities
+                # relative to the true continuum!
+                outputs_real = loc_scaler.backward(outputs)
+                outputs_real_rel = outputs_real/cont_train.type(torch.FloatTensor)
+                cont_train_rel = (cont_train/cont_train).type(torch.FloatTensor)
+                #cont_train_locscaled = loc_scaler.forward(cont_train)
 
+                loss = self.criterion(outputs_real_rel, cont_train_rel)
                 #loss = self.criterion(outputs_real, torch.FloatTensor(cont_train.numpy()))
-                loss = self.criterion(outputs_locscaled, torch.FloatTensor(cont_train_locscaled.numpy()))
+                #loss = self.criterion(outputs_locscaled, torch.FloatTensor(cont_train_locscaled.numpy()))
                 loss.backward()
 
                 # optimize
@@ -285,15 +291,23 @@ class DoubleScalingTrainer(Trainer):
                 loc_scaler_valid = SmoothScaler(wave_grid, flux_smooth_valid)
                 flux_valid_scaled = loc_scaler_valid.forward(flux_valid)
                 flux_valid_scaled = self.glob_scaler_flux.forward(flux_valid_scaled)
-                flux_valid_scaled = Variable(torch.FloatTensor(flux_valid_scaled.numpy()))
+                #flux_valid_scaled = Variable(torch.FloatTensor(flux_valid_scaled.numpy()))
+                flux_valid_scaled = flux_valid_scaled.type(torch.FloatTensor)
 
                 validoutputs = self.net(flux_valid_scaled)
                 validoutputs = self.glob_scaler_cont.backward(validoutputs)
                 validoutputs_real = loc_scaler_valid.backward(validoutputs)
 
                 # compute the loss in locally scaled space
-                cont_valid_locscaled = loc_scaler_valid.forward(cont_valid)
-                validlossfunc = self.criterion(validoutputs, torch.FloatTensor(cont_valid_locscaled.numpy()))
+                #cont_valid_locscaled = loc_scaler_valid.forward(cont_valid)
+                #validlossfunc = self.criterion(validoutputs, torch.FloatTensor(cont_valid_locscaled.numpy()))
+
+                # compute the loss in real space
+                # normalised by the true continuum for unbiased learning
+                validoutputs_real_rel = validoutputs_real/cont_valid.type(torch.FloatTensor)
+                cont_valid_rel = (cont_valid/cont_valid).type(torch.FloatTensor)
+                validlossfunc = self.criterion(validoutputs_real_rel, cont_valid_rel)
+
                 #validlossfunc = self.criterion(validoutputs_real, torch.FloatTensor(cont_valid.numpy()))
                 valid_loss[epoch] += validlossfunc.item()
 
