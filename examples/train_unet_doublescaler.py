@@ -29,7 +29,7 @@ unet = LinearUNet(n_feature, layerdims, activfunc="elu", operator="addition",\
                   no_final_skip=True)
 optimizer, criterion = create_learners(unet.parameters(), learning_rate=0.001)
 trainer = DoubleScalingTrainer(unet, optimizer, criterion, num_epochs=300)
-trainer.train_unet(trainset, validset)
+trainer.train_unet(trainset, validset, loss_space="locscaled")
 
 # plot the loss from the training routine
 fig, ax = trainer.plot_loss(epoch_min=1)
@@ -60,7 +60,7 @@ rand_indx = testres.random_index(4)
 testres.create_figure(figsize=(15,10))
 for i in range(len(rand_indx)):
     loc = int("22"+str(i+1))
-    ax = testres.plot(rand_indx[i], subplotloc=loc, includesmooth=False)
+    ax = testres.plot(rand_indx[i], subplotloc=loc, includesmooth=True)
 testres.fig.suptitle("Test on synthetic spectra (npca=10)")
 
 testres.show_figure()
