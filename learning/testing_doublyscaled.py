@@ -191,7 +191,7 @@ class DoubleScalingResidStats(DoubleScalingResults):
         ax.grid()
         ax.set_xlabel("Rest-frame wavelength ($\AA$)")
         ax.set_ylabel("Relative residual")
-        ax.set_title("Residuals relative to input flux")
+        ax.set_title("Residuals relative to true continuum")
 
         return fig, ax
 

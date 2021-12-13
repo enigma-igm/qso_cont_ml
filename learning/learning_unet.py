@@ -220,7 +220,8 @@ class DoubleScalingTrainer(Trainer):
         self.glob_scaler_cont = QuasarScaler(wave_grid, cont_mean, cont_std)
 
 
-    def train_unet(self, trainset, validset, savefile="LinearUNet.pth"):
+    def train_unet(self, trainset, validset, savefile="LinearUNet.pth",\
+                   loss_space="real-rel"):
         '''Train the network.'''
 
         # train the global scalers
@@ -263,19 +264,23 @@ class DoubleScalingTrainer(Trainer):
                 outputs = self.net(flux_train_scaled)
 
                 # backward
-                # compute loss in locally scaled space
-                #outputs_locscaled = self.glob_scaler_cont.backward(outputs)
 
-                # compute loss in physical flux quantities
-                # relative to the true continuum!
-                outputs_real = loc_scaler.backward(outputs)
-                outputs_real_rel = outputs_real/cont_train.type(torch.FloatTensor)
-                cont_train_rel = (cont_train/cont_train).type(torch.FloatTensor)
-                #cont_train_locscaled = loc_scaler.forward(cont_train)
+                if loss_space=="real-rel":
+                    # compute loss in physical flux quantities
+                    # relative to the true continuum!
+                    outputs_real = loc_scaler.backward(outputs)
+                    outputs_real_rel = (outputs_real / cont_train).type(torch.FloatTensor)
+                    cont_train_rel = (cont_train / cont_train).type(torch.FloatTensor)
 
-                loss = self.criterion(outputs_real_rel, cont_train_rel)
-                #loss = self.criterion(outputs_real, torch.FloatTensor(cont_train.numpy()))
-                #loss = self.criterion(outputs_locscaled, torch.FloatTensor(cont_train_locscaled.numpy()))
+                    loss = self.criterion(outputs_real_rel, cont_train_rel)
+
+                elif loss_space=="locscaled":
+                    # compute loss in locally scaled space
+                    outputs_locscaled = self.glob_scaler_cont.backward(outputs)
+                    cont_train_locscaled = loc_scaler.forward(cont_train)
+
+                    loss = self.criterion(outputs_locscaled, cont_train_locscaled.type(torch.FloatTensor))
+
                 loss.backward()
 
                 # optimize
@@ -298,15 +303,17 @@ class DoubleScalingTrainer(Trainer):
                 validoutputs = self.glob_scaler_cont.backward(validoutputs)
                 validoutputs_real = loc_scaler_valid.backward(validoutputs)
 
-                # compute the loss in locally scaled space
-                #cont_valid_locscaled = loc_scaler_valid.forward(cont_valid)
-                #validlossfunc = self.criterion(validoutputs, torch.FloatTensor(cont_valid_locscaled.numpy()))
+                if loss_space=="real-rel":
+                    # compute the loss in real space
+                    # normalised by the true continuum for unbiased learning
+                    validoutputs_real_rel = (validoutputs_real / cont_valid).type(torch.FloatTensor)
+                    cont_valid_rel = (cont_valid / cont_valid).type(torch.FloatTensor)
+                    validlossfunc = self.criterion(validoutputs_real_rel, cont_valid_rel)
 
-                # compute the loss in real space
-                # normalised by the true continuum for unbiased learning
-                validoutputs_real_rel = validoutputs_real/cont_valid.type(torch.FloatTensor)
-                cont_valid_rel = (cont_valid/cont_valid).type(torch.FloatTensor)
-                validlossfunc = self.criterion(validoutputs_real_rel, cont_valid_rel)
+                elif loss_space=="locscaled":
+                    # compute the loss in locally scaled space
+                    cont_valid_locscaled = loc_scaler_valid.forward(cont_valid)
+                    validlossfunc = self.criterion(validoutputs, cont_valid_locscaled.type(torch.FloatTensor))
 
                 #validlossfunc = self.criterion(validoutputs_real, torch.FloatTensor(cont_valid.numpy()))
                 valid_loss[epoch] += validlossfunc.item()
@@ -325,9 +332,9 @@ class DoubleScalingTrainer(Trainer):
                     "valid_loss": valid_loss[epoch],
                 }, savefile)
 
-        # compute the loss per quasar
-        running_loss = running_loss / len(trainset.flux)
-        valid_loss = valid_loss / len(validset.flux)
+        # compute the loss per quasar per pixel
+        running_loss = running_loss / (len(trainset.flux)*trainset.flux.shape[1])
+        valid_loss = valid_loss / (len(validset.flux)*validset.flux.shape[1])
 
         # load the model with lowest validation loss
         checkpoint = torch.load(savefile)
