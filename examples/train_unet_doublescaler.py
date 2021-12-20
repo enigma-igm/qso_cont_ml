@@ -15,7 +15,7 @@ wave_grid = synthspec.wave_grid
 trainset, validset, testset = synthspec.split()
 
 # test on npca = 15
-synthspec15 = SynthSpectra(noise=True, npca=15)
+#synthspec15 = SynthSpectra(noise=True, npca=15)
 #_, _, testset = synthspec15.split()
 
 # derive dimensions
@@ -28,12 +28,18 @@ layerdims = [300,200,100]
 unet = LinearUNet(n_feature, layerdims, activfunc="elu", operator="addition",\
                   no_final_skip=True)
 optimizer, criterion = create_learners(unet.parameters(), learning_rate=0.001)
-trainer = DoubleScalingTrainer(unet, optimizer, criterion, num_epochs=100)
-trainer.train_unet(trainset, validset, loss_space="real-rel")
+trainer = DoubleScalingTrainer(unet, optimizer, criterion, num_epochs=300)
+trainer.train_unet(trainset, validset, loss_space="doublyscaled",\
+                   oneglobscaler=True)
+
+savefolder = "/net/vdesk/data2/buiten/MRP2/misc-figures/LinearUNet/double-scaling/"
+filenamestart = savefolder + "nofinalskip_loss_space_doublyscaled_1globscaler_300epochs_"
+filenameend = "_npca10_20_12.png"
 
 # plot the loss from the training routine
 fig, ax = trainer.plot_loss(epoch_min=1)
 fig.show()
+fig.savefig(filenamestart+"loss"+filenameend)
 
 # plot the residuals
 #stats = ResidualStatisticsDoublyScaled(testset, unet, trainer.glob_scaler_flux,\
@@ -43,13 +49,16 @@ stats = DoubleScalingResidStats(testset, unet, trainer.glob_scaler_flux,\
                                 trainer.glob_scaler_cont)
 fig0, ax0 = stats.resid_hist()
 fig0.show()
+fig0.savefig(filenamestart+"residhist"+filenameend)
 fig1, ax1 = stats.plot_means(show_std=False)
 fig1.show()
+fig1.savefig(filenamestart+"residspec"+filenameend)
 
 # plot the correlation matrix
 corrmat = DoubleScalingCorrelationMatrix(testset, unet, trainer.glob_scaler_flux,\
                                          trainer.glob_scaler_cont)
 fig2, ax2 = corrmat.show()
+fig2.savefig(filenamestart+"corrmat"+filenameend)
 
 # show some examples
 #testres = ModelResultsDoublyScaled(testset, unet, trainer.glob_scaler_flux,\
@@ -64,6 +73,7 @@ for i in range(len(rand_indx)):
 testres.fig.suptitle("Test on synthetic spectra (npca=10)")
 
 testres.show_figure()
+testres.fig.savefig(filenamestart+"examples"+filenameend)
 
 # also plot the raw network output for the same test quasars
 testres_raw = DoubleScalingResultsSpectra(testset, unet, trainer.glob_scaler_flux,\
@@ -75,3 +85,4 @@ for i in range(len(rand_indx)):
 testres_raw.fig.suptitle("Network output in doubly scaled space")
 
 testres_raw.show_figure()
+testres_raw.fig.savefig(filenamestart+"examplesraw"+filenameend)

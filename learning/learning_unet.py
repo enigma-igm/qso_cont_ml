@@ -194,7 +194,8 @@ class DoubleScalingTrainer(Trainer):
                                           batch_size=batch_size, num_epochs=num_epochs)
 
     def _train_glob_scalers(self, trainset,\
-                            smoothwindow=20, floorval=0.05):
+                            smoothwindow=20, floorval=0.05,\
+                            oneglobscaler=False):
         '''Trains the global QSOScaler on the locally scaled training set.'''
 
         # first do the local transformation
@@ -217,18 +218,19 @@ class DoubleScalingTrainer(Trainer):
         cont_std = np.std(cont_train_locscaled_np, axis=0) + floorval * np.median(cont_mean)
 
         self.glob_scaler_flux = QuasarScaler(wave_grid, flux_mean, flux_std)
-        self.glob_scaler_cont = QuasarScaler(wave_grid, cont_mean, cont_std)
-        # use one scaler for both absorption spectra and continua
-        #self.glob_scaler_cont = self.glob_scaler_flux
-        #self.glob_scaler_flux = self.glob_scaler_cont
+
+        if oneglobscaler:
+            self.glob_scaler_cont = self.glob_scaler_flux
+        else:
+            self.glob_scaler_cont = QuasarScaler(wave_grid, cont_mean, cont_std)
 
 
     def train_unet(self, trainset, validset, savefile="LinearUNet.pth",\
-                   loss_space="real-rel"):
+                   loss_space="real-rel", oneglobscaler=False):
         '''Train the network.'''
 
         # train the global scalers
-        self._train_glob_scalers(trainset)
+        self._train_glob_scalers(trainset, oneglobscaler=oneglobscaler)
 
         wave_grid = trainset.wave_grid
 
