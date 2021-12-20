@@ -22,14 +22,14 @@ synthspec15 = SynthSpectra(noise=True, npca=15)
 n_feature = trainset.flux.shape[1]
 
 # set the hidden layer dimensions
-layerdims = [100,200,300]
+layerdims = [300,200,100]
 
 # initialise the LinearUNet and train with the DoubleScalingTrainer
 unet = LinearUNet(n_feature, layerdims, activfunc="elu", operator="addition",\
                   no_final_skip=True)
 optimizer, criterion = create_learners(unet.parameters(), learning_rate=0.001)
-trainer = DoubleScalingTrainer(unet, optimizer, criterion, num_epochs=300)
-trainer.train_unet(trainset, validset, loss_space="locscaled")
+trainer = DoubleScalingTrainer(unet, optimizer, criterion, num_epochs=100)
+trainer.train_unet(trainset, validset, loss_space="real-rel")
 
 # plot the loss from the training routine
 fig, ax = trainer.plot_loss(epoch_min=1)
@@ -64,3 +64,14 @@ for i in range(len(rand_indx)):
 testres.fig.suptitle("Test on synthetic spectra (npca=10)")
 
 testres.show_figure()
+
+# also plot the raw network output for the same test quasars
+testres_raw = DoubleScalingResultsSpectra(testset, unet, trainer.glob_scaler_flux,\
+                                      trainer.glob_scaler_cont)
+testres_raw.create_figure(figsize=(15,10))
+for i in range(len(rand_indx)):
+    loc = int("22"+str(i+1))
+    ax = testres_raw.plot_doublyscaled(rand_indx[i], subplotloc=loc)
+testres_raw.fig.suptitle("Network output in doubly scaled space")
+
+testres_raw.show_figure()
