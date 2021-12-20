@@ -30,15 +30,22 @@ class DoubleScalingResults:
         # doubly transform the input flux
         flux_scaled = loc_scaler.forward(torch.FloatTensor(self.flux))
         flux_scaled = self.globscaler_flux.forward(flux_scaled)
+        self.flux_scaled = flux_scaled.detach().numpy()
 
         # forward the network
         cont_pred_scaled = self.net.forward(flux_scaled)
+        self.cont_pred_scaled = cont_pred_scaled.detach().numpy()
 
         # detransform
         cont_pred_descaled = self.globscaler_cont.backward(cont_pred_scaled)
         cont_pred = loc_scaler.backward(cont_pred_descaled)
 
         self.cont_pred = cont_pred.detach().numpy()
+
+        # also doubly transform the true continuum
+        true_cont_locscaled = loc_scaler.forward(torch.FloatTensor(self.cont))
+        true_cont_scaled = self.globscaler_cont.forward(true_cont_locscaled)
+        self.true_cont_scaled = true_cont_scaled.detach().numpy()
 
 
 class DoubleScalingResultsSpectra(DoubleScalingResults):
@@ -105,6 +112,37 @@ class DoubleScalingResultsSpectra(DoubleScalingResults):
 
         return ax
 
+
+    def plot_doublyscaled(self, index, figsize=(7,5), dpi=320, subplotloc=111,\
+             alpha=0.7, contpredcolor="darkred"):
+        '''Plot the raw output of the network along with the doubly scaled
+        flux and true continuum.'''
+
+        cont_pred_scaled = self.cont_pred_scaled[index]
+
+        try:
+            fig = self.fig
+        except:
+            fig = self.create_figure(figsize=figsize, dpi=dpi)
+
+        ax = fig.add_subplot(subplotloc)
+
+        ax.plot(self.wave_grid, self.flux_scaled[index], alpha=alpha, lw=1,\
+                label="Mock spectrum")
+        ax.plot(self.wave_grid, self.true_cont_scaled[index], alpha=alpha, lw=2,\
+                label="True continuum")
+        ax.plot(self.wave_grid, cont_pred_scaled, alpha=alpha, lw=1, ls="--",\
+                label="Predicted continuum", color=contpredcolor)
+
+        ax.set_xlabel("Rest-frame wavelength ($\AA$)")
+        ax.set_ylabel("Doubly scaled flux")
+        ax.legend()
+        ax.grid()
+        ax.set_title("Raw network output for test spectrum " + str(index + 1))
+
+        self.axes.append(ax)
+
+        return ax
 
     def show_figure(self):
 
