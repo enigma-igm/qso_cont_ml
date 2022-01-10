@@ -7,7 +7,7 @@ from learning.learning import Trainer
 from models.linear_unet import get_rel_resids
 from models.network import normalise
 from pypeit.utils import fast_running_median
-from utils.smooth_scaler import SmoothScaler, DoubleScaler
+from utils.smooth_scaler import SmoothScaler, DoubleScaler, SmoothScalerAbsolute
 from qso_fitting.models.utils import QuasarScaler
 from data.load_datasets import SynthSpectra
 from torch.utils.data import DataLoader
@@ -29,106 +29,90 @@ class UNetTrainer(Trainer):
         self.scaler_y = doubscaler_cont
 
 
-    def train(self, wave_grid, X_train, y_train, X_valid, y_valid,\
-              savefile="LinearUNet.pth", use_QSOScalers=False, smooth=False,\
-              use_DoubleScalers=False):
-        '''DoubleScaler training currently does not work properly!'''
+    def _train_glob_scalers(self, trainset, floorval=0.05):
+        '''Train the QuasarScalers on the training spectra and training continua.'''
 
-        # do the smoothing before applying the QSOScalers
-        if smooth:
-            # smooth the input for the last skip connection
-            X_train_smooth, X_valid_smooth = np.zeros(X_train.shape), np.zeros(X_valid.shape)
-            for i in range(len(X_train)):
-                X_train_smooth[i] = fast_running_median(X_train[i], 20)
-            for i in range(len(X_valid)):
-                X_valid_smooth[i] = fast_running_median(X_valid[i], 20)
+        wave_grid = trainset.wave_grid
+        flux = trainset.flux
+        cont = trainset.cont
+
+        flux_mean = np.mean(flux, axis=0)
+        flux_std = np.std(flux, axis=0) + floorval * np.median(flux_mean)
+        cont_mean = np.mean(cont, axis=0)
+        cont_std = np.std(cont, axis=0) + floorval * np.median(cont_mean)
+
+        self.glob_scaler_flux = QuasarScaler(wave_grid, flux_mean, flux_std)
+        self.glob_scaler_cont = QuasarScaler(wave_grid, cont_mean, cont_std)
+
+
+    def train(self, trainset, validset, savefile="LinearUNet.pth",\
+              use_QSOScalers=False, smooth=False,\
+              use_DoubleScalers=False, loss_space="real-rel"):
+        '''DoubleScaler training currently does not work properly!'''
 
         # use the QSOScaler
         if use_QSOScalers:
-            self.train_QSOScalers(wave_grid, X_train, y_train)
-            X_train = self.scaler_X.forward(torch.FloatTensor(X_train))
-            y_train = self.scaler_y.forward(torch.FloatTensor(y_train))
-            X_valid = self.scaler_X.forward(torch.FloatTensor(X_valid))
-            y_valid = self.scaler_y.forward(torch.FloatTensor(y_valid))
 
-            # also apply QSOScalers to the smoothed input
-            # note: we may need to train new QSOScalers for smoothed spectra
-            if smooth:
-                X_train_smooth = self.scaler_X.forward(torch.FloatTensor(X_train_smooth))
-                X_valid_smooth = self.scaler_X.forward(torch.FloatTensor(X_valid_smooth))
+            self._train_glob_scalers(trainset)
 
         elif use_DoubleScalers:
-            self._train_DoubleScalers(wave_grid, X_train, y_train)
-            X_train = self.scaler_X.forward(torch.FloatTensor(X_train))
-            y_train = self.scaler_y.forward(torch.FloatTensor(y_train))
-            X_valid = self.scaler_X.forward(torch.FloatTensor(X_valid))
-            y_valid = self.scaler_y.forward(torch.FloatTensor(y_valid))
+            pass
 
         else:
-            # no QSOScaler preprocessing here yet
-            X_train, y_train = torch.FloatTensor(X_train), torch.FloatTensor(y_train)
-            X_valid, y_valid = torch.FloatTensor(X_valid), torch.FloatTensor(y_valid)
-
-            if smooth:
-                X_train_smooth = Variable(torch.FloatTensor(X_train_smooth))
-                X_valid_smooth = Variable(torch.FloatTensor(X_valid_smooth))
-
-            self.scaler_X = None
-            self.scaler_y = None
-
-        # set the number of batches
-        n_batches = len(X_train) // self.batch_size
+            self.glob_scaler_flux = None
+            self.glob_scaler_cont = None
 
         # set up the arrays for storing and checking the loss
         running_loss = np.zeros(self.num_epochs)
         valid_loss = np.zeros(self.num_epochs)
         min_valid_loss = np.inf
 
+        # set up DataLoaders
+        train_loader = DataLoader(trainset, batch_size=self.batch_size, shuffle=True)
+        valid_loader = DataLoader(validset, batch_size=len(validset), shuffle=True)
+
         # train the model to find good residuals
         for epoch in range(self.num_epochs):
-            # shuffle training data
-            if smooth:
-                X_train_new, y_train_new, X_train_smooth_new = shuffle(X_train, y_train, X_train_smooth)
-            else:
-                X_train_new, y_train_new = shuffle(X_train, y_train)
+            for flux_train_raw, flux_smooth_train_raw, cont_train_raw in train_loader:
+                if use_QSOScalers:
+                    flux_train = self.glob_scaler_flux.forward(flux_train_raw)
+                    flux_smooth_train = self.glob_scaler_flux.forward(flux_smooth_train_raw)
+                    cont_train = self.glob_scaler_cont.forward(cont_train_raw)
 
-            # train in batches
-            for i in range(n_batches):
-                start = i * self.batch_size
-                end = start + self.batch_size
-                #inputs_np = X_train_new[start:end].numpy()
-                inputs = Variable(X_train_new[start:end])
-                targets = Variable(y_train_new[start:end])
-
-                if smooth:
-                    inputs_smooth = X_train_smooth_new[start:end]
-                #targets_np = y_train_new[start:end].numpy()
-                #inputs = Variable(torch.FloatTensor(inputs_np))
-
-                # compute the target residuals
-                #target_resids = get_rel_resids(inputs, targets)
-                #target_resids = get_rel_resids(inputs_np, targets_np)
-                #target_resids = Variable(torch.FloatTensor(target_resids))
+                else:
+                    flux_train = flux_train_raw
+                    flux_smooth_train = flux_smooth_train_raw
+                    cont_train = cont_train_raw
 
                 # set gradients to zero
                 self.optimizer.zero_grad()
 
                 # forward
                 if smooth:
-                    outputs = self.net(inputs, inputs_smooth)
+                    outputs = self.net(flux_train.type(torch.FloatTensor),\
+                                       flux_smooth_train.type(torch.FloatTensor))
                 else:
-                    outputs = self.net(inputs)
-                #output_resids = get_rel_resids(inputs, outputs)
-                #output_resids = get_rel_resids(inputs_np, outputs.detach().numpy())
-                #output_resids = Variable(torch.FloatTensor(output_resids))
+                    outputs = self.net(flux_train.type(torch.FloatTensor))
 
                 # backward
-                outputs_real = self.scaler_y.backward(outputs)
-                targets_real = self.scaler_y.backward(targets)
-                loss = self.criterion(outputs_real, targets_real)
-                #loss = self.criterion(output_resids, target_resids)
-                #loss = Variable(loss, requires_grad=True)   # this may not be necessary
-                #print("Training loss (mini-batch): {:12.3f}".format(loss))
+                if loss_space=="real-rel":
+                    # compute loss in physical flux quantities
+                    # relative to true continuum
+                    if use_QSOScalers:
+                        outputs_real = self.glob_scaler_cont.backward(outputs)
+                        outputs_real_rel = (outputs_real / cont_train_raw).type(torch.FloatTensor)
+                        cont_train_rel = (cont_train_raw / cont_train_raw).type(torch.FloatTensor)
+
+                    else:
+                        outputs_real_rel = (outputs / cont_train).type(torch.FloatTensor)
+                        cont_train_rel = (cont_train / cont_train).type(torch.FloatTensor)
+
+                    loss = self.criterion(outputs_real_rel, cont_train_rel)
+
+                elif loss_space=="globscaled":
+                    # compute the loss in globally scaled space2w
+                    loss = self.criterion(outputs, cont_train.type(torch.FloatTensor))
+
                 loss.backward()
 
                 # optimize
@@ -139,28 +123,43 @@ class UNetTrainer(Trainer):
             print("Epoch " + str(epoch+1) + "/" + str(self.num_epochs) + "completed.")
 
             # now use the validation set
-            if smooth:
-                X_valid_new, y_valid_new, X_valid_smooth_new = shuffle(X_valid, y_valid, X_valid_smooth)
-            else:
-                X_valid_new, y_valid_new = shuffle(X_valid, y_valid)
-            validinputs = Variable(torch.FloatTensor(X_valid_new.numpy()))
-            validtargets = Variable(torch.FloatTensor(y_valid_new.numpy()))
-            #valid_target_resids = get_rel_resids(validinputs, validtargets)
 
-            # compute the validation set output residuals
-            if smooth:
-                validoutputs = self.net(validinputs, X_valid_smooth_new)
-            else:
-                validoutputs = self.net(validinputs)
-            #valid_output_resids = get_rel_resids(validinputs, validoutputs)
+            for flux_valid_raw, flux_smooth_valid_raw, cont_valid_raw in valid_loader:
 
-            # compute the loss
-            validoutputs_real = self.scaler_y.backward(validoutputs)
-            validtargets_real = self.scaler_y.backward(validtargets)
-            validlossfunc = self.criterion(validoutputs_real, validtargets_real)
-            #validlossfunc = self.criterion(valid_output_resids, valid_target_resids)
+                if use_QSOScalers:
+                    flux_valid = self.glob_scaler_flux.forward(flux_valid_raw)
+                    flux_smooth_valid = self.glob_scaler_flux.forward(flux_smooth_valid_raw)
+                    cont_valid = self.glob_scaler_cont.forward(cont_valid_raw)
+
+                else:
+                    flux_valid = flux_valid_raw
+                    flux_smooth_valid = flux_smooth_valid_raw
+                    cont_valid = cont_valid_raw
+
+                # forward the network
+                if smooth:
+                    validoutputs = self.net(flux_valid.type(torch.FloatTensor),\
+                                            flux_smooth_valid.type(torch.FloatTensor))
+                else:
+                    validoutputs = self.net(flux_valid.type(torch.FloatTensor))
+
+                if loss_space=="real-rel":
+                    if use_QSOScalers:
+                        validoutputs_real = self.glob_scaler_cont.backward(validoutputs)
+                        validoutputs_real_rel = (validoutputs_real / cont_valid_raw).type(torch.FloatTensor)
+                        cont_valid_rel = (cont_valid_raw / cont_valid_raw).type(torch.FloatTensor)
+
+                    else:
+                        validoutputs_real_rel = (validoutputs / cont_valid).type(torch.FloatTensor)
+                        cont_valid_rel = (cont_valid / cont_valid).type(torch.FloatTensor)
+
+                    validlossfunc = self.criterion(validoutputs_real_rel, cont_valid_rel)
+
+                elif loss_space=="globscaled":
+                    validlossfunc = self.criterion(validoutputs, cont_valid.type(torch.FloatTensor))
+
             valid_loss[epoch] = validlossfunc.item()
-            print("Validation loss: {:12.3f}".format(valid_loss[epoch]/len(X_valid)))
+            print("Validation loss: {:12.3f}".format(valid_loss[epoch]/len(validset)))
 
             # save the model if the validation loss decreases
             if min_valid_loss > valid_loss[epoch]:
@@ -175,8 +174,8 @@ class UNetTrainer(Trainer):
                 }, savefile)
 
         # compute the loss per quasar
-        running_loss = running_loss / len(X_train)
-        valid_loss = valid_loss / len(X_valid)
+        running_loss = running_loss / (len(trainset)*trainset.flux.shape[1])
+        valid_loss = valid_loss / (len(validset)*validset.flux.shape[1])
 
         # load the model with lowest validation loss
         checkpoint = torch.load(savefile)
@@ -195,7 +194,7 @@ class DoubleScalingTrainer(Trainer):
 
     def _train_glob_scalers(self, trainset,\
                             smoothwindow=20, floorval=0.05,\
-                            oneglobscaler=False):
+                            oneglobscaler=False, relscaler=True):
         '''Trains the global QSOScaler on the locally scaled training set.'''
 
         # first do the local transformation
@@ -204,7 +203,12 @@ class DoubleScalingTrainer(Trainer):
         flux_smooth = trainset.flux_smooth
         cont = trainset.cont
 
-        loc_scaler_train = SmoothScaler(wave_grid, flux_smooth)
+        if relscaler:
+            loc_scaler_train = SmoothScaler(wave_grid, flux_smooth)
+
+        else:
+            loc_scaler_train = SmoothScalerAbsolute(wave_grid, flux_smooth)
+
         flux_train_locscaled = loc_scaler_train.forward(torch.FloatTensor(flux))
         cont_train_locscaled = loc_scaler_train.forward(torch.FloatTensor(cont))
 
@@ -234,9 +238,6 @@ class DoubleScalingTrainer(Trainer):
 
         wave_grid = trainset.wave_grid
 
-        # set the number of batches
-        n_batches = len(trainset.flux) // self.batch_size
-
         # set up the arrays for storing and checking the loss
         running_loss = np.zeros(self.num_epochs)
         valid_loss = np.zeros(self.num_epochs)
@@ -245,7 +246,7 @@ class DoubleScalingTrainer(Trainer):
         # set up DataLoaders for the training and validation set
         train_loader = DataLoader(trainset, batch_size=self.batch_size,\
                                   shuffle=True)
-        valid_loader = DataLoader(validset, batch_size=int(self.batch_size/10),\
+        valid_loader = DataLoader(validset, batch_size=len(validset),\
                                   shuffle=True)
 
         # now do mini-batch learning
