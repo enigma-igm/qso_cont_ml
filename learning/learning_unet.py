@@ -230,11 +230,12 @@ class DoubleScalingTrainer(Trainer):
 
 
     def train_unet(self, trainset, validset, savefile="LinearUNet.pth",\
-                   loss_space="real-rel", oneglobscaler=False):
+                   loss_space="real-rel", oneglobscaler=False, relscaler=True):
         '''Train the network.'''
 
         # train the global scalers
-        self._train_glob_scalers(trainset, oneglobscaler=oneglobscaler)
+        self._train_glob_scalers(trainset, oneglobscaler=oneglobscaler,\
+                                 relscaler=relscaler)
 
         wave_grid = trainset.wave_grid
 
@@ -287,10 +288,25 @@ class DoubleScalingTrainer(Trainer):
 
                     loss = self.criterion(outputs_locscaled, cont_train_locscaled.type(torch.FloatTensor))
 
+                elif loss_space=="locscaled-rel":
+                    outputs_locscaled = self.glob_scaler_cont.backward(outputs)
+                    cont_train_locscaled = loc_scaler.forward(cont_train)
+                    outputs_locscaled_rel = (outputs_locscaled / cont_train_locscaled).type(torch.FloatTensor)
+                    cont_train_locscaled_rel = torch.FloatTensor(np.ones(cont_train_locscaled.shape))
+
+                    loss = self.criterion(outputs_locscaled_rel, cont_train_locscaled_rel)
+
                 elif loss_space=="doublyscaled":
                     cont_train_locscaled = loc_scaler.forward(cont_train)
                     cont_train_doubscaled = self.glob_scaler_cont.forward(cont_train_locscaled)
                     loss = self.criterion(outputs, cont_train_doubscaled.type(torch.FloatTensor))
+
+                elif loss_space=="doublyscaled-rel":
+                    cont_train_locscaled = loc_scaler.forward(cont_train)
+                    cont_train_doubscaled = self.glob_scaler_cont.forward(cont_train_locscaled)
+                    outputs_rel = (outputs / cont_train_doubscaled).type(torch.FloatTensor)
+                    cont_train_doubscaled_rel = torch.FloatTensor(np.ones(cont_train_doubscaled.shape))
+                    loss = self.criterion(outputs_rel, cont_train_doubscaled_rel) / len(flux_train)
 
                 loss.backward()
 
@@ -326,10 +342,23 @@ class DoubleScalingTrainer(Trainer):
                     cont_valid_locscaled = loc_scaler_valid.forward(cont_valid)
                     validlossfunc = self.criterion(validoutputs_locscaled, cont_valid_locscaled.type(torch.FloatTensor))
 
+                elif loss_space=="locscaled-rel":
+                    cont_valid_locscaled = loc_scaler_valid.forward(cont_valid)
+                    validoutputs_locscaled_rel = (validoutputs_locscaled / cont_valid_locscaled).type(torch.FloatTensor)
+                    cont_valid_locscaled_rel = torch.FloatTensor(np.ones(cont_valid_locscaled.shape))
+                    validlossfunc = self.criterion(validoutputs_locscaled_rel, cont_valid_locscaled_rel)
+
                 elif loss_space=="doublyscaled":
                     cont_valid_locscaled = loc_scaler_valid.forward(cont_valid)
                     cont_valid_doubscaled = self.glob_scaler_cont.forward(cont_valid_locscaled)
                     validlossfunc = self.criterion(validoutputs, cont_valid_doubscaled)
+
+                elif loss_space=="doublyscaled-rel":
+                    cont_valid_locscaled = loc_scaler_valid.forward(cont_valid)
+                    cont_valid_doubscaled = self.glob_scaler_cont.forward(cont_valid_locscaled)
+                    validoutputs_rel = (validoutputs / cont_valid_doubscaled).type(torch.FloatTensor)
+                    cont_valid_doubscaled_rel = torch.FloatTensor(np.ones(cont_valid_doubscaled.shape))
+                    validlossfunc = self.criterion(validoutputs_rel, cont_valid_doubscaled_rel) / len(flux_valid)
 
                 #validlossfunc = self.criterion(validoutputs_real, torch.FloatTensor(cont_valid.numpy()))
                 valid_loss[epoch] += validlossfunc.item()

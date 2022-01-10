@@ -28,13 +28,13 @@ layerdims = [300,200,100]
 unet = LinearUNet(n_feature, layerdims, activfunc="elu", operator="addition",\
                   no_final_skip=True)
 optimizer, criterion = create_learners(unet.parameters(), learning_rate=0.001)
-trainer = DoubleScalingTrainer(unet, optimizer, criterion, num_epochs=300)
-trainer.train_unet(trainset, validset, loss_space="doublyscaled",\
-                   oneglobscaler=True)
+trainer = DoubleScalingTrainer(unet, optimizer, criterion, num_epochs=100)
+trainer.train_unet(trainset, validset, loss_space="locscaled-rel",\
+                   oneglobscaler=False, relscaler=True)
 
 savefolder = "/net/vdesk/data2/buiten/MRP2/misc-figures/LinearUNet/double-scaling/"
-filenamestart = savefolder + "nofinalskip_loss_space_doublyscaled_AbsSmoothScaler_1globscaler_"
-filenameend = "_npca10_20_12.png"
+filenamestart = savefolder + "_nofinalskip_loss_space_locscaled-rel_"
+filenameend = "_npca10_10_01.png"
 
 # plot the loss from the training routine
 fig, ax = trainer.plot_loss(epoch_min=1)
