@@ -33,7 +33,7 @@ trainer.train_unet(trainset, validset, loss_space="doublyscaled",\
                    oneglobscaler=True)
 
 savefolder = "/net/vdesk/data2/buiten/MRP2/misc-figures/LinearUNet/double-scaling/"
-filenamestart = savefolder + "nofinalskip_loss_space_doublyscaled_1globscaler_300epochs_"
+filenamestart = savefolder + "nofinalskip_loss_space_doublyscaled_AbsSmoothScaler_1globscaler_"
 filenameend = "_npca10_20_12.png"
 
 # plot the loss from the training routine

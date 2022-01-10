@@ -16,6 +16,18 @@ class SmoothScaler:
         return self.flux_smooth*(1 + relresid.to(self.device))
 
 
+class SmoothScalerAbsolute:
+    def __init__(self, wave_rest, flux_smooth):
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.wave_rest = torch.tensor(wave_rest).float().to(self.device)
+        self.flux_smooth = torch.tensor(flux_smooth).float().to(self.device)
+
+    def forward(self, flux):
+        return (flux.to(self.device) - self.flux_smooth)
+
+    def backward(self, resid):
+        return (resid.to(self.device) + self.flux_smooth)
+
 class DoubleScaler:
     '''Scaler that combines the local SmoothScaler and the global
     QuasarScaler.'''
