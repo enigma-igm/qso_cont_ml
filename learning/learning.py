@@ -10,7 +10,7 @@ from utils.errorfuncs import MSE, corr_matrix_relresids
 
 def create_learners(parameters, learning_rate=0.1):
     optimizer = torch.optim.AdamW(parameters, lr=learning_rate)
-    criterion = torch.nn.MSELoss(size_average=False)
+    criterion = torch.nn.MSELoss(reduction="sum")
 
     return optimizer, criterion
 

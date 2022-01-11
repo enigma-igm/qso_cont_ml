@@ -158,8 +158,10 @@ class UNetTrainer(Trainer):
                 elif loss_space=="globscaled":
                     validlossfunc = self.criterion(validoutputs, cont_valid.type(torch.FloatTensor))
 
-            valid_loss[epoch] = validlossfunc.item()
-            print("Validation loss: {:12.3f}".format(valid_loss[epoch]/len(validset)))
+                valid_loss[epoch] += validlossfunc.item()
+
+            valid_loss[epoch] = valid_loss[epoch] / len(validset)
+            print("Validation loss: {:12.5f}".format(valid_loss[epoch]))
 
             # save the model if the validation loss decreases
             if min_valid_loss > valid_loss[epoch]:
@@ -174,8 +176,9 @@ class UNetTrainer(Trainer):
                 }, savefile)
 
         # compute the loss per quasar
-        running_loss = running_loss / (len(trainset)*trainset.flux.shape[1])
-        valid_loss = valid_loss / (len(validset)*validset.flux.shape[1])
+        running_loss = running_loss / len(trainset)
+        #running_loss = running_loss / (trainset.flux.shape[1])
+        #valid_loss = valid_loss / (validset.flux.shape[1])
 
         # load the model with lowest validation loss
         checkpoint = torch.load(savefile)
@@ -306,7 +309,7 @@ class DoubleScalingTrainer(Trainer):
                     cont_train_doubscaled = self.glob_scaler_cont.forward(cont_train_locscaled)
                     outputs_rel = (outputs / cont_train_doubscaled).type(torch.FloatTensor)
                     cont_train_doubscaled_rel = torch.FloatTensor(np.ones(cont_train_doubscaled.shape))
-                    loss = self.criterion(outputs_rel, cont_train_doubscaled_rel) / len(flux_train)
+                    loss = self.criterion(outputs_rel, cont_train_doubscaled_rel)
 
                 loss.backward()
 
@@ -358,7 +361,7 @@ class DoubleScalingTrainer(Trainer):
                     cont_valid_doubscaled = self.glob_scaler_cont.forward(cont_valid_locscaled)
                     validoutputs_rel = (validoutputs / cont_valid_doubscaled).type(torch.FloatTensor)
                     cont_valid_doubscaled_rel = torch.FloatTensor(np.ones(cont_valid_doubscaled.shape))
-                    validlossfunc = self.criterion(validoutputs_rel, cont_valid_doubscaled_rel) / len(flux_valid)
+                    validlossfunc = self.criterion(validoutputs_rel, cont_valid_doubscaled_rel)
 
                 #validlossfunc = self.criterion(validoutputs_real, torch.FloatTensor(cont_valid.numpy()))
                 valid_loss[epoch] += validlossfunc.item()
