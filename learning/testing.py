@@ -243,8 +243,9 @@ class ResidualStatistics:
         ax.legend()
         ax.grid()
         ax.set_xlabel("Rest-frame wavelength ($\AA$)")
-        ax.set_ylabel("Relative residual")
-        ax.set_title("Residuals relative to input flux")
+        #ax.set_ylabel("Relative residual")
+        ax.set_ylabel("$\\frac{F_{true} - F_{pred}}{F_{true}}$")
+        ax.set_title("Residuals relative to true continuum")
 
         return fig, ax
 
@@ -257,8 +258,9 @@ class ResidualStatistics:
                                                                                                     self.mad_resid))
         bin_cen = (bins[:-1] + bins[1:])/2
         ax.plot(bin_cen, norm.pdf(bin_cen, loc=self.mean_resid, scale=self.mad_resid), label="Gaussian (with MAD std)")
-        ax.set_xlabel("Relative residual")
+        #ax.set_xlabel("Relative residual")
+        ax.set_xlabel("$\\frac{F_{true} - F_{pred}}{F_{true}}$")
         ax.set_ylabel("Probability density")
-        ax.set_title("Residuals relative to input flux")
+        ax.set_title("Residuals relative to true continuum")
         ax.legend()
         return fig, ax
