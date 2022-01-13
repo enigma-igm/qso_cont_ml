@@ -1,7 +1,7 @@
 '''Module for loading in pytorch Datasets for the QSO spectra.'''
 
 from torch.utils.data import Dataset
-from data.load_data import load_synth_spectra, split_data, normalise_spectra
+from data.load_data import load_synth_spectra, load_synth_noisy_cont, split_data, normalise_spectra
 import numpy as np
 from pypeit.utils import fast_running_median
 
@@ -35,10 +35,14 @@ class Spectra(Dataset):
 
 class SynthSpectra(Spectra):
     def __init__(self, regridded=True, small=False, npca=10,\
-                       noise=False, norm1280=True):
+                       noise=False, norm1280=True, forest=True):
 
-        wave_grid, cont, flux = load_synth_spectra(regridded, small, npca,\
-                                                   noise)
+        if not forest:
+            wave_grid, cont, flux = load_synth_noisy_cont()
+
+        else:
+            wave_grid, cont, flux = load_synth_spectra(regridded, small, npca,\
+                                                       noise)
 
         super(SynthSpectra, self).__init__(wave_grid, cont, flux, norm1280)
 
