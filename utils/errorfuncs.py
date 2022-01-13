@@ -2,6 +2,7 @@
 
 import numpy as np
 from astropy.stats import mad_std
+from torch import FloatTensor
 
 def MSE(y_obs, y_pred):
     '''Computes the mean squared error for the vector of observed values y_obs
@@ -39,3 +40,38 @@ def corr_matrix_relresids(y_obs, y_pred, n_samples):
     corr_delta = covar_delta/np.sqrt(np.outer(np.diag(covar_delta), np.diag(covar_delta)))
 
     return corr_delta
+
+
+class WavWeights:
+    '''Class for calculating normalised weights to use in the loss function
+    based on the width of the wavelength pixels.'''
+
+    def __init__(self, wave_grid, power=1):
+
+        self.wave_grid = wave_grid
+        wave_widths = wave_grid[1:] - wave_grid[:-1]
+        vel_widths = 2.998e10/(wave_grid[:-1]) * wave_widths
+        self.vel_widths = np.concatenate((vel_widths, [vel_widths[-1]]))
+
+        self.weights_unnormed = self.vel_widths**power
+        self.weights_norm_factor = len(self.weights_unnormed) / np.sum(self.weights_unnormed)
+        self.weights_normed = self.weights_unnormed * self.weights_norm_factor
+
+
+    @property
+    def weights(self):
+
+        weights_tensor = FloatTensor(self.weights_normed)
+
+        return weights_tensor
+
+    #@weights.setter
+    #def set_weights(se
+
+
+    @property
+    def weights_in_MSE(self):
+
+        sqrt_weights = FloatTensor(np.sqrt(self.weights_normed))
+
+        return sqrt_weights

@@ -139,7 +139,7 @@ class Trainer:
         self.valid_loss = valid_loss
 
 
-    def plot_loss(self, epoch_min=50, yscale="linear"):
+    def plot_loss(self, epoch_min=50, yscale="linear", titleadd=""):
         '''Plot the loss function for the training set and the validation set as a function of epoch number.'''
 
         epoch_no = np.arange(1, self.num_epochs+1)
@@ -165,7 +165,9 @@ class Trainer:
         ax.set_xlabel("Epoch number")
         ax.set_ylabel("Loss per quasar")
         ax.grid()
-        ax.set_title("MSE loss on the normalised spectra")
+
+        fig.suptitle("MSE loss"+titleadd)
+        ax.set_title("Summed over wavelengths, averaged over QSOs")
         ax.legend()
 
         return fig, ax

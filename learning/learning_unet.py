@@ -11,6 +11,7 @@ from utils.smooth_scaler import SmoothScaler, DoubleScaler, SmoothScalerAbsolute
 from qso_fitting.models.utils import QuasarScaler
 from data.load_datasets import SynthSpectra
 from torch.utils.data import DataLoader
+from utils.errorfuncs import WavWeights
 
 class UNetTrainer(Trainer):
     def __init__(self, net, optimizer, criterion, batch_size=1000, num_epochs=400):
@@ -29,7 +30,7 @@ class UNetTrainer(Trainer):
         self.scaler_y = doubscaler_cont
 
 
-    def _train_glob_scalers(self, trainset, floorval=0.05):
+    def _train_glob_scalers(self, trainset, floorval=0.05, globscalers="both"):
         '''Train the QuasarScalers on the training spectra and training continua.'''
 
         wave_grid = trainset.wave_grid
@@ -41,19 +42,32 @@ class UNetTrainer(Trainer):
         cont_mean = np.mean(cont, axis=0)
         cont_std = np.std(cont, axis=0) + floorval * np.median(cont_mean)
 
-        self.glob_scaler_flux = QuasarScaler(wave_grid, flux_mean, flux_std)
-        self.glob_scaler_cont = QuasarScaler(wave_grid, cont_mean, cont_std)
+        scaler_flux = QuasarScaler(wave_grid, flux_mean, flux_std)
+        scaler_cont = QuasarScaler(wave_grid, cont_mean, cont_std)
+
+        if globscalers=="both":
+            self.glob_scaler_flux = scaler_flux
+            self.glob_scaler_cont = scaler_cont
+
+        elif globscalers=="flux":
+            self.glob_scaler_flux = scaler_flux
+            self.glob_scaler_cont = scaler_flux
+
+        elif globscalers=="cont":
+            self.glob_scaler_flux = scaler_cont
+            self.glob_scaler_cont = scaler_cont
 
 
     def train(self, trainset, validset, savefile="LinearUNet.pth",\
               use_QSOScalers=False, smooth=False,\
-              use_DoubleScalers=False, loss_space="real-rel"):
+              use_DoubleScalers=False, loss_space="real-rel",\
+              globscalers="both", weight=False):
         '''DoubleScaler training currently does not work properly!'''
 
         # use the QSOScaler
         if use_QSOScalers:
 
-            self._train_glob_scalers(trainset)
+            self._train_glob_scalers(trainset, globscalers=globscalers)
 
         elif use_DoubleScalers:
             pass
@@ -70,6 +84,16 @@ class UNetTrainer(Trainer):
         # set up DataLoaders
         train_loader = DataLoader(trainset, batch_size=self.batch_size, shuffle=True)
         valid_loader = DataLoader(validset, batch_size=len(validset), shuffle=True)
+
+        if weight:
+            Weights = WavWeights(trainset.wave_grid)
+            weights_mse = Weights.weights_in_MSE
+            #wave_grid = trainset.wave_grid
+            #wave_widths = wave_grid[1:] - wave_grid[:-1]
+            #vel_widths = 2.998e10/(wave_grid[:-1]) * wave_widths
+            #vel_widths = np.concatenate((vel_widths, [vel_widths[-1]]))
+            #weights = torch.FloatTensor(np.sqrt(vel_widths))
+            #weights_norm_factor = len(vel_widths)/np.sum(vel_widths)
 
         # train the model to find good residuals
         for epoch in range(self.num_epochs):
@@ -107,7 +131,11 @@ class UNetTrainer(Trainer):
                         outputs_real_rel = (outputs / cont_train).type(torch.FloatTensor)
                         cont_train_rel = (cont_train / cont_train).type(torch.FloatTensor)
 
-                    loss = self.criterion(outputs_real_rel, cont_train_rel)
+                    if weight:
+                        loss = self.criterion(outputs_real_rel*weights_mse, cont_train_rel*weights_mse)
+
+                    else:
+                        loss = self.criterion(outputs_real_rel, cont_train_rel)
 
                 elif loss_space=="globscaled":
                     # compute the loss in globally scaled space2w
@@ -153,7 +181,11 @@ class UNetTrainer(Trainer):
                         validoutputs_real_rel = (validoutputs / cont_valid).type(torch.FloatTensor)
                         cont_valid_rel = (cont_valid / cont_valid).type(torch.FloatTensor)
 
-                    validlossfunc = self.criterion(validoutputs_real_rel, cont_valid_rel)
+                    if weight:
+                        validlossfunc = self.criterion(validoutputs_real_rel*weights_mse, cont_valid_rel*weights_mse)
+
+                    else:
+                        validlossfunc = self.criterion(validoutputs_real_rel, cont_valid_rel)
 
                 elif loss_space=="globscaled":
                     validlossfunc = self.criterion(validoutputs, cont_valid.type(torch.FloatTensor))
