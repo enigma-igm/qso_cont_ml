@@ -88,12 +88,6 @@ class UNetTrainer(Trainer):
         if weight:
             Weights = WavWeights(trainset.wave_grid)
             weights_mse = Weights.weights_in_MSE
-            #wave_grid = trainset.wave_grid
-            #wave_widths = wave_grid[1:] - wave_grid[:-1]
-            #vel_widths = 2.998e10/(wave_grid[:-1]) * wave_widths
-            #vel_widths = np.concatenate((vel_widths, [vel_widths[-1]]))
-            #weights = torch.FloatTensor(np.sqrt(vel_widths))
-            #weights_norm_factor = len(vel_widths)/np.sum(vel_widths)
 
         # train the model to find good residuals
         for epoch in range(self.num_epochs):
@@ -227,9 +221,8 @@ class DoubleScalingTrainer(Trainer):
         super(DoubleScalingTrainer, self).__init__(net, optimizer, criterion,\
                                           batch_size=batch_size, num_epochs=num_epochs)
 
-    def _train_glob_scalers(self, trainset,\
-                            smoothwindow=20, floorval=0.05,\
-                            oneglobscaler=False, relscaler=True):
+    def _train_glob_scalers(self, trainset, floorval=0.05,\
+                            globscalers="both", relscaler=True):
         '''Trains the global QSOScaler on the locally scaled training set.'''
 
         # first do the local transformation
@@ -247,7 +240,7 @@ class DoubleScalingTrainer(Trainer):
         flux_train_locscaled = loc_scaler_train.forward(torch.FloatTensor(flux))
         cont_train_locscaled = loc_scaler_train.forward(torch.FloatTensor(cont))
 
-        # now train the global scaler
+        # now train the global scalers
         flux_train_locscaled_np = flux_train_locscaled.detach().numpy()
         cont_train_locscaled_np = cont_train_locscaled.detach().numpy()
 
@@ -256,20 +249,29 @@ class DoubleScalingTrainer(Trainer):
         cont_mean = np.mean(cont_train_locscaled_np, axis=0)
         cont_std = np.std(cont_train_locscaled_np, axis=0) + floorval * np.median(cont_mean)
 
-        self.glob_scaler_flux = QuasarScaler(wave_grid, flux_mean, flux_std)
+        scaler_flux = QuasarScaler(wave_grid, flux_mean, flux_std)
+        scaler_cont = QuasarScaler(wave_grid, cont_mean, cont_std)
 
-        if oneglobscaler:
-            self.glob_scaler_cont = self.glob_scaler_flux
-        else:
-            self.glob_scaler_cont = QuasarScaler(wave_grid, cont_mean, cont_std)
+        if globscalers=="both":
+            self.glob_scaler_flux = scaler_flux
+            self.glob_scaler_cont = scaler_cont
+
+        elif globscalers=="flux":
+            self.glob_scaler_flux = scaler_flux
+            self.glob_scaler_cont = scaler_flux
+
+        elif globscalers=="cont":
+            self.glob_scaler_flux = scaler_cont
+            self.glob_scaler_cont = scaler_cont
 
 
     def train_unet(self, trainset, validset, savefile="LinearUNet.pth",\
-                   loss_space="real-rel", oneglobscaler=False, relscaler=True):
+                   loss_space="real-rel", globscalers="both", relscaler=True,\
+                   weight=False, weightpower=1):
         '''Train the network.'''
 
         # train the global scalers
-        self._train_glob_scalers(trainset, oneglobscaler=oneglobscaler,\
+        self._train_glob_scalers(trainset, globscalers=globscalers,\
                                  relscaler=relscaler)
 
         wave_grid = trainset.wave_grid
@@ -284,6 +286,12 @@ class DoubleScalingTrainer(Trainer):
                                   shuffle=True)
         valid_loader = DataLoader(validset, batch_size=len(validset),\
                                   shuffle=True)
+
+        # load the weights
+        if weight:
+            Weights = WavWeights(trainset.wave_grid, power=weightpower)
+            weights_mse = Weights.weights_in_MSE
+
 
         # now do mini-batch learning
         for epoch in range(self.num_epochs):
@@ -314,7 +322,10 @@ class DoubleScalingTrainer(Trainer):
                     outputs_real_rel = (outputs_real / cont_train).type(torch.FloatTensor)
                     cont_train_rel = (cont_train / cont_train).type(torch.FloatTensor)
 
-                    loss = self.criterion(outputs_real_rel, cont_train_rel)
+                    if weight:
+                        loss = self.criterion(outputs_real_rel*weights_mse, cont_train_rel*weights_mse)
+                    else:
+                        loss = self.criterion(outputs_real_rel, cont_train_rel)
 
                 elif loss_space=="locscaled":
                     # compute loss in locally scaled space
@@ -370,7 +381,11 @@ class DoubleScalingTrainer(Trainer):
                     # normalised by the true continuum for unbiased learning
                     validoutputs_real_rel = (validoutputs_real / cont_valid).type(torch.FloatTensor)
                     cont_valid_rel = (cont_valid / cont_valid).type(torch.FloatTensor)
-                    validlossfunc = self.criterion(validoutputs_real_rel, cont_valid_rel)
+
+                    if weight:
+                        validlossfunc = self.criterion(validoutputs_real_rel*weights_mse, cont_valid_rel*weights_mse)
+                    else:
+                        validlossfunc = self.criterion(validoutputs_real_rel, cont_valid_rel)
 
                 elif loss_space=="locscaled":
                     # compute the loss in locally scaled space
@@ -398,7 +413,8 @@ class DoubleScalingTrainer(Trainer):
                 #validlossfunc = self.criterion(validoutputs_real, torch.FloatTensor(cont_valid.numpy()))
                 valid_loss[epoch] += validlossfunc.item()
 
-            print("Validation loss: {:12.3f}".format(valid_loss[epoch] / len(validset.flux)))
+            # divide total validation loss by the number of quasars to average
+            print("Validation loss: {:12.3f}".format(valid_loss[epoch] / len(validset)))
 
             # save the model if the validation loss decreases
             if min_valid_loss > valid_loss[epoch]:
@@ -412,9 +428,9 @@ class DoubleScalingTrainer(Trainer):
                     "valid_loss": valid_loss[epoch],
                 }, savefile)
 
-        # compute the loss per quasar per pixel
-        running_loss = running_loss / (len(trainset.flux)*trainset.flux.shape[1])
-        valid_loss = valid_loss / (len(validset.flux)*validset.flux.shape[1])
+        # compute the loss per quasar
+        running_loss = running_loss / len(trainset)
+        valid_loss = valid_loss / len(validset)
 
         # load the model with lowest validation loss
         checkpoint = torch.load(savefile)
