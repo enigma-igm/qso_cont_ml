@@ -10,7 +10,7 @@ plt.rcParams["font.family"] = "serif"
 
 # load the synthetic spectra with npca=10 and normalise to 1 around 1280 \AA
 # use the SynthSpectra framework
-synthspec = SynthSpectra(forest=False)
+synthspec = SynthSpectra(forest=False, window=10)
 wave_grid = synthspec.wave_grid
 trainset, validset, testset = synthspec.split()
 
@@ -30,12 +30,12 @@ unet = LinearUNet(n_feature, layerdims, activfunc="elu", operator="addition",\
 optimizer, criterion = create_learners(unet.parameters(), learning_rate=0.001)
 trainer = DoubleScalingTrainer(unet, optimizer, criterion, num_epochs=100)
 trainer.train_unet(trainset, validset, loss_space="real-rel",\
-                   globscalers="both", relscaler=True, weight=True,\
+                   globscalers="cont", relscaler=False, weight=True,\
                    weightpower=2)
 
 savefolder = "/net/vdesk/data2/buiten/MRP2/misc-figures/LinearUNet/double-scaling/noisy_cont/"
-filenamestart = savefolder + "noforest_doubscaled_quadweighted-real-rel-loss_contQSOScaler_"
-filenameend = "_13_01.png"
+filenamestart = savefolder + "window10_noforest_doubscaled_quadweighted-real-rel-loss_contQSOScaler_"
+filenameend = "_14_01.png"
 
 # plot the loss from the training routine
 fig, ax = trainer.plot_loss(epoch_min=1)
