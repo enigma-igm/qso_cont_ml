@@ -31,10 +31,10 @@ optimizer, criterion = create_learners(unet.parameters(), learning_rate=0.001)
 trainer = DoubleScalingTrainer(unet, optimizer, criterion, num_epochs=100)
 trainer.train_unet(trainset, validset, loss_space="real-rel",\
                    globscalers="cont", relscaler=True, weight=True,\
-                   weightpower=2)
+                   weightpower=2, relglobscaler=False)
 
 savefolder = "/net/vdesk/data2/buiten/MRP2/misc-figures/LinearUNet/double-scaling/noisy_cont/"
-filenamestart = savefolder + "noforest_doubscaled_quadweighted-real-rel-loss_contQSOScaler_"
+filenamestart = savefolder + "absglobscaler_noforest_doubscaled_quadweighted-real-rel-loss_contQSOScaler_"
 filenameend = "_14_01.png"
 
 # plot the loss from the training routine
@@ -67,7 +67,7 @@ fig2.savefig(filenamestart+"corrmat"+filenameend)
 testres = DoubleScalingResultsSpectra(testset, unet, trainer.glob_scaler_flux,\
                                       trainer.glob_scaler_cont)
 rand_indx = testres.random_index(4)
-testres.create_figure(figsize=(15,10))
+testres.create_figure(figsize=(12,8))
 for i in range(len(rand_indx)):
     loc = int("22"+str(i+1))
     ax = testres.plot(rand_indx[i], subplotloc=loc, includesmooth=True)
@@ -79,7 +79,7 @@ testres.fig.savefig(filenamestart+"examples"+filenameend)
 # also plot the raw network output for the same test quasars
 testres_raw = DoubleScalingResultsSpectra(testset, unet, trainer.glob_scaler_flux,\
                                       trainer.glob_scaler_cont)
-testres_raw.create_figure(figsize=(15,10))
+testres_raw.create_figure(figsize=(12,9))
 for i in range(len(rand_indx)):
     loc = int("22"+str(i+1))
     ax = testres_raw.plot_doublyscaled(rand_indx[i], subplotloc=loc)
@@ -91,7 +91,7 @@ testres_raw.fig.savefig(filenamestart+"examplesraw"+filenameend)
 # plot the network output in locally scaled space
 testres_loc = DoubleScalingResultsSpectra(testset, unet, trainer.glob_scaler_flux,\
                                           trainer.glob_scaler_cont)
-testres_loc.create_figure(figsize=(15,10))
+testres_loc.create_figure(figsize=(12,9))
 for i in range(len(rand_indx)):
     loc = int("22"+str(i+1))
     ax = testres_loc.plot_smoothscaled(rand_indx[i], subplotloc=loc)
