@@ -327,6 +327,14 @@ class DoubleScalingTrainer(Trainer):
                     else:
                         loss = self.criterion(outputs_real_rel, cont_train_rel)
 
+                elif loss_space=="real-abs":
+                    outputs_real = loc_scaler.backward(outputs)
+
+                    if weight:
+                        loss = self.criterion(outputs_real*weights_mse, cont_train.type(torch.FloatTensor)*weights_mse)
+                    else:
+                        loss = self.criteiron(outputs_real, cont_train.type(torch.FloatTensor))
+
                 elif loss_space=="locscaled":
                     # compute loss in locally scaled space
                     outputs_locscaled = self.glob_scaler_cont.backward(outputs)
@@ -386,6 +394,12 @@ class DoubleScalingTrainer(Trainer):
                         validlossfunc = self.criterion(validoutputs_real_rel*weights_mse, cont_valid_rel*weights_mse)
                     else:
                         validlossfunc = self.criterion(validoutputs_real_rel, cont_valid_rel)
+
+                elif loss_space=="real-abs":
+                    if weight:
+                        validlossfunc = self.criterion(validoutputs_real*weights_mse, cont_valid.type(torch.FloatTensor)*weights_mse)
+                    else:
+                        validlossfunc = self.criterion(validoutputs_real, cont_valid.type(torch.FloatTensor))
 
                 elif loss_space=="locscaled":
                     # compute the loss in locally scaled space
