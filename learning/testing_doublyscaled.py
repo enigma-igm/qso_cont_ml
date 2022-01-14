@@ -28,9 +28,10 @@ class DoubleScalingResults:
         self.loc_scaler = loc_scaler
 
         # doubly transform the input flux
-        flux_scaled = loc_scaler.forward(torch.FloatTensor(self.flux))
-        flux_scaled = self.globscaler_flux.forward(flux_scaled)
+        flux_locscaled = loc_scaler.forward(torch.FloatTensor(self.flux))
+        flux_scaled = self.globscaler_flux.forward(flux_locscaled)
         self.flux_scaled = flux_scaled.detach().numpy()
+        self.flux_locscaled = flux_locscaled.detach().numpy()
 
         # forward the network
         cont_pred_scaled = self.net.forward(flux_scaled)
@@ -41,11 +42,13 @@ class DoubleScalingResults:
         cont_pred = loc_scaler.backward(cont_pred_descaled)
 
         self.cont_pred = cont_pred.detach().numpy()
+        self.cont_pred_locscaled = cont_pred_descaled.detach().numpy()
 
         # also doubly transform the true continuum
         true_cont_locscaled = loc_scaler.forward(torch.FloatTensor(self.cont))
         true_cont_scaled = self.globscaler_cont.forward(true_cont_locscaled)
         self.true_cont_scaled = true_cont_scaled.detach().numpy()
+        self.true_cont_locscaled = true_cont_locscaled.detach().numpy()
 
 
 class DoubleScalingResultsSpectra(DoubleScalingResults):
@@ -107,6 +110,35 @@ class DoubleScalingResultsSpectra(DoubleScalingResults):
         ax.legend()
         ax.grid()
         ax.set_title("Results for test spectrum "+str(index+1))
+
+        self.axes.append(ax)
+
+        return ax
+
+
+    def plot_smoothscaled(self, index, figsize=(7,5), dpi=320, subplotloc=111,\
+                          alpha=0.7, contpredcolor="darkred"):
+
+        try:
+            fig = self.fig
+        except:
+            fig = self.create_figure(figsize=figsize, dpi=dpi)
+
+        ax = fig.add_subplot(subplotloc)
+
+        ax.plot(self.wave_grid, self.flux_locscaled[index], alpha=alpha, lw=1,\
+                label="Mock spectrum")
+        ax.plot(self.wave_grid, self.true_cont_locscaled[index], alpha=alpha,\
+                lw=2, label="True continuum")
+        ax.plot(self.wave_grid, self.cont_pred_locscaled, alpha=alpha,\
+                lw=1, ls="--", label="Predicted continuum",\
+                color=contpredcolor)
+
+        ax.set_xlabel("Rest-frame wavelength ($\AA$)")
+        ax.set_ylabel("$\\frac{F - F_{smooth}}{F_{smooth}}$")
+        ax.legend()
+        ax.grid()
+        ax.set_title("Locally scaled network output for test spectrum " + str(index + 1))
 
         self.axes.append(ax)
 
