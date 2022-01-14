@@ -61,7 +61,7 @@ class UNetTrainer(Trainer):
     def train(self, trainset, validset, savefile="LinearUNet.pth",\
               use_QSOScalers=False, smooth=False,\
               use_DoubleScalers=False, loss_space="real-rel",\
-              globscalers="both", weight=False):
+              globscalers="both", weight=False, weightpower=1):
         '''DoubleScaler training currently does not work properly!'''
 
         # use the QSOScaler
@@ -86,7 +86,7 @@ class UNetTrainer(Trainer):
         valid_loader = DataLoader(validset, batch_size=len(validset), shuffle=True)
 
         if weight:
-            Weights = WavWeights(trainset.wave_grid)
+            Weights = WavWeights(trainset.wave_grid, power=weightpower)
             weights_mse = Weights.weights_in_MSE
 
         # train the model to find good residuals

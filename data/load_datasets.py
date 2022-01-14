@@ -6,13 +6,13 @@ import numpy as np
 from pypeit.utils import fast_running_median
 
 class Spectra(Dataset):
-    def __init__(self, wave_grid, cont, flux, norm1280=True):
+    def __init__(self, wave_grid, cont, flux, norm1280=True, window=20):
         self.wave_grid = wave_grid
 
         # also smooth the spectra
         flux_smooth = np.zeros(flux.shape)
         for i, F in enumerate(flux):
-            flux_smooth[i,:] = fast_running_median(F, window_size=20)
+            flux_smooth[i,:] = fast_running_median(F, window_size=window)
 
         if norm1280:
             flux_smooth, flux = normalise_spectra(wave_grid, flux_smooth, flux)
@@ -35,7 +35,7 @@ class Spectra(Dataset):
 
 class SynthSpectra(Spectra):
     def __init__(self, regridded=True, small=False, npca=10,\
-                       noise=False, norm1280=True, forest=True):
+                       noise=False, norm1280=True, forest=True, window=20):
 
         if not forest:
             wave_grid, cont, flux = load_synth_noisy_cont()
@@ -44,7 +44,8 @@ class SynthSpectra(Spectra):
             wave_grid, cont, flux = load_synth_spectra(regridded, small, npca,\
                                                        noise)
 
-        super(SynthSpectra, self).__init__(wave_grid, cont, flux, norm1280)
+        super(SynthSpectra, self).__init__(wave_grid, cont, flux, norm1280,\
+                                           window=window)
 
 
     def split(self):
