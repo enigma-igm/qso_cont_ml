@@ -28,6 +28,23 @@ class SmoothScalerAbsolute:
     def backward(self, resid):
         return (resid.to(self.device) + self.flux_smooth)
 
+
+class MeanShiftScaler:
+    '''Essentially an absolute QuasarScaler.'''
+
+    def __init__(self, wave_rest, mean_spectrum):
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.wave_rest = torch.FloatTensor(wave_rest).to(self.device)
+        self.mean_spectrum = torch.FloatTensor(mean_spectrum).to(self.device)
+
+    def forward(self, qso_spectrum):
+        return qso_spectrum.to(self.device) - self.mean_spectrum
+
+    def backward(self, Y):
+        return Y.to(self.device) + self.mean_spectrum
+
+
+
 class DoubleScaler:
     '''Scaler that combines the local SmoothScaler and the global
     QuasarScaler.'''

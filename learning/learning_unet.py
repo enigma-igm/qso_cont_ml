@@ -7,7 +7,7 @@ from learning.learning import Trainer
 from models.linear_unet import get_rel_resids
 from models.network import normalise
 from pypeit.utils import fast_running_median
-from utils.smooth_scaler import SmoothScaler, DoubleScaler, SmoothScalerAbsolute
+from utils.smooth_scaler import *
 from qso_fitting.models.utils import QuasarScaler
 from data.load_datasets import SynthSpectra
 from torch.utils.data import DataLoader
@@ -222,7 +222,8 @@ class DoubleScalingTrainer(Trainer):
                                           batch_size=batch_size, num_epochs=num_epochs)
 
     def _train_glob_scalers(self, trainset, floorval=0.05,\
-                            globscalers="both", relscaler=True):
+                            globscalers="both", relscaler=True,\
+                            relglobscaler=True):
         '''Trains the global QSOScaler on the locally scaled training set.'''
 
         # first do the local transformation
@@ -249,8 +250,13 @@ class DoubleScalingTrainer(Trainer):
         cont_mean = np.mean(cont_train_locscaled_np, axis=0)
         cont_std = np.std(cont_train_locscaled_np, axis=0) + floorval * np.median(cont_mean)
 
-        scaler_flux = QuasarScaler(wave_grid, flux_mean, flux_std)
-        scaler_cont = QuasarScaler(wave_grid, cont_mean, cont_std)
+        if relglobscaler:
+            scaler_flux = QuasarScaler(wave_grid, flux_mean, flux_std)
+            scaler_cont = QuasarScaler(wave_grid, cont_mean, cont_std)
+
+        else:
+            scaler_flux = MeanShiftScaler(wave_grid, flux_mean)
+            scaler_cont = MeanShiftScaler(wave_grid, cont_mean)
 
         if globscalers=="both":
             self.glob_scaler_flux = scaler_flux
@@ -267,12 +273,14 @@ class DoubleScalingTrainer(Trainer):
 
     def train_unet(self, trainset, validset, savefile="LinearUNet.pth",\
                    loss_space="real-rel", globscalers="both", relscaler=True,\
-                   weight=False, weightpower=1):
+                   weight=False, weightpower=1, floorval=0.05,\
+                   relglobscaler=True):
         '''Train the network.'''
 
         # train the global scalers
         self._train_glob_scalers(trainset, globscalers=globscalers,\
-                                 relscaler=relscaler)
+                                 relscaler=relscaler, floorval=floorval,\
+                                 relglobscaler=relglobscaler)
 
         wave_grid = trainset.wave_grid
 

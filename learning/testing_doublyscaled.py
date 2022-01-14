@@ -130,7 +130,7 @@ class DoubleScalingResultsSpectra(DoubleScalingResults):
                 label="Mock spectrum")
         ax.plot(self.wave_grid, self.true_cont_locscaled[index], alpha=alpha,\
                 lw=2, label="True continuum")
-        ax.plot(self.wave_grid, self.cont_pred_locscaled, alpha=alpha,\
+        ax.plot(self.wave_grid, self.cont_pred_locscaled[index], alpha=alpha,\
                 lw=1, ls="--", label="Predicted continuum",\
                 color=contpredcolor)
 
