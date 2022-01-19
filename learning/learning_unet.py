@@ -283,6 +283,7 @@ class DoubleScalingTrainer(Trainer):
                                  relglobscaler=relglobscaler)
 
         wave_grid = trainset.wave_grid
+        self.wave_grid = wave_grid
 
         # set up the arrays for storing and checking the loss
         running_loss = np.zeros(self.num_epochs)
@@ -348,7 +349,10 @@ class DoubleScalingTrainer(Trainer):
                     outputs_locscaled = self.glob_scaler_cont.backward(outputs)
                     cont_train_locscaled = loc_scaler.forward(cont_train)
 
-                    loss = self.criterion(outputs_locscaled, cont_train_locscaled.type(torch.FloatTensor))
+                    if weight:
+                        loss = self.criterion(outputs_locscaled*weights_mse, cont_train_locscaled.type(torch.FloatTensor)*weights_mse)
+                    else:
+                        loss = self.criterion(outputs_locscaled, cont_train_locscaled.type(torch.FloatTensor))
 
                 elif loss_space=="locscaled-rel":
                     outputs_locscaled = self.glob_scaler_cont.backward(outputs)
@@ -412,7 +416,11 @@ class DoubleScalingTrainer(Trainer):
                 elif loss_space=="locscaled":
                     # compute the loss in locally scaled space
                     cont_valid_locscaled = loc_scaler_valid.forward(cont_valid)
-                    validlossfunc = self.criterion(validoutputs_locscaled, cont_valid_locscaled.type(torch.FloatTensor))
+
+                    if weight:
+                        validlossfunc = self.criterion(validoutputs_locscaled*weights_mse, cont_valid_locscaled.type(torch.FloatTensor)*weights_mse)
+                    else:
+                        validlossfunc = self.criterion(validoutputs_locscaled, cont_valid_locscaled.type(torch.FloatTensor))
 
                 elif loss_space=="locscaled-rel":
                     cont_valid_locscaled = loc_scaler_valid.forward(cont_valid)

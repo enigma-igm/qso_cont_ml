@@ -6,7 +6,8 @@ import numpy as np
 from pypeit.utils import fast_running_median
 
 class Spectra(Dataset):
-    def __init__(self, wave_grid, cont, flux, norm1280=True, window=20):
+    def __init__(self, wave_grid, cont, flux, norm1280=True, window=20,\
+                 newnorm=False):
         self.wave_grid = wave_grid
 
         # also smooth the spectra
@@ -15,8 +16,18 @@ class Spectra(Dataset):
             flux_smooth[i,:] = fast_running_median(F, window_size=window)
 
         if norm1280:
-            flux_smooth, flux = normalise_spectra(wave_grid, flux_smooth, flux)
-            _, cont = normalise_spectra(wave_grid, flux_smooth, cont)
+            if newnorm:
+                # normalise by dividing everything by the smoothed flux at 1280 A
+                inwindow = (wave_grid > 1279) & (wave_grid < 1281)
+                normfactor = flux_smooth[:,inwindow]
+                cont = cont / normfactor
+                flux = flux / normfactor
+                flux_smooth = flux_smooth / normfactor
+
+            else:
+
+                flux_smooth, flux = normalise_spectra(wave_grid, flux_smooth, flux)
+                _, cont = normalise_spectra(wave_grid, flux_smooth, cont)
 
         self.flux = flux
         self.cont = cont
@@ -35,7 +46,8 @@ class Spectra(Dataset):
 
 class SynthSpectra(Spectra):
     def __init__(self, regridded=True, small=False, npca=10,\
-                       noise=False, norm1280=True, forest=True, window=20):
+                       noise=False, norm1280=True, forest=True, window=20,\
+                newnorm=False):
 
         if not forest:
             wave_grid, cont, flux = load_synth_noisy_cont()
@@ -45,7 +57,7 @@ class SynthSpectra(Spectra):
                                                        noise)
 
         super(SynthSpectra, self).__init__(wave_grid, cont, flux, norm1280,\
-                                           window=window)
+                                           window=window, newnorm=newnorm)
 
 
     def split(self):

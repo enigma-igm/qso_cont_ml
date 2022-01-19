@@ -10,7 +10,7 @@ plt.rcParams["font.family"] = "serif"
 
 # load the synthetic spectra with npca=10 and normalise to 1 around 1280 \AA
 # use the SynthSpectra framework
-synthspec = SynthSpectra(forest=False, window=20)
+synthspec = SynthSpectra(forest=False, window=20, newnorm=True)
 wave_grid = synthspec.wave_grid
 trainset, validset, testset = synthspec.split()
 
@@ -28,17 +28,18 @@ layerdims = [300,200,100]
 unet = LinearUNet(n_feature, layerdims, activfunc="elu", operator="addition",\
                   no_final_skip=True)
 optimizer, criterion = create_learners(unet.parameters(), learning_rate=0.001)
-trainer = DoubleScalingTrainer(unet, optimizer, criterion, num_epochs=100)
+trainer = DoubleScalingTrainer(unet, optimizer, criterion, num_epochs=200)
 trainer.train_unet(trainset, validset, loss_space="real-rel",\
-                   globscalers="cont", relscaler=True, weight=True,\
-                   weightpower=2, relglobscaler=False)
+                   globscalers="both", relscaler=True, weight=True,\
+                   weightpower=1, relglobscaler=True)
 
 savefolder = "/net/vdesk/data2/buiten/MRP2/misc-figures/LinearUNet/double-scaling/noisy_cont/"
-filenamestart = savefolder + "absglobscaler_noforest_doubscaled_quadweighted-real-rel-loss_contQSOScaler_"
-filenameend = "_14_01.png"
+filenamestart = savefolder + "noforest_doubscaled_linweighted-real-rel-loss_bothQSOScalers_"
+filenameend = "_19_01.png"
 
 # plot the loss from the training routine
-fig, ax = trainer.plot_loss(epoch_min=1)
+# plot the square root of the loss per wavelength pixel
+fig, ax = trainer.plot_sqrt_loss(epoch_min=1)
 fig.show()
 fig.savefig(filenamestart+"loss"+filenameend)
 
