@@ -146,7 +146,7 @@ class DoubleScalingResultsSpectra(DoubleScalingResults):
 
 
     def plot_doublyscaled(self, index, figsize=(7,5), dpi=320, subplotloc=111,\
-             alpha=0.7, contpredcolor="darkred"):
+             alpha=0.7, contpredcolor="darkred", plotinput=True):
         '''Plot the raw output of the network along with the doubly scaled
         flux and true continuum.'''
 
@@ -159,8 +159,10 @@ class DoubleScalingResultsSpectra(DoubleScalingResults):
 
         ax = fig.add_subplot(subplotloc)
 
-        ax.plot(self.wave_grid, self.flux_scaled[index], alpha=alpha, lw=1,\
-                label="Mock spectrum")
+        if plotinput:
+            ax.plot(self.wave_grid, self.flux_scaled[index], alpha=alpha, lw=1,\
+                    label="Mock spectrum")
+
         ax.plot(self.wave_grid, self.true_cont_scaled[index], alpha=alpha, lw=2,\
                 label="True continuum")
         ax.plot(self.wave_grid, cont_pred_scaled, alpha=alpha, lw=1, ls="--",\

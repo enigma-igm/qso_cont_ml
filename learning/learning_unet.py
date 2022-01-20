@@ -89,6 +89,8 @@ class UNetTrainer(Trainer):
             Weights = WavWeights(trainset.wave_grid, power=weightpower)
             weights_mse = Weights.weights_in_MSE
 
+        self.wave_grid = trainset.wave_grid
+
         # train the model to find good residuals
         for epoch in range(self.num_epochs):
             for flux_train_raw, flux_smooth_train_raw, cont_train_raw in train_loader:

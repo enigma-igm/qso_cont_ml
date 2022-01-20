@@ -30,12 +30,12 @@ unet = LinearUNet(n_feature, layerdims, activfunc="elu", operator="addition",\
 optimizer, criterion = create_learners(unet.parameters(), learning_rate=0.001)
 trainer = DoubleScalingTrainer(unet, optimizer, criterion, num_epochs=200)
 trainer.train_unet(trainset, validset, loss_space="real-rel",\
-                   globscalers="both", relscaler=True, weight=True,\
+                   globscalers="cont", relscaler=True, weight=True,\
                    weightpower=1, relglobscaler=True)
 
 savefolder = "/net/vdesk/data2/buiten/MRP2/misc-figures/LinearUNet/double-scaling/noisy_cont/"
-filenamestart = savefolder + "noforest_doubscaled_linweighted-real-rel-loss_bothQSOScalers_"
-filenameend = "_19_01.png"
+filenamestart = savefolder + "noforest_doubscaled_linweighted-real-rel-loss_contQSOScaler_"
+filenameend = "_20_01.png"
 
 # plot the loss from the training routine
 # plot the square root of the loss per wavelength pixel

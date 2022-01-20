@@ -22,16 +22,19 @@ class Spectra(Dataset):
                 normfactor = flux_smooth[:,inwindow]
                 cont = cont / normfactor
                 flux = flux / normfactor
-                flux_smooth = flux_smooth / normfactor
+                flux_smooth_new = flux_smooth / normfactor
 
             else:
 
-                flux_smooth, flux = normalise_spectra(wave_grid, flux_smooth, flux)
+                flux_smooth_new, flux = normalise_spectra(wave_grid, flux_smooth, flux)
                 _, cont = normalise_spectra(wave_grid, flux_smooth, cont)
+
+        else:
+            flux_smooth_new = flux_smooth
 
         self.flux = flux
         self.cont = cont
-        self.flux_smooth = flux_smooth
+        self.flux_smooth = flux_smooth_new
 
     def __len__(self):
         return len(self.flux)
