@@ -11,7 +11,7 @@ plt.rcParams["font.family"] = "serif"
 
 # load the synthetic spectra with npca=10 and normalise to 1 around 1280 \AA
 # use the SynthSpectra framework
-synthspec = SynthSpectra(forest=False, window=20, newnorm=False)
+synthspec = SynthSpectra(noise=True, forest=True, window=20, newnorm=False)
 wave_grid = synthspec.wave_grid
 trainset, validset, testset = synthspec.split()
 
@@ -23,7 +23,7 @@ trainset, validset, testset = synthspec.split()
 n_feature = trainset.flux.shape[1]
 
 # set the hidden layer dimensions
-layerdims = [3000, 2000, 1000]
+layerdims = [300, 200, 100]
 
 # initialise the LinearUNet and train with the DoubleScalingTrainer
 #unet = Net(n_feature, 3*n_feature, n_feature)
@@ -36,8 +36,8 @@ trainer.train_unet(trainset, validset, loss_space="real-rel",\
                    weightpower=1, relglobscaler=True,\
                    abs_descaling=False)
 
-savefolder = "/net/vdesk/data2/buiten/MRP2/misc-figures/LinearUNet/double-scaling/noisy_cont/"
-filenamestart = savefolder + "bigdeclayers_regsmooth_linweighted_contQSOScaler_"
+savefolder = "/net/vdesk/data2/buiten/MRP2/misc-figures/LinearUNet/double-scaling/forest-homoscedastic-noise/"
+filenamestart = savefolder + "regsmooth_linweighted_contQSOScaler_"
 filenameend = "_21_01.png"
 
 # plot the loss from the training routine

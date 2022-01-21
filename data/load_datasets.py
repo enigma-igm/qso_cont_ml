@@ -53,13 +53,19 @@ class SynthSpectra(Spectra):
                                                           window=window)
 
         else:
-            wave_grid, cont, flux = load_synth_spectra(regridded, small, npca,\
-                                                       noise)
+            if noise:
+                wave_grid, cont, flux, flux_smooth = load_synth_spectra(regridded,\
+                                                                        small=False,\
+                                                                        npca=npca,\
+                                                                        noise=True)
+            else:
+                wave_grid, cont, flux = load_synth_spectra(regridded, small, npca,\
+                                                           noise=False)
 
-            # also smooth the spectra
-            flux_smooth = np.zeros(flux.shape)
-            for i, F in enumerate(flux):
-                flux_smooth[i, :] = fast_running_median(F, window_size=window)
+                # also smooth the spectra
+                flux_smooth = np.zeros(flux.shape)
+                for i, F in enumerate(flux):
+                    flux_smooth[i, :] = fast_running_median(F, window_size=window)
 
         super(SynthSpectra, self).__init__(wave_grid, cont, flux, flux_smooth,\
                                            norm1280, window=window, newnorm=newnorm)
@@ -71,9 +77,6 @@ class SynthSpectra(Spectra):
         lengths = (np.array([0.9, 0.05, 0.05])*len(self)).astype(int)
 
         trainset, validset, testset = random_split(self, lengths)
-        #train_idx = trainset.indices
-        #valid_idx = validset.indices
-        #test_idx = testset.indices
 
         splitsets = []
         for el in [trainset, validset, testset]:
@@ -82,11 +85,5 @@ class SynthSpectra(Spectra):
                                      norm1280=False))
 
         self.trainset, self.validset, self.testset = splitsets
-
-
-        #flux_train, flux_valid, flux_test, cont_train, cont_valid, cont_test = split_data(self.flux, self.cont)
-        #self.trainset = Spectra(self.wave_grid, cont_train, flux_train, norm1280=False)
-        #self.validset = Spectra(self.wave_grid, cont_valid, flux_valid, norm1280=False)
-        #self.testset = Spectra(self.wave_grid, cont_test, flux_test, norm1280=False)
 
         return self.trainset, self.validset, self.testset

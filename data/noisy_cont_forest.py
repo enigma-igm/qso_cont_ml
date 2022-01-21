@@ -11,6 +11,7 @@ from linetools.lists.linelist import LineList
 from dw_inference.simulator.proximity.proximity import Proximity
 from load_data import normalise_spectra
 from scipy import interpolate
+from pypeit.utils import fast_running_median
 
 plt.rcParams["font.family"] = "serif"
 
@@ -68,6 +69,11 @@ gauss = norm(scale=0.1)
 noise_vector = gauss.rvs(size=cont_norm.shape)
 flux_norm_noisy = flux_norm + noise_vector
 
+# smooth the flux before regridding
+flux_smooth = np.zeros(flux_norm_noisy.shape)
+for i, F in enumerate(flux_smooth):
+    flux_smooth[i,:] = fast_running_median(F, window_size=20)
+
 # interpolate onto the hybrid grid
 dvpix_red = 500.0
 wave_grid, dvpix_diff, ipix_blu, ipix_red = get_blu_red_wave_grid(wave_min, wave_max,\
@@ -76,11 +82,15 @@ cont_blu_red = interpolate.interp1d(wave_rest, cont_norm, kind="cubic", bounds_e
                                     fill_value="extrapolate", axis=1)(wave_grid)
 flux_blu_red = interpolate.interp1d(wave_rest, flux_norm_noisy, kind="cubic", bounds_error=False,\
                                     fill_value="extrapolate", axis=1)(wave_grid)
+flux_smooth_blu_red = interpolate.interp1d(wave_rest, flux_smooth, kind="cubic", bounds_error=False,\
+                                           fill_value="extrapolate", axis=1)(wave_grid)
 
 # plot the first example
 fig, ax = plt.subplots()
 ax.plot(wave_grid, cont_blu_red[0], alpha=0.7, label="Continuum")
 ax.plot(wave_grid, flux_blu_red[0], alpha=0.7, label="Noisy spectrum")
+ax.plot(wave_grid, flux_smooth_blu_red[0], alpha=0.7, color="navy", ls="--",\
+        label="Smoothed flux")
 ax.set_xlabel("Rest-frame wavelength ($\AA$)")
 ax.set_ylabel("Normalised flux")
 ax.legend()
@@ -89,14 +99,15 @@ ax.set_title("Homoscedastic noise with $\sigma = 0.1$")
 fig.show()
 
 # save the grid, continuum and noisy continuum to an array
-savearray = np.zeros((nsamp, len(wave_grid), 3))
+savearray = np.zeros((nsamp, len(wave_grid), 4))
 savearray[:,:,0] = wave_grid
 
 for i in range(nsamp):
     savearray[i,:,1] = cont_blu_red[i,:]
     savearray[i,:,2] = flux_blu_red[i,:]
+    savearray[i,:,3] = flux_smooth_blu_red[i,:]
 
 savepath = "/net/vdesk/data2/buiten/MRP2/pca-sdss-old/"
-np.save(savepath+"forest_spectra_with_noise_regridded_npca"+str(npca)+".npy",\
+np.save(savepath+"forest_spectra_with_noise_regridded_npca"+str(npca)+"smooth-window20.npy",\
         savearray)
 print ("Array saved.")
