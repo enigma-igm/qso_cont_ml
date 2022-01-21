@@ -225,7 +225,7 @@ class DoubleScalingTrainer(Trainer):
 
     def _train_glob_scalers(self, trainset, floorval=0.05,\
                             globscalers="both", relscaler=True,\
-                            relglobscaler=True):
+                            relglobscaler=True, abs_descaling=False):
         '''Trains the global QSOScaler on the locally scaled training set.'''
 
         # first do the local transformation
@@ -235,10 +235,12 @@ class DoubleScalingTrainer(Trainer):
         cont = trainset.cont
 
         if relscaler:
-            loc_scaler_train = SmoothScaler(wave_grid, flux_smooth)
+            loc_scaler_train = SmoothScaler(wave_grid, flux_smooth,\
+                                            abs_descaling=abs_descaling)
 
         else:
-            loc_scaler_train = SmoothScalerAbsolute(wave_grid, flux_smooth)
+            loc_scaler_train = SmoothScalerAbsolute(wave_grid, flux_smooth,\
+                                                    abs_descaling=abs_descaling)
 
         flux_train_locscaled = loc_scaler_train.forward(torch.FloatTensor(flux))
         cont_train_locscaled = loc_scaler_train.forward(torch.FloatTensor(cont))
@@ -276,13 +278,14 @@ class DoubleScalingTrainer(Trainer):
     def train_unet(self, trainset, validset, savefile="LinearUNet.pth",\
                    loss_space="real-rel", globscalers="both", relscaler=True,\
                    weight=False, weightpower=1, floorval=0.05,\
-                   relglobscaler=True):
+                   relglobscaler=True, abs_descaling=False):
         '''Train the network.'''
 
         # train the global scalers
         self._train_glob_scalers(trainset, globscalers=globscalers,\
                                  relscaler=relscaler, floorval=floorval,\
-                                 relglobscaler=relglobscaler)
+                                 relglobscaler=relglobscaler,\
+                                 abs_descaling=abs_descaling)
 
         wave_grid = trainset.wave_grid
         self.wave_grid = wave_grid

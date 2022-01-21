@@ -36,19 +36,29 @@ def load_synth_spectra(regridded=True, small=False, npca=10,\
     return wave_grid, qso_cont, qso_flux
 
 
-def load_synth_noisy_cont():
+def load_synth_noisy_cont(npca=10, smooth=False, window=20):
     '''Convenience function for loading the synthetic continua with homoscedastic
     noise. qso_cont contains the continua, qso_flux contain the noisy continua.'''
 
     datapath = "/net/vdesk/data2/buiten/MRP2/pca-sdss-old/"
+    npca_str = str(npca)
 
-    data = np.load(datapath+"continua_with_noise_regridded.npy")
+    if smooth:
+        data = np.load(datapath+"continua_with_noise_regridded_npca"+npca_str+"smooth-window"+str(window)+".npy")
+
+    else:
+        data = np.load(datapath+"continua_with_noise_regridded_npca"+npca_str+".npy")
 
     wave_grid = data[0,:,0]
     qso_cont = data[:,:,1]
     qso_flux = data[:,:,2]
 
-    return wave_grid, qso_cont, qso_flux
+    if smooth:
+        qso_flux_smooth = data[:,:,3]
+        return wave_grid, qso_cont, qso_flux, qso_flux_smooth
+
+    else:
+        return wave_grid, qso_cont, qso_flux
 
 
 def load_paris_spectra(noise=False):

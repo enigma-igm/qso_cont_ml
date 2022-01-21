@@ -4,16 +4,21 @@ from qso_fitting.models.utils.QuasarScaler import QuasarScaler
 from pypeit.utils import fast_running_median
 
 class SmoothScaler:
-    def __init__(self, wave_rest, flux_smooth):
+    def __init__(self, wave_rest, flux_smooth, abs_descaling=False):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.wave_rest = torch.tensor(wave_rest).float().to(self.device)
         self.flux_smooth = torch.tensor(flux_smooth).float().to(self.device)
+        self.abs_descaling = abs_descaling
 
     def forward(self, flux):
         return flux.to(self.device)/self.flux_smooth - 1
 
     def backward(self, relresid):
-        return self.flux_smooth*(1 + relresid.to(self.device))
+
+        if self.abs_descaling:
+            return self.flux_smooth * relresid.to(self.device)
+        else:
+            return self.flux_smooth*(1 + relresid.to(self.device))
 
 
 class SmoothScalerAbsolute:
