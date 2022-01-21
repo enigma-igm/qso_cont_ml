@@ -71,7 +71,7 @@ flux_norm_noisy = flux_norm + noise_vector
 
 # smooth the flux before regridding
 flux_smooth = np.zeros(flux_norm_noisy.shape)
-for i, F in enumerate(flux_smooth):
+for i, F in enumerate(flux_norm_noisy):
     flux_smooth[i,:] = fast_running_median(F, window_size=20)
 
 # interpolate onto the hybrid grid

@@ -30,14 +30,14 @@ layerdims = [300, 200, 100]
 unet = LinearUNet(n_feature, layerdims, activfunc="elu", operator="addition",\
                   no_final_skip=True)
 optimizer, criterion = create_learners(unet.parameters(), learning_rate=0.01)
-trainer = DoubleScalingTrainer(unet, optimizer, criterion, num_epochs=250)
+trainer = DoubleScalingTrainer(unet, optimizer, criterion, num_epochs=150)
 trainer.train_unet(trainset, validset, loss_space="real-rel",\
                    globscalers="cont", relscaler=True, weight=True,\
                    weightpower=1, relglobscaler=True,\
-                   abs_descaling=False)
+                   abs_descaling=False, floorval=0.001)
 
 savefolder = "/net/vdesk/data2/buiten/MRP2/misc-figures/LinearUNet/double-scaling/forest-homoscedastic-noise/"
-filenamestart = savefolder + "regsmooth_linweighted_contQSOScaler_"
+filenamestart = savefolder + "floorval0.001_regsmooth_linweighted_contQSOScaler_"
 filenameend = "_21_01.png"
 
 # plot the loss from the training routine
