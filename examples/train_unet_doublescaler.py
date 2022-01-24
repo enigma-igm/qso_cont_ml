@@ -11,8 +11,8 @@ plt.rcParams["font.family"] = "serif"
 
 # load the synthetic spectra with npca=10 and normalise to 1 around 1280 \AA
 # use the SynthSpectra framework
-synthspec = SynthSpectra(noise=True, forest=False, window=20, newnorm=False,\
-                         homosced=False, poisson=True, SN=10)
+synthspec = SynthSpectra(noise=True, forest=True, window=20, newnorm=False,\
+                         homosced=True, poisson=False, SN=10)
 wave_grid = synthspec.wave_grid
 trainset, validset, testset = synthspec.split()
 
@@ -31,14 +31,14 @@ layerdims = [300, 200, 100]
 unet = LinearUNet(n_feature, layerdims, activfunc="elu", operator="addition",\
                   no_final_skip=True)
 optimizer, criterion = create_learners(unet.parameters(), learning_rate=0.01)
-trainer = DoubleScalingTrainer(unet, optimizer, criterion, num_epochs=50)
+trainer = DoubleScalingTrainer(unet, optimizer, criterion, num_epochs=150)
 trainer.train_unet(trainset, validset, loss_space="real-rel",\
                    globscalers="cont", relscaler=True, weight=True,\
                    weightpower=1, relglobscaler=True,\
                    abs_descaling=False)
 
-savefolder = "/net/vdesk/data2/buiten/MRP2/misc-figures/LinearUNet/double-scaling/cont-better-noise/"
-filenamestart = savefolder + "poisson-noiseSN10_regsmooth_linweighted_contQSOScaler_"
+savefolder = "/net/vdesk/data2/buiten/MRP2/misc-figures/LinearUNet/double-scaling/forest-homoscedastic-noise/"
+filenamestart = savefolder + "regsmooth_linweighted_contQSOScaler_"
 filenameend = "_24_01.png"
 
 # plot the loss from the training routine
@@ -75,7 +75,8 @@ rand_indx = testres.random_index(4)
 testres.create_figure(figsize=(12,8))
 for i in range(len(rand_indx)):
     loc = int("22"+str(i+1))
-    ax = testres.plot(rand_indx[i], subplotloc=loc, includesmooth=True)
+    ax = testres.plot(rand_indx[i], subplotloc=loc, includesmooth=True,\
+                      plotinput=False, plottarget=False)
 testres.fig.suptitle("Test on synthetic spectra (npca=10)")
 
 testres.show_figure()
@@ -102,3 +103,15 @@ for i in range(len(rand_indx)):
     ax = testres_loc.plot_smoothscaled(rand_indx[i], subplotloc=loc)
 testres_loc.fig.suptitle("Network output in locally scaled space")
 testres_loc.fig.savefig(filenamestart+"examplesloc"+filenameend)
+
+testpreds_compare = DoubleScalingResultsSpectra(testset, unet, trainer.glob_scaler_flux,\
+                                                trainer.glob_scaler_cont)
+testpreds_compare.plot_raw_preds(100)
+testpreds_compare.fig.suptitle("Random predictions on the test set (with forest & homoscedastic noise)")
+testpreds_compare.fig.savefig(filenamestart+"examplesraw-comparison"+filenameend)
+
+testpreds_compare2 = DoubleScalingResultsSpectra(testset, unet, trainer.glob_scaler_flux,\
+                                                 trainer.glob_scaler_cont)
+testpreds_compare2.raw_preds_means()
+testpreds_compare2.fig.suptitle("Test set predictions with forest and homoscedastic noise")
+testpreds_compare2.fig.savefig(filenamestart+"examplesraw-distr"+filenameend)

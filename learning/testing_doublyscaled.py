@@ -67,6 +67,18 @@ class DoubleScalingResultsSpectra(DoubleScalingResults):
         return rand_indx
 
 
+    #@property
+    #def fig(self):
+    #    return self.fig
+
+    #@fig.setter
+    #def fig(self, figsize=(7,5), dpi=320):
+    #    '''Create a figure to add subplots to.'''
+
+    #    self.fig = plt.figure(figsize=figsize, dpi=dpi)
+    #    self.axes = []
+
+
     def create_figure(self, figsize=(7,5), dpi=320):
         '''Create a figure to add subplots to.'''
 
@@ -78,7 +90,7 @@ class DoubleScalingResultsSpectra(DoubleScalingResults):
 
     def plot(self, index, figsize=(7,5), dpi=320, subplotloc=111,\
              alpha=0.7, contpredcolor="darkred", includesmooth=True,\
-             fluxsmoothcolor="navy"):
+             fluxsmoothcolor="navy", plotinput=True, plottarget=True):
         '''Plot the prediction for the spectrum of a certain index.'''
 
         cont_pred = self.cont_pred[index]
@@ -90,10 +102,12 @@ class DoubleScalingResultsSpectra(DoubleScalingResults):
 
         ax = fig.add_subplot(subplotloc)
 
-        ax.plot(self.wave_grid, self.flux[index], alpha=alpha, lw=1,\
-                label="Mock spectrum")
-        ax.plot(self.wave_grid, self.cont[index], alpha=alpha, lw=2,\
-                label="True continuum")
+        if plotinput:
+            ax.plot(self.wave_grid, self.flux[index], alpha=alpha, lw=1,\
+                    label="Mock spectrum")
+        if plottarget:
+            ax.plot(self.wave_grid, self.cont[index], alpha=alpha, lw=2,\
+                    label="True continuum")
         ax.plot(self.wave_grid, cont_pred, alpha=alpha, lw=1, ls="--",\
                 label="Predicted continuum", color=contpredcolor)
         if includesmooth:
@@ -146,7 +160,8 @@ class DoubleScalingResultsSpectra(DoubleScalingResults):
 
 
     def plot_doublyscaled(self, index, figsize=(7,5), dpi=320, subplotloc=111,\
-             alpha=0.7, contpredcolor="darkred", plotinput=True):
+             alpha=0.7, contpredcolor="darkred", plotinput=True,\
+                          plottarget=True):
         '''Plot the raw output of the network along with the doubly scaled
         flux and true continuum.'''
 
@@ -163,8 +178,9 @@ class DoubleScalingResultsSpectra(DoubleScalingResults):
             ax.plot(self.wave_grid, self.flux_scaled[index], alpha=alpha, lw=1,\
                     label="Mock spectrum")
 
-        ax.plot(self.wave_grid, self.true_cont_scaled[index], alpha=alpha, lw=2,\
-                label="True continuum")
+        if plottarget:
+            ax.plot(self.wave_grid, self.true_cont_scaled[index], alpha=alpha, lw=2,\
+                    label="True continuum")
         ax.plot(self.wave_grid, cont_pred_scaled, alpha=alpha, lw=1, ls="--",\
                 label="Predicted continuum", color=contpredcolor)
 
@@ -177,6 +193,68 @@ class DoubleScalingResultsSpectra(DoubleScalingResults):
         self.axes.append(ax)
 
         return ax
+
+
+    def plot_raw_preds(self, n_samples, figsize=(7,5), dpi=320, subplotloc=111,\
+                       alpha=0.1, legend=False):
+        '''Plots n_samples predictions in doubly scaled space on top of each other.'''
+
+        indices = self.random_index(size=n_samples)
+        cont_pred_scaled = self.cont_pred_scaled[indices]
+
+        try:
+            fig = self.fig
+        except:
+            fig = self.create_figure(figsize=figsize, dpi=dpi)
+
+        print (self.fig)
+
+        ax = fig.add_subplot(subplotloc)
+
+        for idx, spec in enumerate(cont_pred_scaled):
+            ax.plot(self.wave_grid, spec, alpha=alpha, lw=1,\
+                    label="Spectrum "+str(idx+1), color="tab:blue")
+
+        ax.set_xlabel("Rest-frame wavelength ($\AA$)")
+        ax.set_ylabel("Doubly scaled flux")
+
+        if legend:
+            ax.legend()
+        ax.grid()
+        ax.set_title("Raw network output for "+str(n_samples)+" random spectra")
+
+        self.axes.append(ax)
+
+        return ax
+
+
+    def raw_preds_means(self, figsize=(7,5), dpi=320, subplotloc=111):
+
+        mean = np.mean(self.cont_pred_scaled, axis=0)
+        mad = mad_std(self.cont_pred_scaled, axis=0)
+
+        try:
+            fig = self.fig
+        except:
+            fig = self.create_figure(figsize=figsize, dpi=dpi)
+
+        ax = fig.add_subplot(subplotloc)
+
+        ax.plot(self.wave_grid, mean, color="black", label="Mean", lw=1,\
+                ls="--", alpha=0.5)
+        ax.fill_between(self.wave_grid, mean-mad, mean+mad, color="tab:blue",\
+                        alpha=0.3, label="MAD standard deviation")
+
+        ax.legend()
+        ax.grid()
+        ax.set_xlabel("Rest-frame wavelength ($\AA$)")
+        ax.set_ylabel("Doubly scaled flux")
+        ax.set_title("Wavelength-specific distribution of raw network outputs")
+
+        self.axes.append(ax)
+
+        return ax
+
 
     def show_figure(self):
 
