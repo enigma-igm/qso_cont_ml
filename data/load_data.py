@@ -39,7 +39,8 @@ def load_synth_spectra(regridded=True, small=False, npca=10,\
         return wave_grid, qso_cont, qso_flux
 
 
-def load_synth_noisy_cont(npca=10, smooth=False, window=20):
+def load_synth_noisy_cont(npca=10, smooth=False, window=20, homosced=True,\
+                          poisson=False, SN=10):
     '''Convenience function for loading the synthetic continua with homoscedastic
     noise. qso_cont contains the continua, qso_flux contain the noisy continua.'''
 
@@ -47,7 +48,18 @@ def load_synth_noisy_cont(npca=10, smooth=False, window=20):
     npca_str = str(npca)
 
     if smooth:
-        data = np.load(datapath+"continua_with_noise_regridded_npca"+npca_str+"smooth-window"+str(window)+".npy")
+        if homosced:
+            data = np.load(datapath+"continua_with_noise_regridded_npca"+npca_str+"smooth-window"+str(window)+".npy")
+
+        else:
+            if poisson:
+                if SN==10:
+                    data = np.load(datapath+"continua_scaled-poisson-noise_regridded_npca"+npca_str+"smooth-window"+str(window)+".npy")
+                else:
+                    data = np.load(datapath+"continua_scaled-poisson-noiseSN"+str(SN)+"_regridded_npca"+npca_str+"smooth-window"+str(window)+".npy")
+            else:
+                data = np.load(datapath+"continua_with_constSNnoise_regridded_npca"+npca_str+"smooth-window"+str(window)+".npy")
+
 
     else:
         data = np.load(datapath+"continua_with_noise_regridded_npca"+npca_str+".npy")

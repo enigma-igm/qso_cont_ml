@@ -11,7 +11,8 @@ plt.rcParams["font.family"] = "serif"
 
 # load the synthetic spectra with npca=10 and normalise to 1 around 1280 \AA
 # use the SynthSpectra framework
-synthspec = SynthSpectra(noise=True, forest=True, window=20, newnorm=False)
+synthspec = SynthSpectra(noise=True, forest=False, window=20, newnorm=False,\
+                         homosced=False, poisson=True, SN=10)
 wave_grid = synthspec.wave_grid
 trainset, validset, testset = synthspec.split()
 
@@ -30,15 +31,15 @@ layerdims = [300, 200, 100]
 unet = LinearUNet(n_feature, layerdims, activfunc="elu", operator="addition",\
                   no_final_skip=True)
 optimizer, criterion = create_learners(unet.parameters(), learning_rate=0.01)
-trainer = DoubleScalingTrainer(unet, optimizer, criterion, num_epochs=150)
+trainer = DoubleScalingTrainer(unet, optimizer, criterion, num_epochs=50)
 trainer.train_unet(trainset, validset, loss_space="real-rel",\
                    globscalers="cont", relscaler=True, weight=True,\
                    weightpower=1, relglobscaler=True,\
-                   abs_descaling=False, floorval=0.001)
+                   abs_descaling=False)
 
-savefolder = "/net/vdesk/data2/buiten/MRP2/misc-figures/LinearUNet/double-scaling/forest-homoscedastic-noise/"
-filenamestart = savefolder + "floorval0.001_regsmooth_linweighted_contQSOScaler_"
-filenameend = "_21_01.png"
+savefolder = "/net/vdesk/data2/buiten/MRP2/misc-figures/LinearUNet/double-scaling/cont-better-noise/"
+filenamestart = savefolder + "poisson-noiseSN10_regsmooth_linweighted_contQSOScaler_"
+filenameend = "_24_01.png"
 
 # plot the loss from the training routine
 # plot the square root of the loss per wavelength pixel

@@ -46,11 +46,12 @@ class SynthSpectra(Spectra):
     '''Needs rewriting and new spectra for forest=True to be consistent.'''
     def __init__(self, regridded=True, small=False, npca=10,\
                        noise=False, norm1280=True, forest=True, window=20,\
-                newnorm=False):
+                newnorm=False, homosced=True, poisson=False, SN=10):
 
         if not forest:
             wave_grid, cont, flux, flux_smooth = load_synth_noisy_cont(npca, smooth=True,\
-                                                          window=window)
+                                                          window=window, homosced=homosced,\
+                                                                       poisson=poisson, SN=SN)
 
         else:
             if noise:

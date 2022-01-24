@@ -38,7 +38,7 @@ true_mean_flux = np.mean(mean_flux_z)
 mean_flux_range = np.clip([true_mean_flux-0.1, true_mean_flux+0.1], 0.01, 1.0)
 
 nskew = 1000
-npca = 15
+npca = 10
 
 pcafilename = 'COARSE_PCA_150_1000_2000_forest.pkl' # File holding (the old) PCA vectors
 nF = 10 # Number of mean flux
@@ -56,8 +56,16 @@ cont_prox = Prox.simulator_continuum(theta)
 cont_norm, _ = normalise_spectra(wave_rest, cont_prox, cont_prox)
 
 # now generate homoscedastic noise and add it
-gauss = norm(scale=0.1)
-noise_vector = gauss.rvs(size=cont_norm.shape)
+#gauss = norm(scale=0.1)
+#noise_vector = gauss.rvs(size=cont_norm.shape)
+#cont_norm_noisy = cont_norm + noise_vector
+
+# generate noise with a noise level of 10 everywhere
+SN = 100
+std_noise1280 = 1/SN
+std_noise = np.sqrt(cont_norm*1280/wave_rest) * std_noise1280
+noise_vector = np.random.normal(loc=np.zeros(std_noise.shape), \
+                                scale=std_noise)
 cont_norm_noisy = cont_norm + noise_vector
 
 # smooth the noisy continuum before regridding
@@ -97,5 +105,5 @@ for i in range(nsamp):
     savearray[i,:,3] = flux_smooth_blu_red[i,:]
 
 savepath = "/net/vdesk/data2/buiten/MRP2/pca-sdss-old/"
-np.save(savepath+"continua_with_noise_regridded_npca"+str(npca)+"smooth-window20.npy", savearray)
+np.save(savepath+"continua_scaled-poisson-noiseSN100_regridded_npca"+str(npca)+"smooth-window20.npy", savearray)
 print ("Array saved.")
