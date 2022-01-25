@@ -11,7 +11,7 @@ plt.rcParams["font.family"] = "serif"
 
 # load the synthetic spectra with npca=10 and normalise to 1 around 1280 \AA
 # use the SynthSpectra framework
-synthspec = SynthSpectra(noise=True, forest=True, window=20, newnorm=False,\
+synthspec = SynthSpectra(noise=True, forest=False, window=20, newnorm=False,\
                          homosced=True, poisson=False, SN=10)
 wave_grid = synthspec.wave_grid
 trainset, validset, testset = synthspec.split()
@@ -37,9 +37,9 @@ trainer.train_unet(trainset, validset, loss_space="real-rel",\
                    weightpower=1, relglobscaler=True,\
                    abs_descaling=False)
 
-savefolder = "/net/vdesk/data2/buiten/MRP2/misc-figures/LinearUNet/double-scaling/forest-homoscedastic-noise/"
-filenamestart = savefolder + "regsmooth_linweighted_contQSOScaler_"
-filenameend = "_24_01.png"
+savefolder = "/net/vdesk/data2/buiten/MRP2/misc-figures/LinearUNet/double-scaling/cont-better-noise/"
+filenamestart = savefolder + "homosced0.1_regsmooth_linweighted_contQSOScaler_"
+filenameend = "_25_01.png"
 
 # plot the loss from the training routine
 # plot the square root of the loss per wavelength pixel

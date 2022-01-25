@@ -12,6 +12,7 @@ from dw_inference.simulator.proximity.proximity import Proximity
 from load_data import normalise_spectra
 from scipy import interpolate
 from pypeit.utils import fast_running_median
+from qso_fitting.data.sdss.utils import rebin_spectra
 
 plt.rcParams["font.family"] = "serif"
 
@@ -56,17 +57,17 @@ cont_prox = Prox.simulator_continuum(theta)
 cont_norm, _ = normalise_spectra(wave_rest, cont_prox, cont_prox)
 
 # now generate homoscedastic noise and add it
-#gauss = norm(scale=0.1)
-#noise_vector = gauss.rvs(size=cont_norm.shape)
-#cont_norm_noisy = cont_norm + noise_vector
+gauss = norm(scale=0.1)
+noise_vector = gauss.rvs(size=cont_norm.shape)
+cont_norm_noisy = cont_norm + noise_vector
 
 # generate noise with a noise level of 10 everywhere
-SN = 100
-std_noise1280 = 1/SN
-std_noise = np.sqrt(cont_norm*1280/wave_rest) * std_noise1280
-noise_vector = np.random.normal(loc=np.zeros(std_noise.shape), \
-                                scale=std_noise)
-cont_norm_noisy = cont_norm + noise_vector
+#SN = 100
+#std_noise1280 = 1/SN
+#std_noise = np.sqrt(cont_norm*1280/wave_rest) * std_noise1280
+#noise_vector = np.random.normal(loc=np.zeros(std_noise.shape), \
+#                                scale=std_noise)
+#cont_norm_noisy = cont_norm + noise_vector
 
 # smooth the noisy continuum before regridding
 flux_smooth = np.zeros(cont_norm_noisy.shape)
@@ -75,14 +76,33 @@ for i, F in enumerate(cont_norm_noisy):
 
 # interpolate onto the hybrid grid
 dvpix_red = 500.0
+gpm_norm = np.ones(cont_norm_noisy.shape).astype(bool)
 wave_grid, dvpix_diff, ipix_blu, ipix_red = get_blu_red_wave_grid(wave_min, wave_max,\
                                                                   wave_1216, dvpix, dvpix_red)
-cont_blu_red = interpolate.interp1d(wave_rest, cont_norm, kind="cubic", bounds_error=False,\
-                                    fill_value="extrapolate", axis=1)(wave_grid)
-flux_blu_red = interpolate.interp1d(wave_rest, cont_norm_noisy, kind="cubic", bounds_error=False,\
-                                    fill_value="extrapolate", axis=1)(wave_grid)
-flux_smooth_blu_red = interpolate.interp1d(wave_rest, flux_smooth, kind="cubic", bounds_error=False,\
-                                           fill_value="extrapolate", axis=1)(wave_grid)
+#cont_blu_red = interpolate.interp1d(wave_rest, cont_norm, kind="cubic", bounds_error=False,\
+#                                    fill_value="extrapolate", axis=1)(wave_grid)
+#flux_blu_red = interpolate.interp1d(wave_rest, cont_norm_noisy, kind="cubic", bounds_error=False,\
+#                                    fill_value="extrapolate", axis=1)(wave_grid)
+#flux_smooth_blu_red = interpolate.interp1d(wave_rest, flux_smooth, kind="cubic", bounds_error=False,\
+#                                           fill_value="extrapolate", axis=1)(wave_grid)
+
+# rebin properly
+flux_blu_red, ivar_rebin, gpm_rebin, count_rebin = rebin_spectra(wave_grid,\
+                                                                     wave_rest,\
+                                                                     cont_norm_noisy,\
+                                                                     1/noise_vector**2,\
+                                                                     gpm=gpm_norm)
+cont_blu_red, _, _, _ = rebin_spectra(wave_grid,\
+                                    wave_rest,\
+                                     cont_norm,\
+                                     1/noise_vector**2,\
+                                     gpm=gpm_norm)
+
+flux_smooth_blu_red, _, _, _ = rebin_spectra(wave_grid,\
+                                             wave_rest,\
+                                             flux_smooth,\
+                                             1/noise_vector**2,\
+                                             gpm=gpm_norm)
 
 # plot the first example
 fig, ax = plt.subplots()
@@ -105,6 +125,6 @@ for i in range(nsamp):
     savearray[i,:,3] = flux_smooth_blu_red[i,:]
 
 savepath = "/net/vdesk/data2/buiten/MRP2/pca-sdss-old/"
-np.save(savepath+"continua_scaled-poisson-noiseSN100_regridded_npca"+str(npca)+"smooth-window20.npy", savearray)
+np.save(savepath+"continua_with_noise_regridded_npca"+str(npca)+"smooth-window20.npy", savearray)
 
 print ("Array saved.")
