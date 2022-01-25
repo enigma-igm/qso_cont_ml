@@ -66,7 +66,6 @@ class DoubleScalingResultsSpectra(DoubleScalingResults):
 
         return rand_indx
 
-
     #@property
     #def fig(self):
     #    return self.fig
@@ -77,7 +76,6 @@ class DoubleScalingResultsSpectra(DoubleScalingResults):
 
     #    self.fig = plt.figure(figsize=figsize, dpi=dpi)
     #    self.axes = []
-
 
     def create_figure(self, figsize=(7,5), dpi=320):
         '''Create a figure to add subplots to.'''
@@ -108,6 +106,7 @@ class DoubleScalingResultsSpectra(DoubleScalingResults):
         if plottarget:
             ax.plot(self.wave_grid, self.cont[index], alpha=alpha, lw=2,\
                     label="True continuum")
+
         ax.plot(self.wave_grid, cont_pred, alpha=alpha, lw=1, ls="--",\
                 label="Predicted continuum", color=contpredcolor)
         if includesmooth:
@@ -181,6 +180,7 @@ class DoubleScalingResultsSpectra(DoubleScalingResults):
         if plottarget:
             ax.plot(self.wave_grid, self.true_cont_scaled[index], alpha=alpha, lw=2,\
                     label="True continuum")
+
         ax.plot(self.wave_grid, cont_pred_scaled, alpha=alpha, lw=1, ls="--",\
                 label="Predicted continuum", color=contpredcolor)
 

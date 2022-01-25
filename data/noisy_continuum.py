@@ -106,4 +106,5 @@ for i in range(nsamp):
 
 savepath = "/net/vdesk/data2/buiten/MRP2/pca-sdss-old/"
 np.save(savepath+"continua_scaled-poisson-noiseSN100_regridded_npca"+str(npca)+"smooth-window20.npy", savearray)
+
 print ("Array saved.")
