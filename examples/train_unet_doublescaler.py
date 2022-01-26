@@ -12,7 +12,7 @@ plt.rcParams["font.family"] = "serif"
 # load the synthetic spectra with npca=10 and normalise to 1 around 1280 \AA
 # use the SynthSpectra framework
 synthspec = SynthSpectra(noise=True, forest=False, window=20, newnorm=False,\
-                         homosced=True, poisson=False, SN=10)
+                         homosced=True, poisson=False, SN=100)
 wave_grid = synthspec.wave_grid
 trainset, validset, testset = synthspec.split()
 
@@ -38,8 +38,8 @@ trainer.train_unet(trainset, validset, loss_space="real-rel",\
                    abs_descaling=False)
 
 savefolder = "/net/vdesk/data2/buiten/MRP2/misc-figures/LinearUNet/double-scaling/cont-better-noise/"
-filenamestart = savefolder + "homosced0.1_regsmooth_linweighted_contQSOScaler_"
-filenameend = "_25_01.png"
+filenamestart = savefolder + "homoscedSN100_regsmooth_linweighted_contQSOScaler_"
+filenameend = "_26_01.png"
 
 # plot the loss from the training routine
 # plot the square root of the loss per wavelength pixel
@@ -76,7 +76,7 @@ testres.create_figure(figsize=(12,8))
 for i in range(len(rand_indx)):
     loc = int("22"+str(i+1))
     ax = testres.plot(rand_indx[i], subplotloc=loc, includesmooth=True,\
-                      plotinput=False, plottarget=False)
+                      plotinput=True, plottarget=True)
 testres.fig.suptitle("Test on synthetic spectra (npca=10)")
 
 testres.show_figure()

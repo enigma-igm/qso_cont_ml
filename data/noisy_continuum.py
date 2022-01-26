@@ -57,7 +57,9 @@ cont_prox = Prox.simulator_continuum(theta)
 cont_norm, _ = normalise_spectra(wave_rest, cont_prox, cont_prox)
 
 # now generate homoscedastic noise and add it
-gauss = norm(scale=0.1)
+SN = 10
+std_noise1280 = 1/SN
+gauss = norm(scale=std_noise1280)
 noise_vector = gauss.rvs(size=cont_norm.shape)
 cont_norm_noisy = cont_norm + noise_vector
 
@@ -76,7 +78,8 @@ for i, F in enumerate(cont_norm_noisy):
 
 # interpolate onto the hybrid grid
 dvpix_red = 500.0
-gpm_norm = np.ones(cont_norm_noisy.shape).astype(bool)
+gpm_norm = None
+#gpm_norm = np.ones(cont_norm_noisy.shape).astype(bool)
 wave_grid, dvpix_diff, ipix_blu, ipix_red = get_blu_red_wave_grid(wave_min, wave_max,\
                                                                   wave_1216, dvpix, dvpix_red)
 #cont_blu_red = interpolate.interp1d(wave_rest, cont_norm, kind="cubic", bounds_error=False,\
@@ -106,8 +109,9 @@ flux_smooth_blu_red, _, _, _ = rebin_spectra(wave_grid,\
 
 # plot the first example
 fig, ax = plt.subplots()
-ax.plot(wave_grid, cont_blu_red[0], alpha=0.7, label="Continuum")
-ax.plot(wave_grid, flux_blu_red[0], alpha=0.7, label="Noisy continuum")
+ax.plot(wave_grid, cont_blu_red[0], alpha=0.7, label="Continuum", c="tab:orange")
+ax.plot(wave_rest, cont_norm_noisy[0], alpha=0.7, label="Noisy continuum", c="blue")
+ax.plot(wave_grid, flux_blu_red[0], alpha=0.7, label="Regridded noisy continuum", c="green")
 ax.plot(wave_grid, flux_smooth_blu_red[0], alpha=0.7, color="navy", ls="--",\
         label="Smoothed flux")
 ax.set_xlabel("Rest-frame wavelength ($\AA$)")
@@ -125,6 +129,6 @@ for i in range(nsamp):
     savearray[i,:,3] = flux_smooth_blu_red[i,:]
 
 savepath = "/net/vdesk/data2/buiten/MRP2/pca-sdss-old/"
-np.save(savepath+"continua_with_noise_regridded_npca"+str(npca)+"smooth-window20.npy", savearray)
+np.save(savepath+"continua_with_noiseSN"+str(SN)+"_regridded_npca"+str(npca)+"smooth-window20.npy", savearray)
 
 print ("Array saved.")

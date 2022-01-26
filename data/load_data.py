@@ -49,7 +49,7 @@ def load_synth_noisy_cont(npca=10, smooth=False, window=20, homosced=True,\
 
     if smooth:
         if homosced:
-            data = np.load(datapath+"continua_with_noise_regridded_npca"+npca_str+"smooth-window"+str(window)+".npy")
+            data = np.load(datapath+"continua_with_noiseSN"+str(SN)+"_regridded_npca"+npca_str+"smooth-window"+str(window)+".npy")
 
         else:
             if poisson:
