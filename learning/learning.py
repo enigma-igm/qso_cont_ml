@@ -10,7 +10,7 @@ from utils.errorfuncs import MSE, corr_matrix_relresids
 
 def create_learners(parameters, learning_rate=0.1):
     optimizer = torch.optim.AdamW(parameters, lr=learning_rate)
-    criterion = torch.nn.MSELoss(size_average=False)
+    criterion = torch.nn.MSELoss(reduction="sum")
 
     return optimizer, criterion
 
@@ -138,8 +138,10 @@ class Trainer:
         self.training_loss = running_loss
         self.valid_loss = valid_loss
 
+        self.wave_grid = wave_grid
 
-    def plot_loss(self, epoch_min=50, yscale="linear"):
+
+    def plot_loss(self, epoch_min=50, yscale="linear", titleadd=""):
         '''Plot the loss function for the training set and the validation set as a function of epoch number.'''
 
         epoch_no = np.arange(1, self.num_epochs+1)
@@ -165,11 +167,53 @@ class Trainer:
         ax.set_xlabel("Epoch number")
         ax.set_ylabel("Loss per quasar")
         ax.grid()
-        ax.set_title("MSE loss on the normalised spectra")
+
+        fig.suptitle("MSE loss"+titleadd)
+        ax.set_title("Summed over wavelengths, averaged over QSOs")
         ax.legend()
 
         return fig, ax
 
+
+    def plot_sqrt_loss(self, epoch_min=50, yscale="linear", titleadd=""):
+        '''Makes a plot of the square root of the MSE loss divided by the
+        number of wavelength pixels, allowing for direct comparison with
+        the mean relative residuals.'''
+
+        n_lam = len(self.wave_grid)
+        training_loss_avgd = self.training_loss / n_lam
+        valid_loss_avgd = self.valid_loss / n_lam
+
+        epoch_no = np.arange(1, self.num_epochs + 1)
+        fig, ax = plt.subplots(figsize=(7, 5), dpi=320)
+        ax.plot(epoch_no, np.sqrt(training_loss_avgd), alpha=0.7, label="Training")
+        ax.plot(epoch_no, np.sqrt(valid_loss_avgd), alpha=0.7, label="Validation")
+        ax.set_xlim(xmin=epoch_min)
+        if yscale == "linear":
+            ymin = 0
+        elif yscale == "log":
+            ymin = 0.8
+        else:
+            print("yscale must be 'linear' or 'log'.")
+            return fig, ax
+
+        max_loss_2show = 1.5*np.sqrt(valid_loss_avgd[epoch_min - 1:]).max()
+        if max_loss_2show > 100 * self.valid_loss.min():
+            yscale = "log"
+            ymin = 0.8
+            print("Large loss increase detected; yscale set to 'log'.")
+        ax.set_ylim(ymin=ymin, ymax=max_loss_2show)
+        ax.set_yscale(yscale)
+
+        ax.set_xlabel("Epoch number")
+        ax.set_ylabel(r"$\sqrt{MSE/n_\lambda}$")
+        ax.grid()
+
+        fig.suptitle("Square root of MSE loss" + titleadd)
+        ax.set_title("Averaged over quasars and wavelength pixels")
+        ax.legend()
+
+        return fig, ax
 
 
 def train_model(wave_grid, X_train, y_train, X_valid, y_valid, net,\

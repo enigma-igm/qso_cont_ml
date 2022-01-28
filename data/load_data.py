@@ -1,53 +1,79 @@
 import numpy as np
 from sklearn.model_selection import train_test_split
 
+
 def load_synth_spectra(regridded=True, small=False, npca=10,\
-                       noise=False):
+                       noise=False, SN=10):
     datapath = "/net/vdesk/data2/buiten/MRP2/pca-sdss-old/"
-    if npca==10:
-        if noise:
-            data = np.load(datapath+"forest_spectra_with_noise_regridded.npy")
-        else:
-            if regridded:
-                if small:
-                    data = np.load(datapath+"gen_spectrum_regridded_array.npy")
-                else:
-                    data = np.load(datapath+"gen_spectrum_regridded_big_array.npy")
+
+    if noise:
+        data = np.load(datapath + "forest_spectra_with_noiseSN"+str(SN)+"_regridded_npca" + str(npca) + "smooth-window20.npy")
+
+    elif npca==10:
+        if regridded:
+            if small:
+                data = np.load(datapath+"gen_spectrum_regridded_array.npy")
             else:
-                if small:
-                    data = np.load(datapath+"gen_spectrum_nonregridded_array.npy")
-                else:
-                    data = np.load(datapath+"gen_spectrum_nonregridded_big_array.npy")
+                data = np.load(datapath+"gen_spectrum_regridded_big_array.npy")
+        else:
+            if small:
+                data = np.load(datapath+"gen_spectrum_nonregridded_array.npy")
+            else:
+                data = np.load(datapath+"gen_spectrum_nonregridded_big_array.npy")
 
     else:
-        if noise:
-            data = np.load(datapath+"forest_spectra_with_noise_regridded_npca"+str(npca)+".npy")
+        if regridded:
+            data = np.load(datapath+"gen_spectrum_regridded_big_array_npca"+str(npca)+".npy")
         else:
-            if regridded:
-                data = np.load(datapath+"gen_spectrum_regridded_big_array_npca"+str(npca)+".npy")
-            else:
-                data = np.load(datapath+"gen_spectrum_nonregridded_big_array_npca"+str(npca)+".npy")
+            data = np.load(datapath+"gen_spectrum_nonregridded_big_array_npca"+str(npca)+".npy")
 
     wave_grid = data[0,:,0]
     qso_cont = data[:,:,1]
     qso_flux = data[:,:,2]
 
-    return wave_grid, qso_cont, qso_flux
+    if noise:
+        flux_smooth = data[:,:,3]
+        return wave_grid, qso_cont, qso_flux, flux_smooth
+
+    else:
+        return wave_grid, qso_cont, qso_flux
 
 
-def load_synth_noisy_cont():
+def load_synth_noisy_cont(npca=10, smooth=False, window=20, homosced=True,\
+                          poisson=False, SN=10):
     '''Convenience function for loading the synthetic continua with homoscedastic
     noise. qso_cont contains the continua, qso_flux contain the noisy continua.'''
 
     datapath = "/net/vdesk/data2/buiten/MRP2/pca-sdss-old/"
+    npca_str = str(npca)
 
-    data = np.load(datapath+"continua_with_noise_regridded.npy")
+    if smooth:
+        if homosced:
+            data = np.load(datapath+"continua_with_noiseSN"+str(SN)+"_regridded_npca"+npca_str+"smooth-window"+str(window)+".npy")
+
+        else:
+            if poisson:
+                if SN==10:
+                    data = np.load(datapath+"continua_scaled-poisson-noise_regridded_npca"+npca_str+"smooth-window"+str(window)+".npy")
+                else:
+                    data = np.load(datapath+"continua_scaled-poisson-noiseSN"+str(SN)+"_regridded_npca"+npca_str+"smooth-window"+str(window)+".npy")
+            else:
+                data = np.load(datapath+"continua_with_constSNnoise_regridded_npca"+npca_str+"smooth-window"+str(window)+".npy")
+
+
+    else:
+        data = np.load(datapath+"continua_with_noise_regridded_npca"+npca_str+".npy")
 
     wave_grid = data[0,:,0]
     qso_cont = data[:,:,1]
     qso_flux = data[:,:,2]
 
-    return wave_grid, qso_cont, qso_flux
+    if smooth:
+        qso_flux_smooth = data[:,:,3]
+        return wave_grid, qso_cont, qso_flux, qso_flux_smooth
+
+    else:
+        return wave_grid, qso_cont, qso_flux
 
 
 def load_paris_spectra(noise=False):

@@ -18,6 +18,11 @@ class Operator:
             return a+b
         elif self.name=="multiplication":
             return a*b
+        elif self.name=="relative-addition":
+            return (1 + a)*b
+        else:
+            print ("Warning: unsupported operator given; defaulted to addition.")
+            return a+b
 
     def parameters(self):
         return self._parameters
@@ -39,41 +44,6 @@ def get_activfunc(activfunc="relu"):
     return activ
 
 
-class LinearDownBlock(torch.nn.Module):
-    def __init__(self, in_dim, out_dim, size_hidden, activfunc="relu"):
-        super(LinearDownBlock, self).__init__()
-        self.activ = get_activfunc(activfunc=activfunc)
-
-        l1 = [in_dim] + size_hidden
-        l2 = size_hidden + [out_dim]
-        layers = []
-        for h1, h2 in zip(l1, l2):
-            layers += [nn.Linear(h1,h2), self.activ]
-        layers.pop()
-        self.block = nn.Sequential(*layers)
-
-    def forward(self, x):
-
-        res = self.block(x)
-        return res
-
-
-class LinearUpBlock(torch.nn.Module):
-    # not what we want
-    def __init__(self, in_dim, out_dim, size_hidden, res_down, activfunc="relu"):
-        super(LinearUpBlock, self).__init__()
-        self.activ = get_activfunc(activfunc=activfunc)
-        self.res_down = res_down
-
-        l1 = [in_dim] + size_hidden
-        l2 = size_hidden + [out_dim]
-        layers = []
-        for h1, h2 in zip(l1, l2):
-            layers += [nn.Linear(h1, h2), self.activ]
-        layers.pop()
-        self.block = nn.Sequential(*layers)
-
-
 class LinearUNet(torch.nn.Module):
     def __init__(self, in_out_dim, size_hidden, activfunc="relu",\
                  operator="addition", no_final_skip=False):
@@ -81,15 +51,6 @@ class LinearUNet(torch.nn.Module):
         same dimensions.'''
 
         super(LinearUNet, self).__init__()
-
-        #self.downlayer1 = nn.Linear(in_out_dim, size_hidden[0])
-        #self.downlayer2 = nn.Linear(size_hidden[0], size_hidden[1])
-        #self.downlayer3 = nn.Linear(size_hidden[1], size_hidden[2])
-        #self.uplayer1 = nn.Linear(size_hidden[2], size_hidden[1])
-        #self.uplayer2 = nn.Linear(size_hidden[1], size_hidden[0])
-        #self.uplayer3 = nn.Linear(size_hidden[0], in_out_dim)
-
-        #self.predict = nn.Linear(size_hidden, in_out_dim)
 
         self.activ = get_activfunc(activfunc=activfunc)
         self.operator = Operator(operator=operator)
@@ -113,18 +74,12 @@ class LinearUNet(torch.nn.Module):
                 layers.append(self.activ)
 
         self.model_layers = layers
-        #self.parameters = []
         self.params = nn.ParameterList([])
 
         for layer in layers:
             self.params.extend(layer.parameters())
 #                print ("Parameters:", layers._parameters)
-            #self.parameters.append(layer._parameters)
 
-        #self._parameters = nn.ParameterList(self.parameters)
-
-        #downblock = LinearDownBlock(in_out_dim, size_hidden_down, activfunc=activfunc)
-        # set up the up block
 
     def forward(self, x, x_smooth=None, smooth=False):
 
@@ -178,64 +133,27 @@ class LinearUNet(torch.nn.Module):
             return result
 
 
-        # first perform the transformation to the latent space (dim size_hidden)
-        # then apply the activation function to the result
-        #Ydown1 = self.activ(self.downlayer1(x))
-
-        # do the same for the second layer
-        #Ydown2 = self.activ(self.downlayer2(Ydown1))
-        #Ydown3 = self.activ(self.downlayer3(Ydown2))
-
-        # now we go up
-        # add Ydown2 to the result before applying the activation function
-        #Yup1 = self.uplayer1(Ydown3)
-        #Yup1 = self.operator(Yup1, Ydown2)
-        #Yup1 = self.activ(Yup1)
-
-        # do the same thing for the second up layer
-        #Yup2 = self.uplayer2(Yup1)
-        #Yup2 = self.operator(Yup2, Ydown1)
-        #Yup2 = self.activ(Yup2)
-
-        #Yup3 = self.uplayer3(Yup2)
-
-        #if self.no_final_skip:
-        #    return Yup3
-
-        #else:
-        #    if x_smooth is None:
-        #        if smooth:
-        #            # smooth the input x before adding it
-                    # we need to do this in a loop
-                    # and we need to turn the input into an array
-        #            x_smooth = np.zeros(x.shape)
-        #            for i in range(len(x)):
-        #                x_smooth[i,:] = fast_running_median(x.detach().numpy()[i], 20)
-                    #x_smooth = fast_running_median(x, 20)   # gives rise to an error
-        #            result = self.operator(Yup3, Variable(torch.FloatTensor(x_smooth)))
-
-        #        else: result = self.operator(Yup3, x)
-        #    else:
-        #        result = self.operator(Yup3, x_smooth)
-            #result = self.operator(Yup3, x)
-            # result = self.activ(Yup3)   # not necessary --> forces positives
-
-        #    return result
-
-
-    def full_predict(self, x, scaler_X=None, scaler_y=None, smooth=False):
+    def full_predict(self, x, scaler_X=None, scaler_y=None, smooth=False, x_smooth=None):
 
         x = torch.FloatTensor(x)
 
         if scaler_X is None:
             input = Variable(x)
-            res = self(input, smooth=smooth)
+            if smooth:
+                x_smooth = Variable(torch.FloatTensor(x_smooth))
+            res = self(input, smooth=smooth, x_smooth=x_smooth)
             res_np = res.detach().numpy()
 
         else:
+            # apply the scaler after smoothing
+            if smooth:
+                x_smooth_scaled = scaler_X.forward(torch.FloatTensor(x_smooth))
+            else:
+                x_smooth_scaled = None
+
             x_scaled = scaler_X.forward(x)
             input = Variable(x_scaled)
-            res = self(input, smooth=smooth)
+            res = self(input, smooth=smooth, x_smooth=x_smooth_scaled)
             res_descaled = scaler_y.backward(res)
             res_np = res_descaled.detach().numpy()
 
