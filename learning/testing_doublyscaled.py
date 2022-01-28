@@ -1,4 +1,4 @@
-from learning.testing import ModelResults, CorrelationMatrix, ResidualStatistics
+from learning.testing import ModelResults
 from utils.smooth_scaler import SmoothScaler
 import torch
 import numpy as np
@@ -175,11 +175,11 @@ class DoubleScalingResultsSpectra(DoubleScalingResults):
 
         if plotinput:
             ax.plot(self.wave_grid, self.flux_scaled[index], alpha=alpha, lw=1,\
-                    label="Mock spectrum")
+                    label="Mock spectrum", c="tab:blue")
 
         if plottarget:
             ax.plot(self.wave_grid, self.true_cont_scaled[index], alpha=alpha, lw=2,\
-                    label="True continuum")
+                    label="True continuum", c="tab:orange")
 
         ax.plot(self.wave_grid, cont_pred_scaled, alpha=alpha, lw=1, ls="--",\
                 label="Predicted continuum", color=contpredcolor)

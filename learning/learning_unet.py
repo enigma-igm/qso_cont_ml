@@ -239,8 +239,7 @@ class DoubleScalingTrainer(Trainer):
                                             abs_descaling=abs_descaling)
 
         else:
-            loc_scaler_train = SmoothScalerAbsolute(wave_grid, flux_smooth,\
-                                                    abs_descaling=abs_descaling)
+            loc_scaler_train = SmoothScalerAbsolute(wave_grid, flux_smooth)
 
         flux_train_locscaled = loc_scaler_train.forward(torch.FloatTensor(flux))
         cont_train_locscaled = loc_scaler_train.forward(torch.FloatTensor(cont))
