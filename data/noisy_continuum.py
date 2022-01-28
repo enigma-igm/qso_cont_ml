@@ -39,7 +39,7 @@ true_mean_flux = np.mean(mean_flux_z)
 mean_flux_range = np.clip([true_mean_flux-0.1, true_mean_flux+0.1], 0.01, 1.0)
 
 nskew = 1000
-npca = 10
+npca = 15
 
 pcafilename = 'COARSE_PCA_150_1000_2000_forest.pkl' # File holding (the old) PCA vectors
 nF = 10 # Number of mean flux
@@ -57,7 +57,7 @@ cont_prox = Prox.simulator_continuum(theta)
 cont_norm, _ = normalise_spectra(wave_rest, cont_prox, cont_prox)
 
 # now generate homoscedastic noise and add it
-SN = 10
+SN = 100
 std_noise1280 = 1/SN
 gauss = norm(scale=std_noise1280)
 noise_vector = gauss.rvs(size=cont_norm.shape)
@@ -76,14 +76,19 @@ flux_smooth = np.zeros(cont_norm_noisy.shape)
 for i, F in enumerate(cont_norm_noisy):
     flux_smooth[i,:] = fast_running_median(F, window_size=20)
 
+# propagate the noise vectors
+#sigma_cont = np.zeros(cont_norm.shape)
+sigma_spec = std_noise1280*np.ones(cont_norm.shape)
+sigma_smooth = sigma_spec/np.sqrt(20)   # window=20
+
 # interpolate onto the hybrid grid
 dvpix_red = 500.0
 gpm_norm = None
 #gpm_norm = np.ones(cont_norm_noisy.shape).astype(bool)
 wave_grid, dvpix_diff, ipix_blu, ipix_red = get_blu_red_wave_grid(wave_min, wave_max,\
                                                                   wave_1216, dvpix, dvpix_red)
-#cont_blu_red = interpolate.interp1d(wave_rest, cont_norm, kind="cubic", bounds_error=False,\
-#                                    fill_value="extrapolate", axis=1)(wave_grid)
+cont_blu_red = interpolate.interp1d(wave_rest, cont_norm, kind="cubic", bounds_error=False,\
+                                    fill_value="extrapolate", axis=1)(wave_grid)
 #flux_blu_red = interpolate.interp1d(wave_rest, cont_norm_noisy, kind="cubic", bounds_error=False,\
 #                                    fill_value="extrapolate", axis=1)(wave_grid)
 #flux_smooth_blu_red = interpolate.interp1d(wave_rest, flux_smooth, kind="cubic", bounds_error=False,\
@@ -93,27 +98,28 @@ wave_grid, dvpix_diff, ipix_blu, ipix_red = get_blu_red_wave_grid(wave_min, wave
 flux_blu_red, ivar_rebin, gpm_rebin, count_rebin = rebin_spectra(wave_grid,\
                                                                      wave_rest,\
                                                                      cont_norm_noisy,\
-                                                                     1/noise_vector**2,\
+                                                                     1/sigma_spec**2,\
                                                                      gpm=gpm_norm)
-cont_blu_red, _, _, _ = rebin_spectra(wave_grid,\
-                                    wave_rest,\
-                                     cont_norm,\
-                                     1/noise_vector**2,\
-                                     gpm=gpm_norm)
+#cont_blu_red, _, _, _ = rebin_spectra(wave_grid,\
+#                                    wave_rest,\
+#                                     cont_norm,\
+#                                     1/sigma_cont**2,\
+#                                     gpm=gpm_norm)
 
 flux_smooth_blu_red, _, _, _ = rebin_spectra(wave_grid,\
                                              wave_rest,\
                                              flux_smooth,\
-                                             1/noise_vector**2,\
+                                             1/sigma_smooth**2,\
                                              gpm=gpm_norm)
 
 # plot the first example
 fig, ax = plt.subplots()
-ax.plot(wave_grid, cont_blu_red[0], alpha=0.7, label="Continuum", c="tab:orange")
-ax.plot(wave_rest, cont_norm_noisy[0], alpha=0.7, label="Noisy continuum", c="blue")
-ax.plot(wave_grid, flux_blu_red[0], alpha=0.7, label="Regridded noisy continuum", c="green")
+ax.plot(wave_grid, cont_blu_red[0], alpha=0.7, label="Regridded continuum", c="tab:orange")
+#ax.plot(wave_rest, cont_norm_noisy[0], alpha=0.7, label="Noisy continuum", c="blue")
+#ax.plot(wave_grid, flux_blu_red[0], alpha=0.7, label="Regridded noisy continuum", c="green")
+ax.plot(wave_rest, flux_smooth[0], alpha=0.7, color="tab:blue", label="Smoothed flux")
 ax.plot(wave_grid, flux_smooth_blu_red[0], alpha=0.7, color="navy", ls="--",\
-        label="Smoothed flux")
+        label="Regridded smoothed flux")
 ax.set_xlabel("Rest-frame wavelength ($\AA$)")
 ax.set_ylabel("Normalised flux")
 ax.legend()
