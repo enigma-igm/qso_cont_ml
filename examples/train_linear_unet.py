@@ -19,7 +19,7 @@ plt.rcParams["font.family"] = "serif"
 
 # load the data
 spectra = SynthSpectra(regridded=True, small=False, npca=10, noise=True, norm1280=True,\
-                       forest=True, SN=10)
+                       forest=False, SN=10)
 trainset, validset, testset = spectra.split()
 wave_grid = spectra.wave_grid
 
@@ -44,7 +44,7 @@ trainer.train(trainset, validset, use_QSOScalers=True, smooth=smooth, globscaler
 
 plotpath = "/net/vdesk/data2/buiten/MRP2/misc-figures/LinearUNet/"
 plotpathadd = "/runmed-smoothing/"
-filenamestart = plotpath+plotpathadd+"linweighted_contQSOScaler"
+filenamestart = plotpath+plotpathadd+"noforest_linweighted_contQSOScaler"
 filenameend = "_28_01.png"
 
 # plot the loss from the training routine

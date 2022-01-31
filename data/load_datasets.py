@@ -41,6 +41,18 @@ class Spectra(Dataset):
 
         return flux, flux_smooth, cont
 
+    def add_channel_shape(self, n_channels=1):
+
+        reshaped_specs = []
+        for spec in [self.flux, self.flux_smooth, self.cont]:
+            spec = spec.reshape((len(spec), n_channels, spec.shape[1]))
+            reshaped_specs.append(spec)
+
+        self.flux = reshaped_specs[0]
+        self.flux_smooth = reshaped_specs[1]
+        self.cont = reshaped_specs[2]
+
+
 
 class SynthSpectra(Spectra):
     '''Needs rewriting and new spectra for forest=True to be consistent.'''
