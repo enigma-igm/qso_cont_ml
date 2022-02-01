@@ -121,10 +121,9 @@ class UNetTrainer(Trainer):
 
                 # forward
                 if smooth:
-                    outputs = self.net(flux_train.type(torch.FloatTensor),\
-                                       flux_smooth_train.type(torch.FloatTensor))
+                    outputs = self.net(flux_train, flux_smooth_train)
                 else:
-                    outputs = self.net(flux_train.type(torch.FloatTensor))
+                    outputs = self.net(flux_train)
 
                 # backward
                 if loss_space=="real-rel":
@@ -178,10 +177,9 @@ class UNetTrainer(Trainer):
 
                 # forward the network
                 if smooth:
-                    validoutputs = self.net(flux_valid.type(torch.FloatTensor),\
-                                            flux_smooth_valid.type(torch.FloatTensor))
+                    validoutputs = self.net(flux_valid, flux_smooth_valid)
                 else:
-                    validoutputs = self.net(flux_valid.type(torch.FloatTensor))
+                    validoutputs = self.net(flux_valid)
 
                 if loss_space=="real-rel":
                     if use_QSOScalers:

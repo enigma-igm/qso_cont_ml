@@ -16,6 +16,7 @@ wave_grid = spectra.wave_grid
 print ("Shape of trainset flux:", trainset.flux.shape)
 
 n_ftrs = trainset.flux.shape[-1]
+device = torch.deice("cuda" if torch.cuda.is_available() else "cpu")
 
 net = UNet(n_ftrs, retain_dim=True, num_class=1, enc_chs=(1,64,128), dec_chs=(128,64))
 optimizer, criterion = create_learners(net.parameters(), learning_rate=0.1)
