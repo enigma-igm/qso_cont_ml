@@ -37,6 +37,7 @@ class Trainer:
         self.criterion = criterion
         self.batch_size = batch_size
         self.num_epochs = num_epochs
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
     def train_QSOScalers(self, wave_grid, X_train, y_train):

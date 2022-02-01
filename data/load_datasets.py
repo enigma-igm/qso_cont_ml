@@ -4,6 +4,7 @@ from torch.utils.data import Dataset, random_split
 from data.load_data import load_synth_spectra, load_synth_noisy_cont, split_data, normalise_spectra
 import numpy as np
 from pypeit.utils import fast_running_median
+import torch
 
 class Spectra(Dataset):
     def __init__(self, wave_grid, cont, flux, flux_smooth, norm1280=True,\
@@ -27,9 +28,9 @@ class Spectra(Dataset):
         else:
             flux_smooth_new = flux_smooth
 
-        self.flux = flux
-        self.cont = cont
-        self.flux_smooth = flux_smooth_new
+        self.flux = torch.FloatTensor(flux)
+        self.cont = torch.FloatTensor(cont)
+        self.flux_smooth = torch.FloatTensor(flux_smooth_new)
 
     def __len__(self):
         return len(self.flux)

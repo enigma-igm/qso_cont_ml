@@ -51,11 +51,14 @@ class Decoder(nn.Module):
 
     def crop(self, enc_ftrs, x):
         _, _, n_wav = x.shape
-        enc_ftrs2d = torch.FloatTensor(np.expand_dims(enc_ftrs.detach().numpy(),\
-                                                      axis=3))
+        enc_ftrs2d = torch.unsqueeze(enc_ftrs, dim=-1)
+        #enc_ftrs2d = torch.FloatTensor(np.expand_dims(enc_ftrs.detach().numpy(),\
+        #                                              axis=3))
         enc_ftrs = torchvision.transforms.CenterCrop([n_wav,1])(enc_ftrs2d)
         #print (enc_ftrs.shape)
-        enc_ftrs = np.squeeze(enc_ftrs, axis=-1)
+        #enc_ftrs = np.squeeze(enc_ftrs, axis=-1)
+
+        enc_ftrs = torch.squeeze(enc_ftrs, dim=-1)
         return enc_ftrs
 
 

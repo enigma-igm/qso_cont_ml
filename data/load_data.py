@@ -40,11 +40,12 @@ def load_synth_spectra(regridded=True, small=False, npca=10,\
 
 
 def load_synth_noisy_cont(npca=10, smooth=False, window=20, homosced=True,\
-                          poisson=False, SN=10):
+                          poisson=False, SN=10, datapath=None):
     '''Convenience function for loading the synthetic continua with homoscedastic
     noise. qso_cont contains the continua, qso_flux contain the noisy continua.'''
 
-    datapath = "/net/vdesk/data2/buiten/MRP2/pca-sdss-old/"
+    if datapath is None:
+        datapath = "/net/vdesk/data2/buiten/MRP2/pca-sdss-old/"
     npca_str = str(npca)
 
     if smooth:

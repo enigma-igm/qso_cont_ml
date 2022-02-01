@@ -17,7 +17,7 @@ print ("Shape of trainset flux:", trainset.flux.shape)
 
 n_ftrs = trainset.flux.shape[-1]
 
-net = UNet(n_ftrs, retain_dim=True, num_class=1, enc_chs=(1,16,32), dec_chs=(32,16))
+net = UNet(n_ftrs, retain_dim=True, num_class=1, enc_chs=(1,64,128), dec_chs=(128,64))
 optimizer, criterion = create_learners(net.parameters(), learning_rate=0.1)
 trainer = UNetTrainer(net, optimizer, criterion, num_epochs=20, batch_size=2500)
 trainer.train(trainset, validset, use_QSOScalers=True, smooth=False,\

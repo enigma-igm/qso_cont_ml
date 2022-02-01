@@ -88,12 +88,18 @@ class UNetTrainer(Trainer):
         if weight:
             Weights = WavWeights(trainset.wave_grid, power=weightpower)
             weights_mse = Weights.weights_in_MSE
+            weights_mse = weights_mse.to(self.device)
 
         self.wave_grid = trainset.wave_grid
 
         # train the model to find good residuals
         for epoch in range(self.num_epochs):
             for flux_train_raw, flux_smooth_train_raw, cont_train_raw in train_loader:
+                # transfer everything to the set device
+                flux_train_raw = flux_train_raw.to(self.device)
+                flux_smooth_train_raw = flux_smooth_train_raw.to(self.device)
+                cont_train_raw = cont_train_raw.to(self.device)
+
                 if use_QSOScalers:
                     flux_train = self.glob_scaler_flux.forward(flux_train_raw)
                     flux_smooth_train = self.glob_scaler_flux.forward(flux_smooth_train_raw)
@@ -149,6 +155,10 @@ class UNetTrainer(Trainer):
             # now use the validation set
 
             for flux_valid_raw, flux_smooth_valid_raw, cont_valid_raw in valid_loader:
+
+                flux_valid_raw = flux_valid_raw.to(self.device)
+                flux_smooth_valid_raw = flux_smooth_valid_raw.to(self.device)
+                cont_valid_raw = cont_valid_raw.to(self.device)
 
                 if use_QSOScalers:
                     flux_valid = self.glob_scaler_flux.forward(flux_valid_raw)
