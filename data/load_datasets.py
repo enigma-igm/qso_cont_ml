@@ -59,22 +59,26 @@ class SynthSpectra(Spectra):
     '''Needs rewriting and new spectra for forest=True to be consistent.'''
     def __init__(self, regridded=True, small=False, npca=10,\
                        noise=False, norm1280=True, forest=True, window=20,\
-                newnorm=False, homosced=True, poisson=False, SN=10):
+                newnorm=False, homosced=True, poisson=False, SN=10,\
+                 datapath=None):
 
         if not forest:
             wave_grid, cont, flux, flux_smooth = load_synth_noisy_cont(npca, smooth=True,\
                                                           window=window, homosced=homosced,\
-                                                                       poisson=poisson, SN=SN)
+                                                                       poisson=poisson, SN=SN,\
+                                                                       datapath=datapath)
 
         else:
             if noise:
                 wave_grid, cont, flux, flux_smooth = load_synth_spectra(regridded,\
                                                                         small=False,\
                                                                         npca=npca,\
-                                                                        noise=True)
+                                                                        noise=True,\
+                                                                        datapath=datapath)
             else:
                 wave_grid, cont, flux = load_synth_spectra(regridded, small, npca,\
-                                                           noise=False)
+                                                           noise=False,\
+                                                           datapath=datapath)
 
                 # also smooth the spectra
                 flux_smooth = np.zeros(flux.shape)

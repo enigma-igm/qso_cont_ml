@@ -3,8 +3,10 @@ from sklearn.model_selection import train_test_split
 
 
 def load_synth_spectra(regridded=True, small=False, npca=10,\
-                       noise=False, SN=10):
-    datapath = "/net/vdesk/data2/buiten/MRP2/pca-sdss-old/"
+                       noise=False, SN=10, datapath=None):
+
+    if datapath is None:
+        datapath = "/net/vdesk/data2/buiten/MRP2/pca-sdss-old/"
 
     if noise:
         data = np.load(datapath + "forest_spectra_with_noiseSN"+str(SN)+"_regridded_npca" + str(npca) + "smooth-window20.npy")
