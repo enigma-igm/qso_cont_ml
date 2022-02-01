@@ -7,12 +7,13 @@ import torchvision
 class Block(nn.Module):
     def __init__(self, in_ch, out_ch):
         super().__init__()
-        self.conv1 = nn.Conv1d(in_ch, out_ch, kernel_size=3)
+        self.conv1 = nn.Conv1d(in_ch, out_ch, kernel_size=10)
         self.relu = nn.ReLU()
-        self.conv2 = nn.Conv1d(out_ch, out_ch, kernel_size=3)
+        #self.conv2 = nn.Conv1d(out_ch, out_ch, kernel_size=3)
 
     def forward(self, x):
-        return self.relu(self.conv2(self.relu(self.conv1(x))))
+        #return self.relu(self.conv2(self.relu(self.conv1(x))))
+        return self.relu(self.conv1(x))
 
 
 class Encoder(nn.Module):
@@ -41,11 +42,11 @@ class Decoder(nn.Module):
     def forward(self, x, encoder_features):
         for i in range(len(self.chs)-1):
             x = self.upconvs[i](x)
-            print ("Shape of x after up-convolution:", x.shape)
+            #print ("Shape of x after up-convolution:", x.shape)
             enc_ftrs = self.crop(encoder_features[i], x)
             x = torch.cat([x, enc_ftrs], dim=1)
             x = self.dec_blocks[i](x)
-            print (x.shape)
+            #print (x.shape)
         return x
 
     def crop(self, enc_ftrs, x):
@@ -53,7 +54,7 @@ class Decoder(nn.Module):
         enc_ftrs2d = torch.FloatTensor(np.expand_dims(enc_ftrs.detach().numpy(),\
                                                       axis=3))
         enc_ftrs = torchvision.transforms.CenterCrop([n_wav,1])(enc_ftrs2d)
-        print (enc_ftrs.shape)
+        #print (enc_ftrs.shape)
         enc_ftrs = np.squeeze(enc_ftrs, axis=-1)
         return enc_ftrs
 
@@ -75,5 +76,5 @@ class UNet(nn.Module):
         if self.retain_dim:
             out = F.interpolate(out, self.out_sz)
 
-        print ("Shape of final output:", out.shape)
+        #print ("Shape of final output:", out.shape)
         return out

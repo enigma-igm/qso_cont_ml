@@ -15,11 +15,11 @@ trainset, validset, testset = spectra.split()
 wave_grid = spectra.wave_grid
 print ("Shape of trainset flux:", trainset.flux.shape)
 
-n_ftrs = trainset.flux.shape[1]
+n_ftrs = trainset.flux.shape[-1]
 
-net = UNet(n_ftrs, retain_dim=True, num_class=n_ftrs)
-optimizer, criterion = create_learners(net.parameters())
-trainer = UNetTrainer(net, optimizer, criterion, num_epochs=50)
+net = UNet(n_ftrs, retain_dim=True, num_class=1, enc_chs=(1,16,32), dec_chs=(32,16))
+optimizer, criterion = create_learners(net.parameters(), learning_rate=0.1)
+trainer = UNetTrainer(net, optimizer, criterion, num_epochs=20, batch_size=2500)
 trainer.train(trainset, validset, use_QSOScalers=True, smooth=False,\
               globscalers="cont", weight=False, loss_space="real-rel")
 

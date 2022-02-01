@@ -8,7 +8,7 @@ from pypeit.utils import fast_running_median
 
 
 class ModelResults:
-    '''Class for predicting the continue for the test set and converting everything to numpy arrays.
+    '''Class for predicting the continua for the test set and converting everything to numpy arrays.
     Uses only global QuasarScalers, or no scalers at all.'''
 
     def __init__(self, testset, net, scaler_flux=None,\
@@ -50,12 +50,21 @@ class ModelResults:
             if self.smooth:
                 input_smooth = self.scaler_flux.forward(input_smooth)
 
-            res = self.net(input, smooth=self.smooth, x_smooth=input_smooth)
+            # the exception allows the class to work with e.g. a convolutional U-Net
+            try:
+                res = self.net(input, smooth=self.smooth, x_smooth=input_smooth)
+            except:
+                res = self.net(input)
+
             res_descaled = self.scaler_cont.backward(res)
             res_np = res_descaled.detach().numpy()
 
         else:
-            res = self.net(flux_tensor, smooth=self.smooth, x_smooth=input_smooth)
+            try:
+                res = self.net(flux_tensor, smooth=self.smooth, x_smooth=input_smooth)
+            except:
+                res = self.net(flux_tensor)
+
             res_np = res.detach().numpy()
             self.flux_scaled = self.flux
 
