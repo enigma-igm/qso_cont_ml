@@ -45,7 +45,7 @@ class ModelResults:
 
         if self.use_QSOScaler:
             input = self.scaler_flux.forward(flux_tensor)
-            self.flux_scaled = input.detach().numpy()
+            self.flux_scaled = input.cpu().detach().numpy()
 
             if self.smooth:
                 input_smooth = self.scaler_flux.forward(input_smooth)
@@ -57,7 +57,7 @@ class ModelResults:
                 res = self.net(input)
 
             res_descaled = self.scaler_cont.backward(res)
-            res_np = res_descaled.detach().numpy()
+            res_np = res_descaled.cpu().detach().numpy()
 
         else:
             try:
@@ -65,16 +65,16 @@ class ModelResults:
             except:
                 res = self.net(flux_tensor)
 
-            res_np = res.detach().numpy()
+            res_np = res.cpu().detach().numpy()
             self.flux_scaled = self.flux
 
         self.cont_pred_np = res_np
-        self.cont_pred_scaled_np = res.detach().numpy()
+        self.cont_pred_scaled_np = res.cpu().detach().numpy()
 
         # also scale the true continuum
         if self.use_QSOScaler:
             cont_true_scaled = self.scaler_cont.forward(torch.FloatTensor(self.cont))
-            self.cont_true_scaled_np = cont_true_scaled.detach().numpy()
+            self.cont_true_scaled_np = cont_true_scaled.cpu().detach().numpy()
         else:
             self.cont_true_scaled_np = self.cont
 
@@ -107,7 +107,7 @@ class ModelResultsSpectra(ModelResults):
              fluxsmoothcolor="navy"):
         '''Plot the prediction for the spectrum of a certain index.'''
 
-        cont_pred = self.cont_pred_np[index].flatten()
+        cont_pred = self.cont_pred_np[index].squeeze()
 
         try:
             fig = self.fig
@@ -116,16 +116,16 @@ class ModelResultsSpectra(ModelResults):
 
         ax = fig.add_subplot(subplotloc)
 
-        ax.plot(self.wave_grid, self.flux[index].flatten(), alpha=alpha, lw=1, \
+        ax.plot(self.wave_grid, self.flux[index].squeeze(), alpha=alpha, lw=1, \
                 label="Mock spectrum")
-        ax.plot(self.wave_grid, self.cont[index].flatten(), alpha=alpha, lw=2, \
+        ax.plot(self.wave_grid, self.cont[index].squeeze(), alpha=alpha, lw=2, \
                 label="True continuum")
         ax.plot(self.wave_grid, cont_pred, alpha=alpha, lw=1, ls="--",\
                 label="Predicted continuum", color=contpredcolor)
         if includesmooth:
             try:
                 flux_smooth = self.flux_smooth
-                ax.plot(self.wave_grid, flux_smooth[index].flatten(), alpha=alpha, lw=1,\
+                ax.plot(self.wave_grid, flux_smooth[index].squeeze(), alpha=alpha, lw=1,\
                         ls="dashdot", label="Smoothed spectrum",\
                         color=fluxsmoothcolor)
             except:
@@ -149,7 +149,7 @@ class ModelResultsSpectra(ModelResults):
             print ("Warning: no scaling involved!")
             return
 
-        cont_pred_scaled = self.cont_pred_scaled_np[index].flatten()
+        cont_pred_scaled = self.cont_pred_scaled_np[index].squeeze()
 
         try:
             fig = self.fig
@@ -158,9 +158,9 @@ class ModelResultsSpectra(ModelResults):
 
         ax = fig.add_subplot(subplotloc)
 
-        ax.plot(self.wave_grid, self.flux_scaled[index].flatten(), alpha=alpha, lw=1,\
+        ax.plot(self.wave_grid, self.flux_scaled[index].squeeze(), alpha=alpha, lw=1,\
                 label="Mock spectrum", c="tab:blue")
-        ax.plot(self.wave_grid, self.cont_true_scaled_np[index].flatten(), alpha=alpha, lw=2,\
+        ax.plot(self.wave_grid, self.cont_true_scaled_np[index].squeeze(), alpha=alpha, lw=2,\
                 label="True continuum", c="tab:orange")
         ax.plot(self.wave_grid, cont_pred_scaled, alpha=alpha, lw=1, ls="--",\
                 label="Predicted continuum", color=contpredcolor)
@@ -182,7 +182,8 @@ class RelResids(ModelResults):
     def __init__(self, testset, net, scaler_flux, scaler_cont, smooth=False):
         super(RelResids, self).__init__(testset, net, scaler_flux, scaler_cont, smooth=smooth)
 
-        self.rel_resid = (self.cont - self.cont_pred_np) / self.cont
+        rel_resid = (self.cont - self.cont_pred_np) / self.cont
+        self.rel_resid = rel_resid.squeeze()
         self.mean_spec = np.mean(self.rel_resid, axis=0)
         self.std_spec = np.std(self.rel_resid, axis=0)
         self.mad_std_spec = mad_std(self.rel_resid, axis=0)
