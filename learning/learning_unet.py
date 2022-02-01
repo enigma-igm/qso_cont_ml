@@ -38,10 +38,15 @@ class UNetTrainer(Trainer):
         flux = trainset.flux
         cont = trainset.cont
 
-        flux_mean = np.mean(flux, axis=0)
-        flux_std = np.std(flux, axis=0) + floorval * np.median(flux_mean)
-        cont_mean = np.mean(cont, axis=0)
-        cont_std = np.std(cont, axis=0) + floorval * np.median(cont_mean)
+        #flux_mean = np.mean(flux, axis=0)
+        #flux_std = np.std(flux, axis=0) + floorval * np.median(flux_mean)
+        #cont_mean = np.mean(cont, axis=0)
+        #cont_std = np.std(cont, axis=0) + floorval * np.median(cont_mean)
+
+        flux_mean = torch.mean(flux, dim=0)
+        flux_std = torch.std(flux, dim=0) + floorval * torch.median(flux_mean)
+        cont_mean = torch.mean(cont, dim=0)
+        cont_std = torch.std(cont, dim=0) + floorval * torch.median(cont_mean)
 
         scaler_flux = QuasarScaler(wave_grid, flux_mean, flux_std)
         scaler_cont = QuasarScaler(wave_grid, cont_mean, cont_std)
