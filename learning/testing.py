@@ -183,6 +183,7 @@ class RelResids(ModelResults):
         super(RelResids, self).__init__(testset, net, scaler_flux, scaler_cont, smooth=smooth)
 
         rel_resid = (self.cont - self.cont_pred_np) / self.cont
+        rel_resid = rel_resid.cpu().detach().numpy()
         self.rel_resid = rel_resid.squeeze()
         self.mean_spec = np.mean(self.rel_resid, axis=0)
         self.std_spec = np.std(self.rel_resid, axis=0)
