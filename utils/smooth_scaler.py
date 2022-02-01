@@ -1,6 +1,7 @@
 import numpy as np
 import torch
-from qso_fitting.models.utils.QuasarScaler import QuasarScaler
+#from qso_fitting.models.utils.QuasarScaler import QuasarScaler
+from utils.QuasarScaler import QuasarScaler
 from pypeit.utils import fast_running_median
 
 class SmoothScaler:
