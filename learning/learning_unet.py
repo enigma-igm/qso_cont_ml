@@ -8,7 +8,8 @@ from models.linear_unet import get_rel_resids
 from models.network import normalise
 from pypeit.utils import fast_running_median
 from utils.smooth_scaler import *
-from qso_fitting.models.utils import QuasarScaler
+#from qso_fitting.models.utils import QuasarScaler
+from utils.QuasarScaler import QuasarScaler
 from data.load_datasets import SynthSpectra
 from torch.utils.data import DataLoader
 from utils.errorfuncs import WavWeights

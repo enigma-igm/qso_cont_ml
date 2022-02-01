@@ -4,7 +4,8 @@ import torch.nn as nn
 from torch.autograd import Variable
 from sklearn.utils import shuffle
 import numpy as np
-from qso_fitting.models.utils.QuasarScaler import QuasarScaler
+#from qso_fitting.models.utils.QuasarScaler import QuasarScaler
+from utils.QuasarScaler import QuasarScaler
 from models.network import normalise, rescale_backward, Net
 from utils.errorfuncs import MSE, corr_matrix_relresids
 
