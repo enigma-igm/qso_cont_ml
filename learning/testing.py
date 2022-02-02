@@ -4,7 +4,7 @@ from utils.errorfuncs import relative_residuals, corr_matrix_relresids
 from astropy.stats import mad_std
 from scipy.stats import norm
 import torch
-from pypeit.utils import fast_running_median
+#from pypeit.utils import fast_running_median
 
 
 class ModelResults:
@@ -33,6 +33,7 @@ class ModelResults:
             try:
                 self.flux_smooth = testset.flux_smooth
             except:
+                from pypeit.utils import fast_running_median
                 flux_smooth = np.zeros(self.flux.shape)
                 for i in range(len(flux_smooth)):
                     flux_smooth[i] = fast_running_median(self.flux[i], 20)

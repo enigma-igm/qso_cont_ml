@@ -3,7 +3,7 @@
 from torch.utils.data import Dataset, random_split
 from data.load_data import load_synth_spectra, load_synth_noisy_cont, split_data, normalise_spectra
 import numpy as np
-from pypeit.utils import fast_running_median
+#from pypeit.utils import fast_running_median
 import torch
 
 class Spectra(Dataset):
@@ -81,6 +81,7 @@ class SynthSpectra(Spectra):
                                                            datapath=datapath)
 
                 # also smooth the spectra
+                from pypeit.utils import fast_running_median
                 flux_smooth = np.zeros(flux.shape)
                 for i, F in enumerate(flux):
                     flux_smooth[i, :] = fast_running_median(F, window_size=window)

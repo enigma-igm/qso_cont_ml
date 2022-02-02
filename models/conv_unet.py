@@ -81,3 +81,11 @@ class UNet(nn.Module):
 
         #print ("Shape of final output:", out.shape)
         return out
+
+    def load(self, savefile):
+        '''Load a previously trained model saved under <<savefile>>'''
+
+        checkpoint = torch.load(savefile)
+
+        self.load_state_dict(checkpoint["model_state_dict"])
+        print ("Loaded previously trained model.")
