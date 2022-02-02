@@ -5,9 +5,10 @@ import torch.nn.functional as F
 import torchvision
 
 class Block(nn.Module):
-    def __init__(self, in_ch, out_ch):
+    def __init__(self, in_ch, out_ch, kernel_size=10):
         super().__init__()
-        self.conv1 = nn.Conv1d(in_ch, out_ch, kernel_size=10)
+        ksize = (kernel_size,)
+        self.conv1 = nn.Conv1d(in_ch, out_ch, ksize)
         self.relu = nn.ReLU()
         #self.conv2 = nn.Conv1d(out_ch, out_ch, kernel_size=3)
 
@@ -17,9 +18,9 @@ class Block(nn.Module):
 
 
 class Encoder(nn.Module):
-    def __init__(self, chs=(1,64,128,256)):
+    def __init__(self, chs=(1,64,128,256), kernel_size=10):
         super().__init__()
-        self.enc_blocks = nn.ModuleList([Block(chs[i], chs[i+1]) for i in range(len(chs)-1)])
+        self.enc_blocks = nn.ModuleList([Block(chs[i], chs[i+1], kernel_size) for i in range(len(chs)-1)])
         self.pool = nn.AvgPool1d(2)
 
     def forward(self, x):
@@ -32,11 +33,11 @@ class Encoder(nn.Module):
 
 
 class Decoder(nn.Module):
-    def __init__(self, chs=(256, 128, 64)):
+    def __init__(self, chs=(256, 128, 64), kernel_size=10):
         super().__init__()
         self.chs = chs
         self.upconvs = nn.ModuleList([nn.ConvTranspose1d(chs[i], chs[i+1],\
-                                         2, 2) for i in range(len(chs)-1)])
+                                         kernel_size, 2) for i in range(len(chs)-1)])
         self.dec_blocks = nn.ModuleList([Block(chs[i], chs[i+1]) for i in range(len(chs)-1)])
 
     def forward(self, x, encoder_features):
@@ -64,11 +65,11 @@ class Decoder(nn.Module):
 
 class UNet(nn.Module):
     def __init__(self, out_sz, enc_chs=(1,64,128, 256), dec_chs=(256, 128, 64),\
-                 num_class=1, retain_dim=False):
+                 kernel_size=10, num_class=1, retain_dim=False):
         super().__init__()
-        self.encoder = Encoder(enc_chs)
-        self.decoder = Decoder(dec_chs)
-        self.head = nn.Conv1d(dec_chs[-1], num_class, 1)
+        self.encoder = Encoder(enc_chs, kernel_size)
+        self.decoder = Decoder(dec_chs, kernel_size)
+        self.head = nn.Conv1d(dec_chs[-1], num_class, (1,))
         self.retain_dim = retain_dim
         self.out_sz = out_sz
 
