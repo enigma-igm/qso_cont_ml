@@ -2,7 +2,6 @@ import numpy as np
 import torch
 #from qso_fitting.models.utils.QuasarScaler import QuasarScaler
 from utils.QuasarScaler import QuasarScaler
-from pypeit.utils import fast_running_median
 
 class SmoothScaler:
     def __init__(self, wave_rest, flux_smooth, abs_descaling=False):
@@ -57,6 +56,9 @@ class DoubleScaler:
 
     def __init__(self, wave_rest, flux_train, smoothwindow=20, floorval=0.05,\
                  cont_train=None):
+
+        from pypeit.utils import fast_running_median
+
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.wave_rest = torch.tensor(wave_rest).float().to(self.device)
         self.flux_smooth = torch.tensor(wave_rest).float().to(self.device)
