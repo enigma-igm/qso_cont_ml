@@ -93,4 +93,5 @@ class UNet(nn.Module):
 
         print ("Loaded previously trained model + QuasarScalers.")
 
-        return checkpoint["scaler_flux"], checkpoint["scaler_cont"]
+        #return checkpoint["scaler_flux"], checkpoint["scaler_cont"]
+        return checkpoint["valid_loss"]
