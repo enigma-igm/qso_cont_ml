@@ -1,5 +1,4 @@
 import numpy as np
-from sklearn.model_selection import train_test_split
 
 
 def load_synth_spectra(regridded=True, small=False, npca=10,\
@@ -98,6 +97,7 @@ def load_paris_spectra(noise=False):
     return wave_grid, cont, flux
 
 def split_data(attributes, targets, train_size=0.9, test_size=0.05):
+    from sklearn.model_selection import train_test_split
     rest_size = 1 - train_size
     X_train, X_rest, y_train, y_rest = train_test_split(attributes, targets,\
                                                         test_size=rest_size,\
