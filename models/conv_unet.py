@@ -86,7 +86,10 @@ class UNet(nn.Module):
     def load(self, savefile):
         '''Load a previously trained model saved under <<savefile>>'''
 
-        checkpoint = torch.load(savefile)
+        checkpoint = torch.load(savefile, map_location=torch.device("cpu"))
 
         self.load_state_dict(checkpoint["model_state_dict"])
-        print ("Loaded previously trained model.")
+
+        print ("Loaded previously trained model + QuasarScalers.")
+
+        return checkpoint["scaler_flux"], checkpoint["scaler_cont"]
