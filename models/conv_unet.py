@@ -17,11 +17,22 @@ class Block(nn.Module):
         return self.relu(self.conv1(x))
 
 
+class Pool:
+    def __init__(self, pool="avg", kernel_size=10):
+        dict = {
+            "avg": nn.AvgPool1d(kernel_size),
+            "max": nn.MaxPool1d(kernel_size),
+        }
+
+        self.pool = dict[pool]
+
+
 class Encoder(nn.Module):
-    def __init__(self, chs=(1,64,128,256), kernel_size=10):
+    def __init__(self, chs=(1,64,128,256), kernel_size=10, pool="avg",\
+                 pool_kernel_size=10):
         super().__init__()
         self.enc_blocks = nn.ModuleList([Block(chs[i], chs[i+1], kernel_size) for i in range(len(chs)-1)])
-        self.pool = nn.AvgPool1d(2)
+        self.pool = Pool(pool, pool_kernel_size).pool
 
     def forward(self, x):
         ftrs = []
@@ -53,11 +64,7 @@ class Decoder(nn.Module):
     def crop(self, enc_ftrs, x):
         _, _, n_wav = x.shape
         enc_ftrs2d = torch.unsqueeze(enc_ftrs, dim=-1)
-        #enc_ftrs2d = torch.FloatTensor(np.expand_dims(enc_ftrs.detach().numpy(),\
-        #                                              axis=3))
         enc_ftrs = torchvision.transforms.CenterCrop([n_wav,1])(enc_ftrs2d)
-        #print (enc_ftrs.shape)
-        #enc_ftrs = np.squeeze(enc_ftrs, axis=-1)
 
         enc_ftrs = torch.squeeze(enc_ftrs, dim=-1)
         return enc_ftrs
@@ -66,9 +73,9 @@ class Decoder(nn.Module):
 class UNet(nn.Module):
     def __init__(self, out_sz, enc_chs=(1,64,128, 256), dec_chs=(256, 128, 64),\
                  kernel_size_enc=10, kernel_size_dec=10, num_class=1,\
-                 retain_dim=False):
+                 retain_dim=False, pool="avg", pool_kernel_size=10):
         super().__init__()
-        self.encoder = Encoder(enc_chs, kernel_size_enc)
+        self.encoder = Encoder(enc_chs, kernel_size_enc, pool, pool_kernel_size)
         self.decoder = Decoder(dec_chs, kernel_size_dec)
         self.head = nn.Conv1d(dec_chs[-1], num_class, (1,))
         self.retain_dim = retain_dim
