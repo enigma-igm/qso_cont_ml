@@ -125,12 +125,12 @@ class UNetTrainer(Trainer):
                     # relative to true continuum
                     if use_QSOScalers:
                         outputs_real = self.glob_scaler_cont.backward(outputs)
-                        outputs_real_rel = (outputs_real / cont_train_raw).type(torch.FloatTensor)
-                        cont_train_rel = (cont_train_raw / cont_train_raw).type(torch.FloatTensor)
+                        outputs_real_rel = (outputs_real / cont_train_raw)
+                        cont_train_rel = (cont_train_raw / cont_train_raw)
 
                     else:
-                        outputs_real_rel = (outputs / cont_train).type(torch.FloatTensor)
-                        cont_train_rel = (cont_train / cont_train).type(torch.FloatTensor)
+                        outputs_real_rel = (outputs / cont_train)
+                        cont_train_rel = (cont_train / cont_train)
 
                     if weight:
                         loss = self.criterion(outputs_real_rel*weights_mse, cont_train_rel*weights_mse)
@@ -140,7 +140,7 @@ class UNetTrainer(Trainer):
 
                 elif loss_space=="globscaled":
                     # compute the loss in globally scaled space2w
-                    loss = self.criterion(outputs, cont_train.type(torch.FloatTensor))
+                    loss = self.criterion(outputs, cont_train)
 
                 loss.backward()
 
@@ -178,12 +178,12 @@ class UNetTrainer(Trainer):
                 if loss_space=="real-rel":
                     if use_QSOScalers:
                         validoutputs_real = self.glob_scaler_cont.backward(validoutputs)
-                        validoutputs_real_rel = (validoutputs_real / cont_valid_raw).type(torch.FloatTensor)
-                        cont_valid_rel = (cont_valid_raw / cont_valid_raw).type(torch.FloatTensor)
+                        validoutputs_real_rel = (validoutputs_real / cont_valid_raw)
+                        cont_valid_rel = (cont_valid_raw / cont_valid_raw)
 
                     else:
-                        validoutputs_real_rel = (validoutputs / cont_valid).type(torch.FloatTensor)
-                        cont_valid_rel = (cont_valid / cont_valid).type(torch.FloatTensor)
+                        validoutputs_real_rel = (validoutputs / cont_valid)
+                        cont_valid_rel = (cont_valid / cont_valid)
 
                     if weight:
                         validlossfunc = self.criterion(validoutputs_real_rel*weights_mse, cont_valid_rel*weights_mse)
@@ -192,7 +192,7 @@ class UNetTrainer(Trainer):
                         validlossfunc = self.criterion(validoutputs_real_rel, cont_valid_rel)
 
                 elif loss_space=="globscaled":
-                    validlossfunc = self.criterion(validoutputs, cont_valid.type(torch.FloatTensor))
+                    validlossfunc = self.criterion(validoutputs, cont_valid)
 
                 valid_loss[epoch] += validlossfunc.item()
 
