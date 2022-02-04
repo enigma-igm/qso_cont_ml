@@ -25,39 +25,6 @@ class UNetTrainer(Trainer):
         self.scaler_y = doubscaler_cont
 
 
-    def _train_glob_scalers(self, trainset, floorval=0.05, globscalers="both"):
-        '''Train the QuasarScalers on the training spectra and training continua.'''
-
-        wave_grid = trainset.wave_grid
-        flux = trainset.flux
-        cont = trainset.cont
-
-        #flux_mean = np.mean(flux, axis=0)
-        #flux_std = np.std(flux, axis=0) + floorval * np.median(flux_mean)
-        #cont_mean = np.mean(cont, axis=0)
-        #cont_std = np.std(cont, axis=0) + floorval * np.median(cont_mean)
-
-        flux_mean = torch.mean(flux, dim=0)
-        flux_std = torch.std(flux, dim=0) + floorval * torch.median(flux_mean)
-        cont_mean = torch.mean(cont, dim=0)
-        cont_std = torch.std(cont, dim=0) + floorval * torch.median(cont_mean)
-
-        scaler_flux = QuasarScaler(wave_grid, flux_mean, flux_std)
-        scaler_cont = QuasarScaler(wave_grid, cont_mean, cont_std)
-
-        if globscalers=="both":
-            self.glob_scaler_flux = scaler_flux
-            self.glob_scaler_cont = scaler_cont
-
-        elif globscalers=="flux":
-            self.glob_scaler_flux = scaler_flux
-            self.glob_scaler_cont = scaler_flux
-
-        elif globscalers=="cont":
-            self.glob_scaler_flux = scaler_cont
-            self.glob_scaler_cont = scaler_cont
-
-
     def train(self, trainset, validset, savefile="LinearUNet.pth",\
               use_QSOScalers=False, smooth=False,\
               use_DoubleScalers=False, loss_space="real-rel",\
@@ -90,7 +57,7 @@ class UNetTrainer(Trainer):
             weights_mse = Weights.weights_in_MSE
             weights_mse = weights_mse.to(self.device)
 
-        self.wave_grid = trainset.wave_grid
+        self.wave_grid = trainset.wave_grid.squeeze()
 
         # train the model to find good residuals
         for epoch in range(self.num_epochs):
@@ -215,8 +182,6 @@ class UNetTrainer(Trainer):
 
         # compute the loss per quasar
         running_loss = running_loss / len(trainset)
-        #running_loss = running_loss / (trainset.flux.shape[1])
-        #valid_loss = valid_loss / (validset.flux.shape[1])
 
         # load the model with lowest validation loss
         checkpoint = torch.load(savefile)

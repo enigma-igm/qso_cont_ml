@@ -1,13 +1,10 @@
 import torch
+from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
-import torch.nn as nn
-from torch.autograd import Variable
-from sklearn.utils import shuffle
 import numpy as np
 #from qso_fitting.models.utils.QuasarScaler import QuasarScaler
 from utils.QuasarScaler import QuasarScaler
-from models.network import normalise, rescale_backward, Net
-from utils.errorfuncs import MSE, corr_matrix_relresids
+from utils.errorfuncs import WavWeights
 
 def create_learners(parameters, learning_rate=0.1):
     optimizer = torch.optim.AdamW(parameters, lr=learning_rate)
@@ -41,56 +38,102 @@ class Trainer:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-    def train_QSOScalers(self, wave_grid, X_train, y_train):
-        self.scaler_X, self.scaler_y = train_scalers(wave_grid, X_train, y_train)
+    def _train_glob_scalers(self, trainset, floorval=0.05, globscalers="both"):
+        '''Train the QuasarScalers on the training spectra and training continua.'''
+
+        wave_grid = trainset.wave_grid.squeeze()
+        flux = trainset.flux
+        cont = trainset.cont
+
+        flux_mean = torch.mean(flux, dim=0)
+        flux_std = torch.std(flux, dim=0) + floorval * torch.median(flux_mean)
+        cont_mean = torch.mean(cont, dim=0)
+        cont_std = torch.std(cont, dim=0) + floorval * torch.median(cont_mean)
+
+        scaler_flux = QuasarScaler(wave_grid, flux_mean, flux_std)
+        scaler_cont = QuasarScaler(wave_grid, cont_mean, cont_std)
+
+        if globscalers=="both":
+            self.glob_scaler_flux = scaler_flux
+            self.glob_scaler_cont = scaler_cont
+
+        elif globscalers=="flux":
+            self.glob_scaler_flux = scaler_flux
+            self.glob_scaler_cont = scaler_flux
+
+        elif globscalers=="cont":
+            self.glob_scaler_flux = scaler_cont
+            self.glob_scaler_cont = scaler_cont
 
 
-    def train(self, wave_grid, X_train, y_train, X_valid, y_valid, \
-              savefile="simple_AdamW_net.pth", use_QSOScalers=True):
+    def train(self, trainset, validset, \
+              savefile="simple_AdamW_net.pth", use_QSOScalers=True,\
+              globscalers="both", weight=False, weightpower=1):
         '''Train the model.'''
 
         # first train the QSO scalers if use_QSOScalers==True
         if use_QSOScalers:
-            self.train_QSOScalers(wave_grid, X_train, y_train)
 
-            # normalise input and target for both the training set and the validation set
-            X_train_normed = normalise(self.scaler_X, X_train)
-            y_train_normed = normalise(self.scaler_y, y_train)
-            X_valid_normed = normalise(self.scaler_X, X_valid)
-            y_valid_normed = normalise(self.scaler_y, y_valid)
+            self._train_glob_scalers(trainset, globscalers=globscalers)
 
         else:
-            X_train_normed = torch.tensor(X_train)
-            y_train_normed= torch.tensor(y_train)
-            X_valid_normed = torch.tensor(X_valid)
-            y_valid_normed= torch.tensor(y_valid)
-
-        # set the number of mini-batches
-        n_batches = len(X_train) // self.batch_size
+            self.glob_scaler_flux = None
+            self.glob_scaler_cont = None
 
         # set up the arrays for storing and checking the loss
         running_loss = np.zeros(self.num_epochs)
         valid_loss = np.zeros(self.num_epochs)
         min_valid_loss = np.inf
 
+        self.wave_grid = trainset.wavegrid.squeeze()
+
+        # set up DataLoaders
+        train_loader = DataLoader(trainset, batch_size=self.batch_size, shuffle=True)
+        valid_loader = DataLoader(validset, batch_size=len(validset), shuffle=True)
+
+        if weight:
+            Weights = WavWeights(trainset.wave_grid, power=weightpower)
+            weights_mse = Weights.weights_in_MSE
+            weights_mse = weights_mse.to(self.device)
+
         # train the model
         for epoch in range(self.num_epochs):
-            # shuffle the training data
-            X_train_new, y_train_new = shuffle(X_train_normed, y_train_normed)
+            for flux_train_raw, flux_smooth_train_raw, cont_train_raw in train_loader:
+                flux_train_raw = flux_train_raw.to(self.device)
+                flux_smooth_train_raw = flux_smooth_train_raw.to(self.device)
+                cont_train_raw = cont_train_raw.to(self.device)
 
-            # train in batches
-            for i in range(n_batches):
-                start = i * self.batch_size
-                end = start + self.batch_size
-                inputs = Variable(torch.FloatTensor(X_train_new[start:end].numpy()))
-                labels = Variable(torch.FloatTensor(y_train_new[start:end].numpy()))
+                if use_QSOScalers:
+                    flux_train = self.glob_scaler_flux.forward(flux_train_raw)
+                    flux_smooth_train = self.glob_scaler_flux.forward(flux_smooth_train_raw)
+                    cont_train = self.glob_scaler_cont.forward(cont_train_raw)
+
+                else:
+                    flux_train = flux_train_raw
+                    flux_smooth_train = flux_smooth_train_raw
+                    cont_train = cont_train_raw
 
                 # set gradients to zero
                 self.optimizer.zero_grad()
 
                 # forward + backward + optimize
-                outputs = self.net(inputs)
-                loss = self.criterion(outputs, labels)
+                outputs = self.net(flux_train)
+
+                if use_QSOScalers:
+                    outputs_real = self.glob_scaler_cont.backward(outputs)
+                    outputs_real_rel = (outputs_real / cont_train_raw)
+                    cont_train_rel = (cont_train_raw / cont_train_raw)
+
+                else:
+                    outputs_real_rel = (outputs / cont_train)
+                    cont_train_rel = (cont_train / cont_train)
+
+                if weight:
+                    loss = self.criterion(outputs_real_rel * weights_mse, cont_train_rel * weights_mse)
+
+                else:
+                    loss = self.criterion(outputs_real_rel, cont_train_rel)
+
                 loss.backward()
                 self.optimizer.step()
 
@@ -99,37 +142,60 @@ class Trainer:
             print("Epoch " + str(epoch + 1) + "/" + str(self.num_epochs) + " completed.")
 
             # now use the validation set
-            X_valid_new, y_valid_new = shuffle(X_valid_normed, y_valid_normed)
-            validinputs = Variable(torch.FloatTensor(X_valid_new.numpy()))
-            validlabels = Variable(torch.FloatTensor(y_valid_new.numpy()))
-            validoutputs = self.net(validinputs)
-            validlossfunc = self.criterion(validoutputs, validlabels)
-            valid_loss[epoch] += validlossfunc.item()
+            for flux_valid_raw, flux_smooth_valid_raw, cont_valid_raw in valid_loader:
+
+                flux_valid_raw = flux_valid_raw.to(self.device)
+                flux_smooth_valid_raw = flux_smooth_valid_raw.to(self.device)
+                cont_valid_raw = cont_valid_raw.to(self.device)
+
+                if use_QSOScalers:
+                    flux_valid = self.glob_scaler_flux.forward(flux_valid_raw)
+                    flux_smooth_valid = self.glob_scaler_flux.forward(flux_smooth_valid_raw)
+                    cont_valid = self.glob_scaler_cont.forward(cont_valid_raw)
+
+                else:
+                    flux_valid = flux_valid_raw
+                    flux_smooth_valid = flux_smooth_valid_raw
+                    cont_valid = cont_valid_raw
+
+                # forward the network
+                validoutputs = self.net(flux_valid)
+
+                if use_QSOScalers:
+                    validoutputs_real = self.glob_scaler_cont.backward(validoutputs)
+                    validoutputs_real_rel = (validoutputs_real / cont_valid_raw)
+                    cont_valid_rel = (cont_valid_raw / cont_valid_raw)
+
+                else:
+                    validoutputs_real_rel = (validoutputs / cont_valid)
+                    cont_valid_rel = (cont_valid / cont_valid)
+
+                if weight:
+                    validlossfunc = self.criterion(validoutputs_real_rel * weights_mse, cont_valid_rel * weights_mse)
+
+                else:
+                    validlossfunc = self.criterion(validoutputs_real_rel, cont_valid_rel)
+
+                valid_loss[epoch] += validlossfunc.item()
+
+            valid_loss[epoch] = valid_loss[epoch] / len(validset)
+            print("Validation loss: {:12.5f}".format(valid_loss[epoch]))
 
             # save the model if the validation loss decreases
             if min_valid_loss > valid_loss[epoch]:
                 print("Validation loss decreased.")
                 min_valid_loss = valid_loss[epoch]
-                if use_QSOScalers:
-                    torch.save({
-                        "epoch": epoch,
-                        "model_state_dict": self.net.state_dict(),
-                        "optimizer_state_dict": self.optimizer.state_dict(),
-                        "valid_loss": valid_loss[epoch],
-                        "scaler_X": self.scaler_X,
-                        "scaler_y": self.scaler_y
-                    }, savefile)
-                else:
-                    torch.save({
-                        "epoch": epoch,
-                        "model_state_dict": self.net.state_dict(),
-                        "optimizer_state_dict": self.optimizer.state_dict(),
-                        "valid_loss": valid_loss[epoch],
-                    }, savefile)
+                torch.save({
+                    "epoch": epoch,
+                    "model_state_dict": self.net.state_dict(),
+                    "optimizer_state_dict": self.optimizer.state_dict(),
+                    "valid_loss": valid_loss[epoch],                        "scaler_flux": self.glob_scaler_flux,
+                    "scaler_cont": self.glob_scaler_cont
+                }, savefile)
 
-        # divide the loss arrays by the lengths of the data sets to be able to compare
-        running_loss = running_loss / len(X_train)
-        valid_loss = valid_loss / len(X_valid)
+
+        # compute the loss per quasar
+        running_loss = running_loss / len(trainset)
 
         # after completing the training route, load the model with lowest validation loss
         checkpoint = torch.load(savefile)
@@ -139,8 +205,6 @@ class Trainer:
         # save the diagnostics in the Trainer object
         self.training_loss = running_loss
         self.valid_loss = valid_loss
-
-        self.wave_grid = wave_grid
 
 
     def plot_loss(self, epoch_min=50, yscale="linear", titleadd=""):
@@ -216,111 +280,3 @@ class Trainer:
         ax.legend()
 
         return fig, ax
-
-
-def train_model(wave_grid, X_train, y_train, X_valid, y_valid, net,\
-                optimizer, criterion, batch_size=1000,\
-                num_epochs=1000, learning_rate=0.1, size_hidden=100):
-    '''Currently does not use a validation set!'''
-
-    # first train the scalers
-    scaler_X, scaler_y = train_scalers(wave_grid, X_train, y_train)
-
-    # use the scalers to normalise input and target
-    X_train_normed = normalise(scaler_X, X_train)
-    y_train_normed = normalise(scaler_y, y_train)
-
-    batch_no = len(X_train) // batch_size
-    #n_feature = X_train.shape[1]
-    #n_output = y_train.shape[1]
-
-    running_loss = np.zeros(num_epochs)
-    # also calculate the MSE on the rescaled output spectra for the training set
-    #training_loss = np.zeros(num_epochs)
-
-    # setup the validation set for computing the MSE
-    X_valid_normed = normalise(scaler_X, X_valid)
-    y_valid_normed = normalise(scaler_y, y_valid)
-    input_valid = Variable(torch.FloatTensor(X_valid_normed.numpy()))
-    labels_valid = Variable(torch.FloatTensor(y_valid_normed.numpy()))
-    mse_loss_valid = np.zeros(num_epochs)
-    # setup a validation loss criterion
-    # save the model parameters if the validation loss decreases
-    min_valid_loss = np.inf
-
-    for epoch in range(num_epochs):
-        X_train_new, y_train_new = shuffle(X_train_normed, y_train_normed)
-
-        for i in range(batch_no):
-            start = i * batch_size
-            end = start + batch_size
-            inputs = Variable(torch.FloatTensor(X_train_new[start:end].numpy()))
-            labels = Variable(torch.FloatTensor(y_train_new[start:end].numpy()))
-
-            # set gradients to zero
-            optimizer.zero_grad()
-
-            # forward + backward + optimize
-            outputs = net(inputs)
-            loss = criterion(outputs, labels)
-            loss.backward()
-            optimizer.step()
-
-            running_loss[epoch] += loss.item()
-
-        print ("Epoch "+str(epoch+1)+"/"+str(num_epochs)+" completed.")
-        #print ("Loss: "+str(running_loss[epoch]))
-
-        # now use the validation set
-        valid_loss = 0.0
-        X_valid_new, y_valid_new = shuffle(X_valid_normed, y_valid_normed)
-        validinputs = Variable(torch.FloatTensor(X_valid_new.numpy()))
-        validlabels = Variable(torch.FloatTensor(y_valid_new.numpy()))
-        validoutputs = net(validinputs)
-        validlossfunc = criterion(validoutputs, validlabels)
-        #valid_loss = validlossfunc.item() * validinputs.size(0)
-        #if not epoch%100:
-        #    print (validinputs.size(0))
-        valid_loss += validlossfunc.item()
-        mse_loss_valid[epoch] = valid_loss
-
-        #output_valid = net(input_valid)
-        #mse_loss_valid[epoch] = MSE(labels_valid.detach().numpy(), output_valid.detach().numpy())
-
-        # save the model if the validation loss decreases
-        if min_valid_loss > valid_loss:
-            print ("Validation loss decreased.")
-            min_valid_loss = valid_loss
-            torch.save({
-                "epoch": epoch,
-                "model_state_dict": net.state_dict(),
-                "optimizer_state_dict": optimizer.state_dict(),
-                "valid_loss": valid_loss
-            }, "saved_model.pth")
-
-    # divide the loss arrays by the lengths of the data sets to be able to compare
-    running_loss = running_loss/len(X_train)
-    mse_loss_valid = mse_loss_valid/len(X_valid)
-
-    # after completing the training route, load the model with lowest validation loss
-    bestmodel = Net(len(X_train[1]), 100, len(y_train[1]))
-    checkpoint = torch.load("saved_model.pth")
-    #bestmodel.load_state_dict(checkpoint["model_state_dict"])
-    net.load_state_dict(checkpoint["model_state_dict"])   # this should update net
-    print ("Best epoch:", checkpoint["epoch"])
-    #net.eval()
-
-    return running_loss, mse_loss_valid, scaler_X, scaler_y
-
-
-def test_model(X_test, y_test, scaler_X, scaler_y, net):
-    '''Test the trained model by determining the MSE on the full model,
-    i.e. including the normalisation and back-conversion.'''
-
-    res_test = net.full_predict(X_test, scaler_X, scaler_y)
-    mse = MSE(y_test, res_test)
-    corr_matrix = corr_matrix_relresids(y_test, res_test, len(y_test))
-
-    return mse, corr_matrix
-
-
