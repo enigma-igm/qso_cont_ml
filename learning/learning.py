@@ -98,19 +98,16 @@ class Trainer:
 
         # train the model
         for epoch in range(self.num_epochs):
-            for flux_train_raw, flux_smooth_train_raw, cont_train_raw in train_loader:
+            for flux_train_raw, _, cont_train_raw in train_loader:
                 flux_train_raw = flux_train_raw.to(self.device)
-                flux_smooth_train_raw = flux_smooth_train_raw.to(self.device)
                 cont_train_raw = cont_train_raw.to(self.device)
 
                 if use_QSOScalers:
                     flux_train = self.glob_scaler_flux.forward(flux_train_raw)
-                    flux_smooth_train = self.glob_scaler_flux.forward(flux_smooth_train_raw)
                     cont_train = self.glob_scaler_cont.forward(cont_train_raw)
 
                 else:
                     flux_train = flux_train_raw
-                    flux_smooth_train = flux_smooth_train_raw
                     cont_train = cont_train_raw
 
                 # set gradients to zero
@@ -142,20 +139,17 @@ class Trainer:
             print("Epoch " + str(epoch + 1) + "/" + str(self.num_epochs) + " completed.")
 
             # now use the validation set
-            for flux_valid_raw, flux_smooth_valid_raw, cont_valid_raw in valid_loader:
+            for flux_valid_raw, _, cont_valid_raw in valid_loader:
 
                 flux_valid_raw = flux_valid_raw.to(self.device)
-                flux_smooth_valid_raw = flux_smooth_valid_raw.to(self.device)
                 cont_valid_raw = cont_valid_raw.to(self.device)
 
                 if use_QSOScalers:
                     flux_valid = self.glob_scaler_flux.forward(flux_valid_raw)
-                    flux_smooth_valid = self.glob_scaler_flux.forward(flux_smooth_valid_raw)
                     cont_valid = self.glob_scaler_cont.forward(cont_valid_raw)
 
                 else:
                     flux_valid = flux_valid_raw
-                    flux_smooth_valid = flux_smooth_valid_raw
                     cont_valid = cont_valid_raw
 
                 # forward the network
