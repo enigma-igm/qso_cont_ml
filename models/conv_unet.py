@@ -31,7 +31,11 @@ class Encoder(nn.Module):
     def __init__(self, chs=(1,64,128,256), kernel_size=10, pool="avg",\
                  pool_kernel_size=10):
         super().__init__()
-        self.enc_blocks = nn.ModuleList([Block(chs[i], chs[i+1], kernel_size) for i in range(len(chs)-1)])
+
+        if isinstance(kernel_size, int):
+            kernel_size = kernel_size*torch.ones(len(chs)-1)
+
+        self.enc_blocks = nn.ModuleList([Block(chs[i], chs[i+1], kernel_size[i]) for i in range(len(chs)-1)])
         self.pool = Pool(pool, pool_kernel_size).pool
 
     def forward(self, x):
@@ -46,9 +50,13 @@ class Encoder(nn.Module):
 class Decoder(nn.Module):
     def __init__(self, chs=(256, 128, 64), kernel_size=10):
         super().__init__()
+
+        if isinstance(kernel_size, int):
+            kernel_size = kernel_size*torch.ones(len(chs)-1)
+
         self.chs = chs
         self.upconvs = nn.ModuleList([nn.ConvTranspose1d(chs[i], chs[i+1],\
-                                         kernel_size, 2) for i in range(len(chs)-1)])
+                                         kernel_size[i], 2) for i in range(len(chs)-1)])
         self.dec_blocks = nn.ModuleList([Block(chs[i], chs[i+1]) for i in range(len(chs)-1)])
 
     def forward(self, x, encoder_features):
