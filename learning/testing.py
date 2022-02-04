@@ -21,12 +21,14 @@ class ModelResults:
         self.net = net
         self.smooth = smooth
 
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
         if scaler_flux is None:
             self.use_QSOScaler = False
         else:
             self.use_QSOScaler = True
 
-        flux_tensor = torch.FloatTensor(self.flux)
+        flux_tensor = torch.FloatTensor(self.flux).to(self.device)
 
         # smooth input for the final skip connection before applying the QSOScaler
         if smooth:
@@ -39,7 +41,7 @@ class ModelResults:
                     flux_smooth[i] = fast_running_median(self.flux[i], 20)
                 self.flux_smooth = flux_smooth
 
-            input_smooth = torch.FloatTensor(self.flux_smooth)
+            input_smooth = torch.FloatTensor(self.flux_smooth).to(self.device)
 
         else:
             input_smooth = None
@@ -74,7 +76,7 @@ class ModelResults:
 
         # also scale the true continuum
         if self.use_QSOScaler:
-            cont_true_scaled = self.scaler_cont.forward(torch.FloatTensor(self.cont))
+            cont_true_scaled = self.scaler_cont.forward(torch.FloatTensor(self.cont).to(self.device))
             self.cont_true_scaled_np = cont_true_scaled.cpu().detach().numpy()
         else:
             self.cont_true_scaled_np = self.cont
