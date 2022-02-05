@@ -35,12 +35,15 @@ class Encoder(nn.Module):
         if isinstance(kernel_size, int):
             kernel_size = kernel_size*torch.ones(len(chs)-1)
 
+        if isinstance(pool_kernel_size, int):
+            pool_kernel_size = pool_kernel_size * torch.ones(len(chs)-1)
+
         self.enc_blocks = nn.ModuleList([Block(chs[i], chs[i+1], kernel_size[i]) for i in range(len(chs)-1)])
-        self.pool = Pool(pool, pool_kernel_size).pool
+        self.pools = nn.ModuleList([Pool(pool, pool_kernel_size[i]).pool for i in range(len(chs)-1)])
 
     def forward(self, x):
         ftrs = []
-        for block in self.enc_blocks:
+        for block, pool in zip(self.enc_blocks, self.pools):
             x = block(x)
             ftrs.append(x)
             x = self.pool(x)
@@ -48,16 +51,19 @@ class Encoder(nn.Module):
 
 
 class Decoder(nn.Module):
-    def __init__(self, chs=(256, 128, 64), kernel_size=10):
+    def __init__(self, chs=(256, 128, 64), kernel_size=10, upconv_kernel_size=1):
         super().__init__()
 
         if isinstance(kernel_size, int):
             kernel_size = kernel_size*torch.ones(len(chs)-1)
 
+        if isinstance(upconv_kernel_size, int):
+            upconv_kernel_size = upconv_kernel_size * torch.ones(len(chs)-1)
+
         self.chs = chs
         self.upconvs = nn.ModuleList([nn.ConvTranspose1d(chs[i], chs[i+1],\
-                                         kernel_size[i], 2) for i in range(len(chs)-1)])
-        self.dec_blocks = nn.ModuleList([Block(chs[i], chs[i+1]) for i in range(len(chs)-1)])
+                                         upconv_kernel_size[i], (2,)) for i in range(len(chs)-1)])
+        self.dec_blocks = nn.ModuleList([Block(chs[i], chs[i+1], kernel_size[i]) for i in range(len(chs)-1)])
 
     def forward(self, x, encoder_features):
         for i in range(len(self.chs)-1):
@@ -80,11 +86,11 @@ class Decoder(nn.Module):
 
 class UNet(nn.Module):
     def __init__(self, out_sz, enc_chs=(1,64,128, 256), dec_chs=(256, 128, 64),\
-                 kernel_size_enc=10, kernel_size_dec=10, num_class=1,\
-                 retain_dim=False, pool="avg", pool_kernel_size=10):
+                 kernel_size_enc=10, kernel_size_dec=10, kernel_size_upconv=10,\
+                 num_class=1, retain_dim=False, pool="avg", pool_kernel_size=10):
         super().__init__()
         self.encoder = Encoder(enc_chs, kernel_size_enc, pool, pool_kernel_size)
-        self.decoder = Decoder(dec_chs, kernel_size_dec)
+        self.decoder = Decoder(dec_chs, kernel_size_dec, kernel_size_upconv)
         self.head = nn.Conv1d(dec_chs[-1], num_class, (1,))
         self.retain_dim = retain_dim
         self.out_sz = out_sz
