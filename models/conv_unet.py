@@ -46,7 +46,7 @@ class Encoder(nn.Module):
         for block, pool in zip(self.enc_blocks, self.pools):
             x = block(x)
             ftrs.append(x)
-            x = self.pool(x)
+            x = pool(x)
         return ftrs
 
 
