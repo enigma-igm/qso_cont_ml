@@ -33,10 +33,10 @@ class Encoder(nn.Module):
         super().__init__()
 
         if isinstance(kernel_size, int):
-            kernel_size = kernel_size*torch.ones(len(chs)-1)
+            kernel_size = [kernel_size for i in range(len(chs)-1)]
 
         if isinstance(pool_kernel_size, int):
-            pool_kernel_size = pool_kernel_size * torch.ones(len(chs)-1)
+            pool_kernel_size = [pool_kernel_size for i in range(len(chs)-1)]
 
         self.enc_blocks = nn.ModuleList([Block(chs[i], chs[i+1], kernel_size[i]) for i in range(len(chs)-1)])
         self.pools = nn.ModuleList([Pool(pool, pool_kernel_size[i]).pool for i in range(len(chs)-1)])
@@ -55,10 +55,10 @@ class Decoder(nn.Module):
         super().__init__()
 
         if isinstance(kernel_size, int):
-            kernel_size = kernel_size*torch.ones(len(chs)-1)
+            kernel_size = [kernel_size for i in range(len(chs)-1)]
 
         if isinstance(upconv_kernel_size, int):
-            upconv_kernel_size = upconv_kernel_size * torch.ones(len(chs)-1)
+            upconv_kernel_size = [upconv_kernel_size for i in range(len(chs)-1)]
 
         self.chs = chs
         self.upconvs = nn.ModuleList([nn.ConvTranspose1d(chs[i], chs[i+1],\
