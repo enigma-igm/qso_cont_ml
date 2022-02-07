@@ -103,20 +103,33 @@ class UNet(nn.Module):
     def __init__(self, out_sz, enc_chs=(1,64,128, 256), dec_chs=(256, 128, 64),\
                  kernel_size_enc=10, kernel_size_dec=10, kernel_size_upconv=10,\
                  num_class=1, retain_dim=False, pool="avg", pool_kernel_size=10,\
-                 activfunc="relu", activparam=1.0):
+                 activfunc="relu", activparam=1.0, final_skip=False):
         super().__init__()
         self.encoder = Encoder(enc_chs, kernel_size_enc, pool, pool_kernel_size,\
                                activfunc, activparam)
         self.decoder = Decoder(dec_chs, kernel_size_dec, kernel_size_upconv,\
                                activfunc, activparam)
-        self.head = nn.Conv1d(dec_chs[-1], num_class, (1,))
         self.retain_dim = retain_dim
         self.out_sz = out_sz
+        self.final_skip = final_skip
+        if final_skip:
+            self.head = nn.Conv1d(dec_chs[-1]+1, num_class, (1,))
+        else:
+            self.head = nn.Conv1d(dec_chs[-1], num_class, (1,))
 
     def forward(self, x):
         enc_ftrs = self.encoder(x)
         out = self.decoder(enc_ftrs[::-1][0], enc_ftrs[::-1][1:])
+
+        if self.final_skip:
+            _, _, n_wav = x.shape
+            out2d = torch.unsqueeze(out, dim=-1)
+            out2dcrop = torchvision.transforms.CenterCrop([n_wav,1])(out2d)
+            out1dcrop = torch.squeeze(out2dcrop, dim=-1)
+            out = torch.cat([out1dcrop, x], dim=1)
+
         out = self.head(out)
+
         if self.retain_dim:
             out = F.interpolate(out, self.out_sz)
 

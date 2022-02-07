@@ -18,11 +18,14 @@ print ("Shape of trainset flux:", trainset.flux.shape)
 n_ftrs = trainset.flux.shape[-1]
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-net = UNet(n_ftrs, retain_dim=True, num_class=1, enc_chs=(1,64,128), dec_chs=(128,64))
+net = UNet(n_ftrs, retain_dim=True, num_class=1, enc_chs=(1,64,128), dec_chs=(128,64),\
+           kernel_size_enc=5, kernel_size_dec=5, kernel_size_upconv=2, pool="max",\
+           pool_kernel_size=2, activfunc="elu", activparam=2.0, final_skip=True)
 optimizer, criterion = create_learners(net.parameters(), learning_rate=0.1)
-trainer = UNetTrainer(net, optimizer, criterion, num_epochs=20, batch_size=2500)
+trainer = UNetTrainer(net, optimizer, criterion, num_epochs=10, batch_size=2500)
 trainer.train(trainset, validset, use_QSOScalers=True, smooth=False,\
-              globscalers="cont", weight=False, loss_space="real-rel")
+              globscalers="cont", weight=True,\
+              weightpower=1, loss_space="real-rel")
 
 fig, ax = trainer.plot_sqrt_loss(epoch_min=1)
 fig.show()
