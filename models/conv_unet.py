@@ -102,10 +102,13 @@ class Decoder(nn.Module):
 class UNet(nn.Module):
     def __init__(self, out_sz, enc_chs=(1,64,128, 256), dec_chs=(256, 128, 64),\
                  kernel_size_enc=10, kernel_size_dec=10, kernel_size_upconv=10,\
-                 num_class=1, retain_dim=False, pool="avg", pool_kernel_size=10):
+                 num_class=1, retain_dim=False, pool="avg", pool_kernel_size=10,\
+                 activfunc="relu", activparam=1.0):
         super().__init__()
-        self.encoder = Encoder(enc_chs, kernel_size_enc, pool, pool_kernel_size)
-        self.decoder = Decoder(dec_chs, kernel_size_dec, kernel_size_upconv)
+        self.encoder = Encoder(enc_chs, kernel_size_enc, pool, pool_kernel_size,\
+                               activfunc, activparam)
+        self.decoder = Decoder(dec_chs, kernel_size_dec, kernel_size_upconv,\
+                               activfunc, activparam)
         self.head = nn.Conv1d(dec_chs[-1], num_class, (1,))
         self.retain_dim = retain_dim
         self.out_sz = out_sz
