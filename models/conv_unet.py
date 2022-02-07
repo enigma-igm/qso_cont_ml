@@ -5,16 +5,17 @@ import torch.nn.functional as F
 import torchvision
 
 class Block(nn.Module):
-    def __init__(self, in_ch, out_ch, kernel_size=10):
+    def __init__(self, in_ch, out_ch, kernel_size=10, activfunc="relu",\
+                 activparam=1.):
         super().__init__()
         ksize = (kernel_size,)
         self.conv1 = nn.Conv1d(in_ch, out_ch, ksize)
-        self.relu = nn.ReLU()
+        self.activ_func = ActivFunc(activfunc, activparam).act
         #self.conv2 = nn.Conv1d(out_ch, out_ch, kernel_size=3)
 
     def forward(self, x):
         #return self.relu(self.conv2(self.relu(self.conv1(x))))
-        return self.relu(self.conv1(x))
+        return self.activ_func(self.conv1(x))
 
 
 class Pool:
@@ -27,9 +28,20 @@ class Pool:
         self.pool = dict[pool]
 
 
+class ActivFunc:
+    def __init__(self, func="relu", hyperparam=1.):
+        dict = {
+            "relu": nn.ReLU(),
+            "elu": nn.ELU(hyperparam),
+            "leaky-relu": nn.LeakyReLU(hyperparam),
+        }
+
+        self.act = dict[func]
+
+
 class Encoder(nn.Module):
     def __init__(self, chs=(1,64,128,256), kernel_size=10, pool="avg",\
-                 pool_kernel_size=10):
+                 pool_kernel_size=10, activfunc="relu", activparam=1.0):
         super().__init__()
 
         if isinstance(kernel_size, int):
@@ -38,7 +50,8 @@ class Encoder(nn.Module):
         if isinstance(pool_kernel_size, int):
             pool_kernel_size = [pool_kernel_size for i in range(len(chs)-1)]
 
-        self.enc_blocks = nn.ModuleList([Block(chs[i], chs[i+1], kernel_size[i]) for i in range(len(chs)-1)])
+        self.enc_blocks = nn.ModuleList([Block(chs[i], chs[i+1], kernel_size[i],\
+                                               activfunc, activparam) for i in range(len(chs)-1)])
         self.pools = nn.ModuleList([Pool(pool, pool_kernel_size[i]).pool for i in range(len(chs)-1)])
 
     def forward(self, x):
@@ -51,7 +64,8 @@ class Encoder(nn.Module):
 
 
 class Decoder(nn.Module):
-    def __init__(self, chs=(256, 128, 64), kernel_size=10, upconv_kernel_size=1):
+    def __init__(self, chs=(256, 128, 64), kernel_size=10, upconv_kernel_size=1,\
+                 activfunc="relu", activparam=1.0):
         super().__init__()
 
         if isinstance(kernel_size, int):
@@ -63,7 +77,8 @@ class Decoder(nn.Module):
         self.chs = chs
         self.upconvs = nn.ModuleList([nn.ConvTranspose1d(chs[i], chs[i+1],\
                                          upconv_kernel_size[i], (2,)) for i in range(len(chs)-1)])
-        self.dec_blocks = nn.ModuleList([Block(chs[i], chs[i+1], kernel_size[i]) for i in range(len(chs)-1)])
+        self.dec_blocks = nn.ModuleList([Block(chs[i], chs[i+1], kernel_size[i],\
+                                               activfunc, activparam) for i in range(len(chs)-1)])
 
     def forward(self, x, encoder_features):
         for i in range(len(self.chs)-1):
