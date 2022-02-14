@@ -108,10 +108,12 @@ class Decoder(nn.Module):
     def forward(self, x, encoder_features):
         for i in range(len(self.chs)-1):
             x = self.upconvs[i](x)
-            #print ("Shape of x after up-convolution:", x.shape)
+            print ("Shape of x after up-convolution:", x.shape)
             #enc_ftrs = self.crop(encoder_features[i], x)
             enc_ftrs = encoder_features[i]
+            print ("Shape of encoder features:", enc_ftrs)
             x = self.crop(enc_ftrs, x)
+            print ("Shape of x after cropping:", x.shape)
             #x = torch.cat([x, enc_ftrs], dim=1)
             x = self.skip(x, enc_ftrs)
             print ("Shape of x after the skip connection:", x.shape)
