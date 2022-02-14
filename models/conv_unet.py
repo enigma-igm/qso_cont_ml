@@ -154,7 +154,7 @@ class UNet(nn.Module):
             _, _, n_wav = out.shape
             x2d = torch.unsqueeze(x, dim=-1)
             x2dcrop = torchvision.transforms.CenterCrop([n_wav,1])(x2d)
-            x1dcrop = torch.squueze(x2dcrop, dim=-1)
+            x1dcrop = torch.squeeze(x2dcrop, dim=-1)
             out = self.skip_op(out, x1dcrop)
             #out2d = torch.unsqueeze(out, dim=-1)
             #out2dcrop = torchvision.transforms.CenterCrop([n_wav,1])(out2d)
