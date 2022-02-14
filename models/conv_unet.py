@@ -56,6 +56,9 @@ class SkipOperator:
         elif self.name=="multiplication":
             return torch.mul(a, b)
 
+        elif self.name=="none":
+            return
+
         else:
             raise ValueError ("Unsupported operator given.")
 
@@ -119,6 +122,7 @@ class Decoder(nn.Module):
         enc_ftrs = torchvision.transforms.CenterCrop([n_wav,1])(enc_ftrs2d)
 
         enc_ftrs = torch.squeeze(enc_ftrs, dim=-1)
+
         return enc_ftrs
 
 
@@ -147,11 +151,15 @@ class UNet(nn.Module):
         out = self.decoder(enc_ftrs[::-1][0], enc_ftrs[::-1][1:])
 
         if self.final_skip:
-            _, _, n_wav = x.shape
-            out2d = torch.unsqueeze(out, dim=-1)
-            out2dcrop = torchvision.transforms.CenterCrop([n_wav,1])(out2d)
-            out1dcrop = torch.squeeze(out2dcrop, dim=-1)
-            out = self.skip_op(out1dcrop, x)
+            _, _, n_wav = out.shape
+            x2d = torch.unsqueeze(x, dim=-1)
+            x2dcrop = torchvision.transforms.CenterCrop([n_wav,1])(x2d)
+            x1dcrop = torch.squueze(x2dcrop, dim=-1)
+            out = self.skip_op(out, x1dcrop)
+            #out2d = torch.unsqueeze(out, dim=-1)
+            #out2dcrop = torchvision.transforms.CenterCrop([n_wav,1])(out2d)
+            #out1dcrop = torch.squeeze(out2dcrop, dim=-1)
+            #out = self.skip_op(out1dcrop, x)
             #out = torch.cat([out1dcrop, x], dim=1)
 
         out = self.head(out)
