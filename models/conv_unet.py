@@ -99,10 +99,17 @@ class Decoder(nn.Module):
             upconv_kernel_size = [upconv_kernel_size for i in range(len(chs)-1)]
 
         self.chs = chs
-        self.upconvs = nn.ModuleList([nn.ConvTranspose1d(chs[i], chs[i+1],\
-                                         upconv_kernel_size[i], (2,)) for i in range(len(chs)-1)])
-        self.dec_blocks = nn.ModuleList([Block(chs[i], chs[i+1], kernel_size[i],\
-                                               activfunc, activparam) for i in range(len(chs)-1)])
+
+        if skip=="concatenation:":
+            self.upconvs = nn.ModuleList([nn.ConvTranspose1d(chs[i], chs[i+1],\
+                                             upconv_kernel_size[i], (2,)) for i in range(len(chs)-1)])
+
+        else:
+            self.upconvs = nn.ModuleList([nn.ConvTranspose1d(chs[i], chs[i],\
+                                                             upconv_kernel_size[i], (2,)) for i in range(len(chs)-1)])
+
+        self.dec_blocks = nn.ModuleList([Block(chs[i], chs[i + 1], kernel_size[i], \
+                                               activfunc, activparam) for i in range(len(chs) - 1)])
         self.skip = SkipOperator(skip)
 
     def forward(self, x, encoder_features):
