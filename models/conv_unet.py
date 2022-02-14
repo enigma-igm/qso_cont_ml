@@ -34,9 +34,30 @@ class ActivFunc:
             "relu": nn.ReLU(),
             "elu": nn.ELU(hyperparam),
             "leaky-relu": nn.LeakyReLU(hyperparam),
+            "prelu": nn.PReLU(init=hyperparam)
         }
 
         self.act = dict[func]
+
+
+class SkipOperator:
+    def __init__(self, operation="concatenation"):
+        self.name = operation
+        self._parameters = nn.ParameterList(None)
+
+    def __call__(self, a, b):
+
+        if self.name=="concatenation":
+            return torch.cat([a, b], dim=1)
+
+        elif self.name=="addition":
+            return torch.add(a, b)
+
+        elif self.name=="multiplication":
+            return torch.mul(a, b)
+
+        else:
+            raise ValueError ("Unsupported operator given.")
 
 
 class Encoder(nn.Module):
@@ -65,7 +86,7 @@ class Encoder(nn.Module):
 
 class Decoder(nn.Module):
     def __init__(self, chs=(256, 128, 64), kernel_size=10, upconv_kernel_size=1,\
-                 activfunc="relu", activparam=1.0):
+                 activfunc="relu", activparam=1.0, skip="concatenation"):
         super().__init__()
 
         if isinstance(kernel_size, int):
@@ -79,13 +100,15 @@ class Decoder(nn.Module):
                                          upconv_kernel_size[i], (2,)) for i in range(len(chs)-1)])
         self.dec_blocks = nn.ModuleList([Block(chs[i], chs[i+1], kernel_size[i],\
                                                activfunc, activparam) for i in range(len(chs)-1)])
+        self.skip = SkipOperator(skip)
 
     def forward(self, x, encoder_features):
         for i in range(len(self.chs)-1):
             x = self.upconvs[i](x)
             #print ("Shape of x after up-convolution:", x.shape)
             enc_ftrs = self.crop(encoder_features[i], x)
-            x = torch.cat([x, enc_ftrs], dim=1)
+            #x = torch.cat([x, enc_ftrs], dim=1)
+            x = self.skip(x, enc_ftrs)
             x = self.dec_blocks[i](x)
             #print (x.shape)
         return x
@@ -103,12 +126,12 @@ class UNet(nn.Module):
     def __init__(self, out_sz, enc_chs=(1,64,128, 256), dec_chs=(256, 128, 64),\
                  kernel_size_enc=10, kernel_size_dec=10, kernel_size_upconv=10,\
                  num_class=1, retain_dim=False, pool="avg", pool_kernel_size=10,\
-                 activfunc="relu", activparam=1.0, final_skip=False):
+                 activfunc="relu", activparam=1.0, final_skip=False, skip="concatenation"):
         super().__init__()
         self.encoder = Encoder(enc_chs, kernel_size_enc, pool, pool_kernel_size,\
                                activfunc, activparam)
         self.decoder = Decoder(dec_chs, kernel_size_dec, kernel_size_upconv,\
-                               activfunc, activparam)
+                               activfunc, activparam, skip)
         self.retain_dim = retain_dim
         self.out_sz = out_sz
         self.final_skip = final_skip
@@ -116,6 +139,8 @@ class UNet(nn.Module):
             self.head = nn.Conv1d(dec_chs[-1]+1, num_class, (1,))
         else:
             self.head = nn.Conv1d(dec_chs[-1], num_class, (1,))
+
+        self.skip_op = SkipOperator(skip)
 
     def forward(self, x):
         enc_ftrs = self.encoder(x)
@@ -126,7 +151,8 @@ class UNet(nn.Module):
             out2d = torch.unsqueeze(out, dim=-1)
             out2dcrop = torchvision.transforms.CenterCrop([n_wav,1])(out2d)
             out1dcrop = torch.squeeze(out2dcrop, dim=-1)
-            out = torch.cat([out1dcrop, x], dim=1)
+            out = self.skip_op(out1dcrop, x)
+            #out = torch.cat([out1dcrop, x], dim=1)
 
         out = self.head(out)
 
