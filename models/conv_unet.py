@@ -114,6 +114,7 @@ class Decoder(nn.Module):
             x = self.crop(enc_ftrs, x)
             #x = torch.cat([x, enc_ftrs], dim=1)
             x = self.skip(x, enc_ftrs)
+            print ("Shape of x after the skip connection:", x.shape)
             x = self.dec_blocks[i](x)
             #print (x.shape)
         return x
