@@ -108,7 +108,7 @@ class Decoder(nn.Module):
             self.upconvs = nn.ModuleList([nn.ConvTranspose1d(chs[i], chs[i],\
                                                              upconv_kernel_size[i], (2,)) for i in range(len(chs)-1)])
 
-        self.dec_blocks = nn.ModuleList([Block(chs[i], chs[i + 1], kernel_size[i], \
+        self.dec_blocks = nn.ModuleList([Block(chs[i], chs[i+1], kernel_size[i], \
                                                activfunc, activparam) for i in range(len(chs) - 1)])
         self.skip = SkipOperator(skip)
 
@@ -156,7 +156,7 @@ class UNet(nn.Module):
         self.retain_dim = retain_dim
         self.out_sz = out_sz
         self.final_skip = final_skip
-        if final_skip:
+        if final_skip & skip=="concatenation":
             self.head = nn.Conv1d(dec_chs[-1]+1, num_class, (1,))
         else:
             self.head = nn.Conv1d(dec_chs[-1], num_class, (1,))
