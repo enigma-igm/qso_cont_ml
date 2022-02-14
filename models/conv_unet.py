@@ -156,7 +156,7 @@ class UNet(nn.Module):
         self.retain_dim = retain_dim
         self.out_sz = out_sz
         self.final_skip = final_skip
-        if final_skip & skip=="concatenation":
+        if final_skip and (skip=="concatenation"):
             self.head = nn.Conv1d(dec_chs[-1]+1, num_class, (1,))
         else:
             self.head = nn.Conv1d(dec_chs[-1], num_class, (1,))
