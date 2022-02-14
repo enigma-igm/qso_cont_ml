@@ -57,7 +57,7 @@ class SkipOperator:
             return torch.mul(a, b)
 
         elif self.name=="none":
-            return
+            return a
 
         else:
             raise ValueError ("Unsupported operator given.")
