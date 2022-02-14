@@ -120,7 +120,7 @@ class Decoder(nn.Module):
 
     def crop(self, enc_ftrs, x):
         _, _, n_wav = enc_ftrs.shape
-        x2d = torch.unsqeeeze(x, dim=-1)
+        x2d = torch.unsqueeze(x, dim=-1)
         x2dcrop = torchvision.transforms.CenterCrop([n_wav,1])(x2d)
         x1dcrop = torch.squeeze(x2dcrop, dim=-1)
         return x1dcrop
