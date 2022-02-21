@@ -121,16 +121,11 @@ class Decoder(nn.Module):
             x = self.upconvs[i](x)
             print ("Shape of x after up-convolution:", x.shape)
             enc_ftrs = self.crop(encoder_features[i], x)
-            #enc_ftrs = encoder_features[i]
-            #print ("Shape of encoder features:", enc_ftrs.shape)
-            #x = self.crop(enc_ftrs, x)
-            print ("Shape of x after cropping:", x.shape)
-            #x = torch.cat([x, enc_ftrs], dim=1)
-            #x = self.skip(x, enc_ftrs)
+            print ("Shape of encoder features after cropping:", enc_ftrs.shape)
             x = torch.cat([x, enc_ftrs], dim=1)
-            print ("Shape of x after the skip connection:", x.shape)
+            print ("Shape of x after concatenation:", x.shape)
             x = self.dec_blocks[i](x)
-            #print (x.shape)
+            # print (x.shape)
         return x
 
     def crop(self, enc_ftrs, x):
@@ -143,9 +138,9 @@ class Decoder(nn.Module):
         # crop the encoder features to match the dimensions of the decoder output
         _, _, n_wav = x.shape
         enc_ftrs2d = torch.unsqueeze(enc_ftrs, dim=-1)
-        enc_ftrs = torchvision.transforms.CenterCrop([n_wav,1])(enc_ftrs2d)
-        enc_ftrs = torch.squeeze(enc_ftrs, dim=-1)
+        enc_ftrs = torchvision.transforms.CenterCrop([n_wav, 1])(enc_ftrs2d)
 
+        enc_ftrs = torch.squeeze(enc_ftrs, dim=-1)
         return enc_ftrs
 
 
@@ -171,23 +166,22 @@ class UNet(nn.Module):
 
     def forward(self, x):
         enc_ftrs = self.encoder(x)
-        print ("enc_ftrs[::-1][0].shape", enc_ftrs[::-1][-1:].shape)
         out = self.decoder(enc_ftrs[::-1][0], enc_ftrs[::-1][1:])
 
         if self.final_skip:
-            _, _, n_wav = out.shape
-            x2d = torch.unsqueeze(x, dim=-1)
-            x2dcrop = torchvision.transforms.CenterCrop([n_wav,1])(x2d)
-            x1dcrop = torch.squeeze(x2dcrop, dim=-1)
+            #_, _, n_wav = out.shape
+            #x2d = torch.unsqueeze(x, dim=-1)
+            #x2dcrop = torchvision.transforms.CenterCrop([n_wav,1])(x2d)
+            #x1dcrop = torch.squeeze(x2dcrop, dim=-1)
             #out = self.skip_op(out, x1dcrop)
-            out = torch.cat([out, x1dcrop], dim=1)
+            #out = torch.cat([out, x1dcrop], dim=1)
 
-            #_, _, n_wav = x.shape
-            #out2d = torch.unsqueeze(out, dim=-1)
-            #out2dcrop = torchvision.transforms.CenterCrop([n_wav,1])(out2d)
-            #out1dcrop = torch.squeeze(out2dcrop, dim=-1)
-            #out = self.skip_op(out1dcrop, x)
-            #out = torch.cat([out1dcrop, x], dim=1)
+            # the old cropping method
+            _, _, n_wav = x.shape
+            out2d = torch.unsqueeze(out, dim=-1)
+            out2dcrop = torchvision.transforms.CenterCrop([n_wav, 1])(out2d)
+            out1dcrop = torch.squeeze(out2dcrop, dim=-1)
+            out = torch.cat([out1dcrop, x], dim=1)
 
         out = self.head(out)
 
