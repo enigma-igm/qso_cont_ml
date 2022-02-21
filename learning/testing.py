@@ -181,6 +181,38 @@ class ModelResultsSpectra(ModelResults):
         ax.set_title("Raw network output for test spectrum "+str(index+1))
 
 
+    def plot_scaled_pixels(self, index, figsize=(7,5), dpi=320, subplotloc=111, alpha=0.7,\
+                           contpredcolor="darkred"):
+
+        pixels = np.arange(1, len(self.wave_grid)+1, 1)
+
+        if not self.use_QSOScaler:
+            print ("Warning: no scaling involved!")
+            return
+
+        cont_pred_scaled = self.cont_pred_scaled_np[index].squeeze()
+
+        try:
+            fig = self.fig
+        except:
+            fig = self.create_figure(figsize=figsize, dpi=dpi)
+
+        ax = fig.add_subplot(subplotloc)
+
+        ax.plot(pixels, self.flux_scaled[index].squeeze(), alpha=alpha, lw=1,\
+                label="Mock spectrum", c="tab:blue")
+        ax.plot(pixels, self.cont_true_scaled_np[index].squeeze(), alpha=alpha, lw=2,\
+                label="True continuum", c="tab:orange")
+        ax.plot(pixels, cont_pred_scaled, alpha=alpha, lw=1, ls="--",\
+                label="Predicted continuum", color=contpredcolor)
+
+        ax.set_xlabel("Pixel number")
+        ax.set_ylabel("Scaled flux")
+        ax.legend()
+        ax.grid()
+        ax.set_title("Raw network output for test spectrum "+str(index+1))
+
+
     def show_figure(self):
 
         self.fig.tight_layout()
@@ -202,6 +234,21 @@ class RelResids(ModelResults):
         self.std_resid = np.std(self.rel_resid)
         self.mad_resid = mad_std(self.rel_resid)
 
+
+class ScaledResids(ModelResults):
+    def __init__(self, testset, net, scaler_flux, scaler_cont, smooth=False):
+        super(ScaledResids, self).__init__(testset, net, scaler_flux, scaler_cont, smooth=smooth)
+
+        scaled_resid = (self.cont_true_scaled_np - self.cont_pred_scaled_np) / self.cont_true_scaled_np
+        scaled_resid = scaled_resid.cpu().detach().numpy()
+        self.scaled_resid = scaled_resid.squeeze()
+        self.mean_spec = np.mean(self.scaled_resid, axis=0)
+        self.std_spec = np.std(self.scaled_resid, axis=0)
+        self.mad_std_spec = mad_std(self.scaled_resid, axis=0)
+
+        self.mean_resid = np.mean(self.scaled_resid)
+        self.std_resid = np.std(self.scaled_resid)
+        self.mad_resid = mad_std(self.scaled_resid)
 
 
 class CorrelationMatrix(RelResids):
@@ -273,5 +320,45 @@ class ResidualPlots(RelResids):
         ax.set_xlabel("$\\frac{F_{true} - F_{pred}}{F_{true}}$")
         ax.set_ylabel("Probability density")
         ax.set_title("Residuals relative to true continuum")
+        ax.legend()
+        return fig, ax
+
+
+class ScaledResidualPlots(ScaledResids):
+    def __init__(self, testset, net, scaler_flux, scaler_cont, smooth=False):
+
+        super(ScaledResidualPlots, self).__init__(testset, net, scaler_flux, scaler_cont, smooth=smooth)
+
+
+    def plot_means(self, show_std=False):
+        '''Plot the mean relative residuals as a function of wavelength, and add the deviations as shaded areas.'''
+
+        fig, ax = plt.subplots(figsize=(7,5), dpi=320)
+        ax.plot(self.wave_grid, self.mean_spec, label="Mean", color="black")
+        if show_std:
+            ax.fill_between(self.wave_grid, self.mean_spec-self.std_spec, self.mean_spec+self.std_spec, alpha=0.3,\
+                            label="Standard deviation", color="tab:blue")
+        ax.fill_between(self.wave_grid, self.mean_spec-self.mad_std_spec, self.mean_spec+self.mad_std_spec, alpha=0.3,\
+                        label="MAD standard deviation", color="tab:orange")
+        ax.legend()
+        ax.grid()
+        ax.set_xlabel("Rest-frame wavelength ($\AA$)")
+        ax.set_ylabel("$\\frac{f_{true} - f_{pred}}{f_{true}}$")
+        ax.set_title("Scaled residuals relative to scaled true continuum")
+
+        return fig, ax
+
+    def resid_hist(self):
+
+        fig, ax = plt.subplots()
+        hist, bins, patches = ax.hist(self.scaled_resid.flatten(), bins=100, density=True, range=(-0.3, 0.3),\
+                                       label="mean={:5.3f}, std = {:5.3f}, 1.48*mad={:5.3f}".format(self.mean_resid,\
+                                                                                                    self.std_resid,\
+                                                                                                    self.mad_resid))
+        bin_cen = (bins[:-1] + bins[1:])/2
+        ax.plot(bin_cen, norm.pdf(bin_cen, loc=self.mean_resid, scale=self.mad_resid), label="Gaussian (with MAD std)")
+        ax.set_xlabel("$\\frac{f_{true} - f_{pred}}{f_{true}}$")
+        ax.set_ylabel("Probability density")
+        ax.set_title("Scaled residuals relative to scaled true continuum")
         ax.legend()
         return fig, ax
