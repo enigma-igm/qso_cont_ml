@@ -126,7 +126,8 @@ class Decoder(nn.Module):
             #x = self.crop(enc_ftrs, x)
             print ("Shape of x after cropping:", x.shape)
             #x = torch.cat([x, enc_ftrs], dim=1)
-            x = self.skip(x, enc_ftrs)
+            #x = self.skip(x, enc_ftrs)
+            x = torch.cat([x, enc_ftrs], dim=1)
             print ("Shape of x after the skip connection:", x.shape)
             x = self.dec_blocks[i](x)
             #print (x.shape)
@@ -139,6 +140,7 @@ class Decoder(nn.Module):
         #x1dcrop = torch.squeeze(x2dcrop, dim=-1)
         #return x1dcrop
 
+        # crop the encoder features to match the dimensions of the decoder output
         _, _, n_wav = x.shape
         enc_ftrs2d = torch.unsqueeze(enc_ftrs, dim=-1)
         enc_ftrs = torchvision.transforms.CenterCrop([n_wav,1])(enc_ftrs2d)
@@ -161,7 +163,7 @@ class UNet(nn.Module):
         self.out_sz = out_sz
         self.final_skip = final_skip
         if final_skip & (skip=="concatenation"):
-            self.head = nn.Conv1d(dec_chs[-1]-1, num_class, (1,))
+            self.head = nn.Conv1d(dec_chs[-1]+1, num_class, (1,))
         else:
             self.head = nn.Conv1d(dec_chs[-1], num_class, (1,))
 
@@ -176,7 +178,9 @@ class UNet(nn.Module):
             x2d = torch.unsqueeze(x, dim=-1)
             x2dcrop = torchvision.transforms.CenterCrop([n_wav,1])(x2d)
             x1dcrop = torch.squeeze(x2dcrop, dim=-1)
-            out = self.skip_op(out, x1dcrop)
+            #out = self.skip_op(out, x1dcrop)
+            out = torch.cat([out, x1dcrop], dim=1)
+
             #_, _, n_wav = x.shape
             #out2d = torch.unsqueeze(out, dim=-1)
             #out2dcrop = torchvision.transforms.CenterCrop([n_wav,1])(out2d)
