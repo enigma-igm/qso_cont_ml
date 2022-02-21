@@ -99,21 +99,26 @@ class Decoder(nn.Module):
             upconv_kernel_size = [upconv_kernel_size for i in range(len(chs)-1)]
 
         self.chs = chs
-
-        if skip=="concatenation:":
-            self.upconvs = nn.ModuleList([nn.ConvTranspose1d(chs[i], chs[i+1],\
-                                             upconv_kernel_size[i], (2,)) for i in range(len(chs)-1)])
-            print ("Skip connection type: concatenation.")
-            print ("self.upconvs:", self.upconvs)
-
-        else:
-            print ("Skip connection type:", skip)
-            self.upconvs = nn.ModuleList([nn.ConvTranspose1d(chs[i], chs[i],\
-                                                             upconv_kernel_size[i], (2,)) for i in range(len(chs)-1)])
-
+        # only allow concatenation skip connections
+        self.upconvs = nn.ModuleList([nn.ConvTranspose1d(chs[i], chs[i+1], \
+                                                         upconv_kernel_size[i], (2,)) for i in range(len(chs) - 1)])
         self.dec_blocks = nn.ModuleList([Block(chs[i], chs[i+1], kernel_size[i], \
                                                activfunc, activparam) for i in range(len(chs)-1)])
-        print ("self.dec_blocks:", self.dec_blocks)
+
+        #if skip=="concatenation:":
+        #    self.upconvs = nn.ModuleList([nn.ConvTranspose1d(chs[i], chs[i+1],\
+        #                                     upconv_kernel_size[i], (2,)) for i in range(len(chs)-1)])
+        #    print ("Skip connection type: concatenation.")
+        #    print ("self.upconvs:", self.upconvs)
+
+        #else:
+        #    print ("Skip connection type:", skip)
+        #    self.upconvs = nn.ModuleList([nn.ConvTranspose1d(chs[i], chs[i],\
+        #                                                     upconv_kernel_size[i], (2,)) for i in range(len(chs)-1)])
+
+        #self.dec_blocks = nn.ModuleList([Block(chs[i], chs[i+1], kernel_size[i], \
+        #                                       activfunc, activparam) for i in range(len(chs)-1)])
+        #print ("self.dec_blocks:", self.dec_blocks)
         self.skip = SkipOperator(skip)
 
     def forward(self, x, encoder_features):
