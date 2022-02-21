@@ -107,6 +107,7 @@ class Decoder(nn.Module):
             print ("self.upconvs:", self.upconvs)
 
         else:
+            print ("Skip connection type:", self.skip)
             self.upconvs = nn.ModuleList([nn.ConvTranspose1d(chs[i], chs[i],\
                                                              upconv_kernel_size[i], (2,)) for i in range(len(chs)-1)])
 
