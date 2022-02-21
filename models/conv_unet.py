@@ -124,11 +124,11 @@ class Decoder(nn.Module):
     def forward(self, x, encoder_features):
         for i in range(len(self.chs)-1):
             x = self.upconvs[i](x)
-            print ("Shape of x after up-convolution:", x.shape)
+            #print ("Shape of x after up-convolution:", x.shape)
             enc_ftrs = self.crop(encoder_features[i], x)
-            print ("Shape of encoder features after cropping:", enc_ftrs.shape)
+            #print ("Shape of encoder features after cropping:", enc_ftrs.shape)
             x = torch.cat([x, enc_ftrs], dim=1)
-            print ("Shape of x after concatenation:", x.shape)
+            #print ("Shape of x after concatenation:", x.shape)
             x = self.dec_blocks[i](x)
             # print (x.shape)
         return x
