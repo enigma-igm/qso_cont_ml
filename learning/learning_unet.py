@@ -60,6 +60,9 @@ class UNetTrainer(Trainer):
 
         self.wave_grid = trainset.wave_grid.squeeze()
 
+        if edgepixels is not None:
+            print ("Wavelength borders in loss function:", self.wave_grid[edgepixels], self.wave_grid[-edgepixels])
+
         # train the model to find good residuals
         for epoch in range(self.num_epochs):
             for flux_train_raw, flux_smooth_train_raw, cont_train_raw in train_loader:
