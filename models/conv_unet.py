@@ -144,7 +144,8 @@ class Decoder(nn.Module):
 
             # try interpolation rather than cropping
             # interpolate the encoder output onto the dimensions of the decoder output
-            enc_ftrs = F.interpolate(encoder_features[i], x.shape)
+            _, _, n_wav = x.shape
+            enc_ftrs = F.interpolate(encoder_features[i], n_wav)
             x = torch.cat([x, enc_ftrs], dim=1)
             x = self.dec_blocks[i](x)
 
@@ -207,7 +208,8 @@ class UNet(nn.Module):
             #out = torch.cat([out1dcrop, x], dim=1)
 
             # interpolate the input spectrum onto the dimensions of the decoder output
-            x_interp = F.interpolate(x, out.shape)
+            _, _, n_wav = out.shape
+            x_interp = F.interpolate(x, n_wav)
             out = torch.cat([out, x_interp], dim=1)
 
         out = self.head(out)
