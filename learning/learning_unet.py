@@ -167,11 +167,19 @@ class UNetTrainer(Trainer):
                         validoutputs_real_rel = (validoutputs / cont_valid)
                         cont_valid_rel = (cont_valid / cont_valid)
 
-                    if weight:
-                        validlossfunc = self.criterion(validoutputs_real_rel*weights_mse, cont_valid_rel*weights_mse)
+                    if edgepixels is not None:
+                        validloss_outputs = validoutputs_real_rel[:,:,edgepixels:-edgepixels]
+                        validloss_targets = cont_valid_rel[:,:,edgepixels:-edgepixels]
 
                     else:
-                        validlossfunc = self.criterion(validoutputs_real_rel, cont_valid_rel)
+                        validloss_outputs = validoutputs_real_rel
+                        validloss_targets = cont_valid_rel
+
+                    if weight:
+                        validlossfunc = self.criterion(validloss_outputs*loss_weights, validloss_targets*loss_weights)
+
+                    else:
+                        validlossfunc = self.criterion(validloss_outputs, validloss_targets)
 
                 elif loss_space=="globscaled":
                     validlossfunc = self.criterion(validoutputs, cont_valid)
