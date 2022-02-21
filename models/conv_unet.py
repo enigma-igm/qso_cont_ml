@@ -134,13 +134,20 @@ class Decoder(nn.Module):
 
             # crop the decoder output to match the dimensions of the encoder output
             # only for edge effects check
-            enc_ftrs = encoder_features[i]
-            _, _, n_wav = enc_ftrs.shape
-            x2d = torch.unsqueeze(x, dim=-1)
-            x2dcropped = torchvision.transforms.CenterCrop([n_wav,1])(x2d)
-            x1dcropped = torch.squeeze(x2dcropped, dim=-1)
-            x = torch.cat([x1dcropped, enc_ftrs], dim=1)
+            #enc_ftrs = encoder_features[i]
+            #_, _, n_wav = enc_ftrs.shape
+            #x2d = torch.unsqueeze(x, dim=-1)
+            #x2dcropped = torchvision.transforms.CenterCrop([n_wav,1])(x2d)
+            #x1dcropped = torch.squeeze(x2dcropped, dim=-1)
+            #x = torch.cat([x1dcropped, enc_ftrs], dim=1)
+            #x = self.dec_blocks[i](x)
+
+            # try interpolation rather than cropping
+            # interpolate the encoder output onto the dimensions of the decoder output
+            enc_ftrs = F.interpolate(encoder_features[i], x.shape)
+            x = torch.cat([x, enc_ftrs], dim=1)
             x = self.dec_blocks[i](x)
+
         return x
 
     def crop(self, enc_ftrs, x):
@@ -193,11 +200,15 @@ class UNet(nn.Module):
             #out = torch.cat([out, x1dcrop], dim=1)
 
             # crop decoder output to match dimension of input spectrum
-            _, _, n_wav = x.shape
-            out2d = torch.unsqueeze(out, dim=-1)
-            out2dcrop = torchvision.transforms.CenterCrop([n_wav,1])(out2d)
-            out1dcrop = torch.squeeze(out2dcrop, dim=-1)
-            out = torch.cat([out1dcrop, x], dim=1)
+            #_, _, n_wav = x.shape
+            #out2d = torch.unsqueeze(out, dim=-1)
+            #out2dcrop = torchvision.transforms.CenterCrop([n_wav,1])(out2d)
+            #out1dcrop = torch.squeeze(out2dcrop, dim=-1)
+            #out = torch.cat([out1dcrop, x], dim=1)
+
+            # interpolate the input spectrum onto the dimensions of the decoder output
+            x_interp = F.interpolate(x, out.shape)
+            out = torch.cat([out, x_interp], dim=1)
 
         out = self.head(out)
 
