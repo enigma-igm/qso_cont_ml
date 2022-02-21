@@ -171,7 +171,7 @@ class UNet(nn.Module):
 
     def forward(self, x):
         enc_ftrs = self.encoder(x)
-        print ("enc_ftrs.shape", enc_ftrs.shape)
+        print ("enc_ftrs[::-1].shape", enc_ftrs[::-1].shape)
         out = self.decoder(enc_ftrs[::-1][0], enc_ftrs[::-1][1:])
 
         if self.final_skip:
