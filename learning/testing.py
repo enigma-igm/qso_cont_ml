@@ -135,7 +135,7 @@ class ModelResultsSpectra(ModelResults):
                 print ("Warning: flux has not been smoothed.")
 
         if drawsplit:
-            ax.axvline(1216, alpha=0.7, lw=1, ls="--", color="black", label="Blue-red split")
+            ax.axvline(1216, alpha=0.7, lw=2, ls="dashdot", color="black", label="Blue-red split")
 
         ax.set_xlabel("Rest-frame wavelength ($\AA$)")
         ax.set_ylabel("Normalised flux")
@@ -172,7 +172,7 @@ class ModelResultsSpectra(ModelResults):
                 label="Predicted continuum", color=contpredcolor)
 
         if drawsplit:
-            ax.axvline(1216, alpha=0.7, lw=1, ls="--", color="black", label="Blue-red split")
+            ax.axvline(1216, alpha=0.7, lw=2, ls="dashdot", color="black", label="Blue-red split")
 
         ax.set_xlabel(r"Rest-frame wavelength ($\AA$)")
         ax.set_ylabel("Scaled flux")
@@ -290,7 +290,7 @@ class ResidualPlots(RelResids):
         super(ResidualPlots, self).__init__(testset, net, scaler_flux, scaler_cont, smooth=smooth)
 
 
-    def plot_means(self, show_std=False):
+    def plot_means(self, show_std=False, drawsplit=True):
         '''Plot the mean relative residuals as a function of wavelength, and add the deviations as shaded areas.'''
 
         fig, ax = plt.subplots(figsize=(7,5), dpi=320)
@@ -300,6 +300,10 @@ class ResidualPlots(RelResids):
                             label="Standard deviation", color="tab:blue")
         ax.fill_between(self.wave_grid, self.mean_spec-self.mad_std_spec, self.mean_spec+self.mad_std_spec, alpha=0.3,\
                         label="MAD standard deviation", color="tab:orange")
+
+        if drawsplit:
+            ax.axvline(1216, alpha=0.7, lw=2, ls="dashdot", color="black", label="Blue-red split")
+
         ax.legend()
         ax.grid()
         ax.set_xlabel("Rest-frame wavelength ($\AA$)")
