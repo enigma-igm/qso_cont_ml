@@ -240,7 +240,6 @@ class ScaledResids(ModelResults):
         super(ScaledResids, self).__init__(testset, net, scaler_flux, scaler_cont, smooth=smooth)
 
         scaled_resid = (self.cont_true_scaled_np - self.cont_pred_scaled_np) / self.cont_true_scaled_np
-        scaled_resid = scaled_resid.cpu().detach().numpy()
         self.scaled_resid = scaled_resid.squeeze()
         self.mean_spec = np.mean(self.scaled_resid, axis=0)
         self.std_spec = np.std(self.scaled_resid, axis=0)
