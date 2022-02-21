@@ -107,7 +107,7 @@ class ModelResultsSpectra(ModelResults):
 
     def plot(self, index, figsize=(7,5), dpi=320, subplotloc=111,\
              alpha=0.7, contpredcolor="darkred", includesmooth=True,\
-             fluxsmoothcolor="navy"):
+             fluxsmoothcolor="navy", drawsplit=True):
         '''Plot the prediction for the spectrum of a certain index.'''
 
         cont_pred = self.cont_pred_np[index].squeeze()
@@ -134,6 +134,9 @@ class ModelResultsSpectra(ModelResults):
             except:
                 print ("Warning: flux has not been smoothed.")
 
+        if drawsplit:
+            ax.axvline(1216, alpha=0.7, lw=1, ls="--", color="black", label="Blue-red split")
+
         ax.set_xlabel("Rest-frame wavelength ($\AA$)")
         ax.set_ylabel("Normalised flux")
         ax.legend()
@@ -146,7 +149,7 @@ class ModelResultsSpectra(ModelResults):
 
 
     def plot_scaled(self, index, figsize=(7,5), dpi=320, subplotloc=111, alpha=0.7,\
-                    contpredcolor="darkred"):
+                    contpredcolor="darkred", drawsplit=True):
 
         if not self.use_QSOScaler:
             print ("Warning: no scaling involved!")
@@ -167,6 +170,9 @@ class ModelResultsSpectra(ModelResults):
                 label="True continuum", c="tab:orange")
         ax.plot(self.wave_grid, cont_pred_scaled, alpha=alpha, lw=1, ls="--",\
                 label="Predicted continuum", color=contpredcolor)
+
+        if drawsplit:
+            ax.axvline(1216, alpha=0.7, lw=1, ls="--", color="black", label="Blue-red split")
 
         ax.set_xlabel(r"Rest-frame wavelength ($\AA$)")
         ax.set_ylabel("Scaled flux")
