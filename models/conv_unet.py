@@ -112,7 +112,7 @@ class Decoder(nn.Module):
                                                              upconv_kernel_size[i], (2,)) for i in range(len(chs)-1)])
 
         self.dec_blocks = nn.ModuleList([Block(chs[i], chs[i+1], kernel_size[i], \
-                                               activfunc, activparam) for i in range(len(chs) - 1)])
+                                               activfunc, activparam) for i in range(len(chs)-1)])
         print ("self.dec_blocks:", self.dec_blocks)
         self.skip = SkipOperator(skip)
 
@@ -153,11 +153,11 @@ class UNet(nn.Module):
         self.encoder = Encoder(enc_chs, kernel_size_enc, pool, pool_kernel_size,\
                                activfunc, activparam)
         self.decoder = Decoder(dec_chs, kernel_size_dec, kernel_size_upconv,\
-                               activfunc, activparam, skip)
+                               activfunc, activparam)
         self.retain_dim = retain_dim
         self.out_sz = out_sz
         self.final_skip = final_skip
-        if final_skip & (skip=="concatenation"):
+        if final_skip:
             self.head = nn.Conv1d(dec_chs[-1]+1, num_class, (1,))
         else:
             self.head = nn.Conv1d(dec_chs[-1], num_class, (1,))
@@ -179,7 +179,7 @@ class UNet(nn.Module):
             # the old cropping method
             _, _, n_wav = x.shape
             out2d = torch.unsqueeze(out, dim=-1)
-            out2dcrop = torchvision.transforms.CenterCrop([n_wav, 1])(out2d)
+            out2dcrop = torchvision.transforms.CenterCrop([n_wav,1])(out2d)
             out1dcrop = torch.squeeze(out2dcrop, dim=-1)
             out = torch.cat([out1dcrop, x], dim=1)
 
