@@ -103,7 +103,7 @@ class UNetTrainer(Trainer):
                     # mask out pixels on the edges
                     if edgepixels is not None:
                         loss_outputs = outputs_real_rel[:,:,edgepixels:-edgepixels]
-                        loss_weights = weights_mse[:,:,edgepixels:-edgepixels]
+                        loss_weights = weights_mse[edgepixels:-edgepixels]
                         loss_targets = cont_train_rel[:,:,edgepixels:-edgepixels]
 
                     else:
