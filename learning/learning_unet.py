@@ -28,7 +28,8 @@ class UNetTrainer(Trainer):
     def train(self, trainset, validset, savefile="LinearUNet.pth",\
               use_QSOScalers=False, smooth=False,\
               use_DoubleScalers=False, loss_space="real-rel",\
-              globscalers="both", weight=False, weightpower=1):
+              globscalers="both", weight=False, weightpower=1,\
+              edgepixels=None):
         '''DoubleScaler training currently does not work properly!'''
 
         # use the QSOScaler
@@ -99,11 +100,22 @@ class UNetTrainer(Trainer):
                         outputs_real_rel = (outputs / cont_train)
                         cont_train_rel = (cont_train / cont_train)
 
-                    if weight:
-                        loss = self.criterion(outputs_real_rel*weights_mse, cont_train_rel*weights_mse)
+                    # mask out pixels on the edges
+                    if edgepixels is not None:
+                        loss_outputs = outputs_real_rel[:,:,edgepixels:-edgepixels]
+                        loss_weights = weights_mse[:,:,edgepixels:-edgepixels]
+                        loss_targets = cont_train_rel[:,:,edgepixels:-edgepixels]
 
                     else:
-                        loss = self.criterion(outputs_real_rel, cont_train_rel)
+                        loss_outputs = outputs_real_rel
+                        loss_weights = weights_mse
+                        loss_targets = cont_train_rel
+
+                    if weight:
+                        loss = self.criterion(loss_outputs*loss_weights, loss_targets*loss_weights)
+
+                    else:
+                        loss = self.criterion(loss_outputs, loss_targets)
 
                 elif loss_space=="globscaled":
                     # compute the loss in globally scaled space2w
