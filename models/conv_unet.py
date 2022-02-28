@@ -202,8 +202,7 @@ class UNet(nn.Module):
             x1dcrop = torch.squeeze(x2dcrop, dim=-1)
             out = torch.cat([out, x1dcrop], dim=1)
             #out = self.skip_op(out, x1dcrop)
-            #out = torch.cat([out, x1dcrop], dim=1)
-            print ("Shape of final skip connection output:", out.shape)
+            #print ("Shape of final skip connection output:", out.shape)
 
             # crop decoder output to match dimension of input spectrum
             #_, _, n_wav = x.shape
