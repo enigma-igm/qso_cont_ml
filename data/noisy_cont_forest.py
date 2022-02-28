@@ -85,8 +85,12 @@ sigma_smooth = sigma_spec/np.sqrt(20)
 dvpix_red = 500.0
 gpm_norm = None
 
+# set the wavelength of the blue-red split
+#wave_split = wave_1216
+wave_split = 1230.
+
 wave_grid, dvpix_diff, ipix_blu, ipix_red = get_blu_red_wave_grid(wave_min, wave_max,\
-                                                                  wave_1216, dvpix, dvpix_red)
+                                                                  wave_split, dvpix, dvpix_red)
 cont_blu_red = interpolate.interp1d(wave_rest, cont_norm, kind="cubic", bounds_error=False,\
                                     fill_value="extrapolate", axis=1)(wave_grid)
 flux_blu_red, ivar_rebin, gpm_rebin, count_rebin = rebin_spectra(wave_grid,\
@@ -108,6 +112,7 @@ ax.plot(wave_grid, cont_blu_red[0], alpha=0.7, label="Regridded continuum")
 ax.plot(wave_grid, flux_blu_red[0], alpha=0.7, label="Regridded noisy spectrum")
 ax.plot(wave_grid, flux_smooth_blu_red[0], alpha=0.7, color="navy", ls="--",\
         label="Regridded smoothed flux")
+ax.axvline(wave_split, ls=":", c="black", lw="1", label="Blue-red split")
 ax.set_xlabel("Rest-frame wavelength ($\AA$)")
 ax.set_ylabel("Normalised flux")
 ax.legend()
@@ -125,6 +130,6 @@ for i in range(nsamp):
     savearray[i,:,3] = flux_smooth_blu_red[i,:]
 
 savepath = "/net/vdesk/data2/buiten/MRP2/pca-sdss-old/"
-np.save(savepath+"forest_spectra_with_noiseSN"+str(SN)+"_regridded_npca"+str(npca)+"smooth-window20.npy",\
+np.save(savepath+"forest_spectra_with_noiseSN"+str(SN)+"_regridded_npca"+str(npca)+"smooth-window20_split"+str(int(wave_split))+".npy",\
         savearray)
 print ("Array saved.")
