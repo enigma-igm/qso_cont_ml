@@ -127,11 +127,11 @@ class Decoder(nn.Module):
         for i in range(len(self.chs)-1):
             x = self.upconvs[i](x)
             #print ("Shape of x after up-convolution:", x.shape)
-            #enc_ftrs = self.crop(encoder_features[i], x)
+            enc_ftrs = self.crop(encoder_features[i], x)
             #print ("Shape of encoder features after cropping:", enc_ftrs.shape)
-            #x = torch.cat([x, enc_ftrs], dim=1)
+            x = torch.cat([x, enc_ftrs], dim=1)
             #print ("Shape of x after concatenation:", x.shape)
-            #x = self.dec_blocks[i](x)
+            x = self.dec_blocks[i](x)
             # print (x.shape)
 
             # crop the decoder output to match the dimensions of the encoder output
@@ -146,10 +146,10 @@ class Decoder(nn.Module):
 
             # try interpolation rather than cropping
             # interpolate the encoder output onto the dimensions of the decoder output
-            _, _, n_wav = x.shape
-            enc_ftrs = F.interpolate(encoder_features[i], n_wav)
-            x = torch.cat([x, enc_ftrs], dim=1)
-            x = self.dec_blocks[i](x)
+            #_, _, n_wav = x.shape
+            #enc_ftrs = F.interpolate(encoder_features[i], n_wav)
+            #x = torch.cat([x, enc_ftrs], dim=1)
+            #x = self.dec_blocks[i](x)
 
         return x
 
@@ -196,12 +196,12 @@ class UNet(nn.Module):
 
         if self.final_skip:
             # crop input spectrum to match dimension of decoder output
-            #_, _, n_wav = out.shape
-            #x2d = torch.unsqueeze(x, dim=-1)
-            #x2dcrop = torchvision.transforms.CenterCrop([n_wav,1])(x2d)
-            #x1dcrop = torch.squeeze(x2dcrop, dim=-1)
-            #out = self.skip_op(out, x1dcrop)
-            #out = torch.cat([out, x1dcrop], dim=1)
+            _, _, n_wav = out.shape
+            x2d = torch.unsqueeze(x, dim=-1)
+            x2dcrop = torchvision.transforms.CenterCrop([n_wav,1])(x2d)
+            x1dcrop = torch.squeeze(x2dcrop, dim=-1)
+            out = self.skip_op(out, x1dcrop)
+            out = torch.cat([out, x1dcrop], dim=1)
 
             # crop decoder output to match dimension of input spectrum
             #_, _, n_wav = x.shape
@@ -211,9 +211,9 @@ class UNet(nn.Module):
             #out = torch.cat([out1dcrop, x], dim=1)
 
             # interpolate the input spectrum onto the dimensions of the decoder output
-            _, _, n_wav = out.shape
-            x_interp = F.interpolate(x, n_wav)
-            out = torch.cat([out, x_interp], dim=1)
+            #_, _, n_wav = out.shape
+            #x_interp = F.interpolate(x, n_wav)
+            #out = torch.cat([out, x_interp], dim=1)
 
         out = self.head(out)
 
