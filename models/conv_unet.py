@@ -199,8 +199,9 @@ class UNet(nn.Module):
             _, _, n_wav = out.shape
             x2d = torch.unsqueeze(x, dim=-1)
             x2dcrop = torchvision.transforms.CenterCrop([n_wav,1])(x2d)
-            x1dcrop = torch.squeeze(x2dcrop, dim=1)
-            out = self.skip_op(out, x1dcrop)
+            x1dcrop = torch.squeeze(x2dcrop, dim=-1)
+            out = torch.cat([out, x1dcrop], dim=1)
+            #out = self.skip_op(out, x1dcrop)
             out = torch.cat([out, x1dcrop], dim=1)
             print ("Shape of final skip connection output:", out.shape)
 
