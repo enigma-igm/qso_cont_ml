@@ -6,10 +6,10 @@ import torchvision
 
 class Block(nn.Module):
     def __init__(self, in_ch, out_ch, kernel_size=10, activfunc="relu",\
-                 activparam=1.):
+                 activparam=1., padding_mode="zeros"):
         super().__init__()
         ksize = (kernel_size,)
-        self.conv1 = nn.Conv1d(in_ch, out_ch, ksize)
+        self.conv1 = nn.Conv1d(in_ch, out_ch, ksize, padding_mode=padding_mode)
         self.activ_func = ActivFunc(activfunc, activparam).act
         #self.conv2 = nn.Conv1d(out_ch, out_ch, kernel_size=3)
 
@@ -65,7 +65,8 @@ class SkipOperator:
 
 class Encoder(nn.Module):
     def __init__(self, chs=(1,64,128,256), kernel_size=10, pool="avg",\
-                 pool_kernel_size=10, activfunc="relu", activparam=1.0):
+                 pool_kernel_size=10, activfunc="relu", activparam=1.0,\
+                 padding_mode="zeros"):
         super().__init__()
 
         if isinstance(kernel_size, int):
@@ -75,7 +76,7 @@ class Encoder(nn.Module):
             pool_kernel_size = [pool_kernel_size for i in range(len(chs)-1)]
 
         self.enc_blocks = nn.ModuleList([Block(chs[i], chs[i+1], kernel_size[i],\
-                                               activfunc, activparam) for i in range(len(chs)-1)])
+                                               activfunc, activparam, padding_mode) for i in range(len(chs)-1)])
         self.pools = nn.ModuleList([Pool(pool, pool_kernel_size[i]).pool for i in range(len(chs)-1)])
 
     def forward(self, x):
@@ -89,7 +90,8 @@ class Encoder(nn.Module):
 
 class Decoder(nn.Module):
     def __init__(self, chs=(256, 128, 64), kernel_size=10, upconv_kernel_size=1,\
-                 activfunc="relu", activparam=1.0, skip="concatenation"):
+                 activfunc="relu", activparam=1.0, skip="concatenation",\
+                 padding_mode="zeros"):
         super().__init__()
 
         if isinstance(kernel_size, int):
@@ -103,7 +105,7 @@ class Decoder(nn.Module):
         self.upconvs = nn.ModuleList([nn.ConvTranspose1d(chs[i], chs[i+1], \
                                                          upconv_kernel_size[i], (2,)) for i in range(len(chs) - 1)])
         self.dec_blocks = nn.ModuleList([Block(chs[i], chs[i+1], kernel_size[i], \
-                                               activfunc, activparam) for i in range(len(chs)-1)])
+                                               activfunc, activparam, padding_mode) for i in range(len(chs)-1)])
 
         #if skip=="concatenation:":
         #    self.upconvs = nn.ModuleList([nn.ConvTranspose1d(chs[i], chs[i+1],\
@@ -171,12 +173,13 @@ class UNet(nn.Module):
     def __init__(self, out_sz, enc_chs=(1,64,128, 256), dec_chs=(256, 128, 64),\
                  kernel_size_enc=10, kernel_size_dec=10, kernel_size_upconv=10,\
                  num_class=1, retain_dim=False, pool="avg", pool_kernel_size=10,\
-                 activfunc="relu", activparam=1.0, final_skip=False, skip="concatenation"):
+                 activfunc="relu", activparam=1.0, final_skip=False, skip="concatenation",\
+                 padding_mode="zeros"):
         super().__init__()
         self.encoder = Encoder(enc_chs, kernel_size_enc, pool, pool_kernel_size,\
-                               activfunc, activparam)
+                               activfunc, activparam, padding_mode=padding_mode)
         self.decoder = Decoder(dec_chs, kernel_size_dec, kernel_size_upconv,\
-                               activfunc, activparam)
+                               activfunc, activparam, padding_mode=padding_mode)
         self.retain_dim = retain_dim
         self.out_sz = out_sz
         self.final_skip = final_skip
