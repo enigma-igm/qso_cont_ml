@@ -184,9 +184,9 @@ class UNet(nn.Module):
         self.out_sz = out_sz
         self.final_skip = final_skip
         if final_skip:
-            self.head = nn.Conv1d(dec_chs[-1]+1, num_class, (1,))
+            self.head = nn.Conv1d(dec_chs[-1]+1, num_class, (1,), padding_mode=padding_mode)
         else:
-            self.head = nn.Conv1d(dec_chs[-1], num_class, (1,))
+            self.head = nn.Conv1d(dec_chs[-1], num_class, (1,), padding_mode=padding_mode)
 
         self.skip_op = SkipOperator(skip)
 
