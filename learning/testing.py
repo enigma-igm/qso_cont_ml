@@ -337,7 +337,7 @@ class ScaledResidualPlots(ScaledResids):
         '''Plot the mean relative residuals as a function of wavelength, and add the deviations as shaded areas.'''
 
         fig, ax = plt.subplots(figsize=(7,5), dpi=320)
-        ax.plot(self.wave_grid, self.mean_spec, label="Mean", color="black")
+        ax.plot(self.wave_grid, self.mean_spec, label="Mean", color="black", lw=1, ls="--")
         if show_std:
             ax.fill_between(self.wave_grid, self.mean_spec-self.std_spec, self.mean_spec+self.std_spec, alpha=0.3,\
                             label="Standard deviation", color="tab:blue")
