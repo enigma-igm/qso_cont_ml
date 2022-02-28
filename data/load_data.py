@@ -9,7 +9,7 @@ def load_synth_spectra(regridded=True, small=False, npca=10,\
         datapath = "/net/vdesk/data2/buiten/MRP2/pca-sdss-old/"
 
     if noise:
-        if wave_split is None:
+        if (wave_split is None) or (wave_split == 1216):
             data = np.load(datapath + "forest_spectra_with_noiseSN"+str(SN)+"_regridded_npca" + str(npca) + "smooth-window20.npy")
         else:
             data = np.load(datapath + "forest_spectra_with_noiseSN"+str(SN)+"_regridded_npca" + str(npca) + "smooth-window20_split"+str(int(wave_split))+".npy")
