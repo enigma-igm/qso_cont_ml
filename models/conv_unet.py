@@ -91,7 +91,7 @@ class Encoder(nn.Module):
 class Decoder(nn.Module):
     def __init__(self, chs=(256, 128, 64), kernel_size=10, upconv_kernel_size=1,\
                  activfunc="relu", activparam=1.0, skip="concatenation",\
-                 padding_mode="zeros"):
+                 padding_mode="zeros", crop_enc=True):
         super().__init__()
 
         if isinstance(kernel_size, int):
@@ -122,17 +122,20 @@ class Decoder(nn.Module):
         #                                       activfunc, activparam) for i in range(len(chs)-1)])
         #print ("self.dec_blocks:", self.dec_blocks)
         self.skip = SkipOperator(skip)
+        self.crop_enc = crop_enc
 
     def forward(self, x, encoder_features):
         for i in range(len(self.chs)-1):
-            x = self.upconvs[i](x)
-            #print ("Shape of x after up-convolution:", x.shape)
-            enc_ftrs = self.crop(encoder_features[i], x)
-            #print ("Shape of encoder features after cropping:", enc_ftrs.shape)
-            x = torch.cat([x, enc_ftrs], dim=1)
-            #print ("Shape of x after concatenation:", x.shape)
-            x = self.dec_blocks[i](x)
-            # print (x.shape)
+
+            if self.crop_enc:
+                x = self.upconvs[i](x)
+                #print ("Shape of x after up-convolution:", x.shape)
+                enc_ftrs = self.crop(encoder_features[i], x)
+                #print ("Shape of encoder features after cropping:", enc_ftrs.shape)
+                x = torch.cat([x, enc_ftrs], dim=1)
+                #print ("Shape of x after concatenation:", x.shape)
+                x = self.dec_blocks[i](x)
+                # print (x.shape)
 
             # crop the decoder output to match the dimensions of the encoder output
             # only for edge effects check
@@ -144,12 +147,13 @@ class Decoder(nn.Module):
             #x = torch.cat([x1dcropped, enc_ftrs], dim=1)
             #x = self.dec_blocks[i](x)
 
-            # try interpolation rather than cropping
-            # interpolate the encoder output onto the dimensions of the decoder output
-            #_, _, n_wav = x.shape
-            #enc_ftrs = F.interpolate(encoder_features[i], n_wav)
-            #x = torch.cat([x, enc_ftrs], dim=1)
-            #x = self.dec_blocks[i](x)
+            else:
+                # try interpolation rather than cropping
+                # interpolate the encoder output onto the dimensions of the decoder output
+                _, _, n_wav = x.shape
+                enc_ftrs = F.interpolate(encoder_features[i], n_wav)
+                x = torch.cat([x, enc_ftrs], dim=1)
+                x = self.dec_blocks[i](x)
 
         return x
 
@@ -174,12 +178,13 @@ class UNet(nn.Module):
                  kernel_size_enc=10, kernel_size_dec=10, kernel_size_upconv=10,\
                  num_class=1, retain_dim=False, pool="avg", pool_kernel_size=10,\
                  activfunc="relu", activparam=1.0, final_skip=False, skip="concatenation",\
-                 padding_mode="zeros"):
+                 padding_mode="zeros", crop_enc=True):
         super().__init__()
         self.encoder = Encoder(enc_chs, kernel_size_enc, pool, pool_kernel_size,\
                                activfunc, activparam, padding_mode=padding_mode)
         self.decoder = Decoder(dec_chs, kernel_size_dec, kernel_size_upconv,\
-                               activfunc, activparam, padding_mode=padding_mode)
+                               activfunc, activparam, padding_mode=padding_mode,\
+                               crop_enc=True)
         self.retain_dim = retain_dim
         self.out_sz = out_sz
         self.final_skip = final_skip
@@ -189,20 +194,23 @@ class UNet(nn.Module):
             self.head = nn.Conv1d(dec_chs[-1], num_class, (1,), padding_mode=padding_mode)
 
         self.skip_op = SkipOperator(skip)
+        self.crop_enc = crop_enc
 
     def forward(self, x):
         enc_ftrs = self.encoder(x)
         out = self.decoder(enc_ftrs[::-1][0], enc_ftrs[::-1][1:])
 
         if self.final_skip:
-            # crop input spectrum to match dimension of decoder output
-            _, _, n_wav = out.shape
-            x2d = torch.unsqueeze(x, dim=-1)
-            x2dcrop = torchvision.transforms.CenterCrop([n_wav,1])(x2d)
-            x1dcrop = torch.squeeze(x2dcrop, dim=-1)
-            out = torch.cat([out, x1dcrop], dim=1)
-            #out = self.skip_op(out, x1dcrop)
-            #print ("Shape of final skip connection output:", out.shape)
+
+            if self.crop_enc:
+                # crop input spectrum to match dimension of decoder output
+                _, _, n_wav = out.shape
+                x2d = torch.unsqueeze(x, dim=-1)
+                x2dcrop = torchvision.transforms.CenterCrop([n_wav,1])(x2d)
+                x1dcrop = torch.squeeze(x2dcrop, dim=-1)
+                out = torch.cat([out, x1dcrop], dim=1)
+                #out = self.skip_op(out, x1dcrop)
+                #print ("Shape of final skip connection output:", out.shape)
 
             # crop decoder output to match dimension of input spectrum
             #_, _, n_wav = x.shape
@@ -211,10 +219,11 @@ class UNet(nn.Module):
             #out1dcrop = torch.squeeze(out2dcrop, dim=-1)
             #out = torch.cat([out1dcrop, x], dim=1)
 
-            # interpolate the input spectrum onto the dimensions of the decoder output
-            #_, _, n_wav = out.shape
-            #x_interp = F.interpolate(x, n_wav)
-            #out = torch.cat([out, x_interp], dim=1)
+            else:
+                # interpolate the input spectrum onto the dimensions of the decoder output
+                _, _, n_wav = out.shape
+                x_interp = F.interpolate(x, n_wav)
+                out = torch.cat([out, x_interp], dim=1)
 
         out = self.head(out)
 

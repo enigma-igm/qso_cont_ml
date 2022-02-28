@@ -87,7 +87,7 @@ gpm_norm = None
 
 # set the wavelength of the blue-red split
 #wave_split = wave_1216
-wave_split = 1230.
+wave_split = 1250.
 
 wave_grid, dvpix_diff, ipix_blu, ipix_red = get_blu_red_wave_grid(wave_min, wave_max,\
                                                                   wave_split, dvpix, dvpix_red)
