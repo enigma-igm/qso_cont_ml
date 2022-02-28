@@ -107,7 +107,7 @@ class ModelResultsSpectra(ModelResults):
 
     def plot(self, index, figsize=(7,5), dpi=320, subplotloc=111,\
              alpha=0.7, contpredcolor="darkred", includesmooth=True,\
-             fluxsmoothcolor="navy", drawsplit=True):
+             fluxsmoothcolor="navy", drawsplit=True, wave_split=1216):
         '''Plot the prediction for the spectrum of a certain index.'''
 
         cont_pred = self.cont_pred_np[index].squeeze()
@@ -135,7 +135,7 @@ class ModelResultsSpectra(ModelResults):
                 print ("Warning: flux has not been smoothed.")
 
         if drawsplit:
-            ax.axvline(1216, alpha=0.7, lw=2, ls="dashdot", color="black", label="Blue-red split")
+            ax.axvline(wave_split, alpha=0.7, lw=2, ls="dashdot", color="black", label="Blue-red split")
 
         ax.set_xlabel("Rest-frame wavelength ($\AA$)")
         ax.set_ylabel("Normalised flux")
@@ -149,7 +149,7 @@ class ModelResultsSpectra(ModelResults):
 
 
     def plot_scaled(self, index, figsize=(7,5), dpi=320, subplotloc=111, alpha=0.7,\
-                    contpredcolor="darkred", drawsplit=True):
+                    contpredcolor="darkred", drawsplit=True, wave_split=1216):
 
         if not self.use_QSOScaler:
             print ("Warning: no scaling involved!")
@@ -172,7 +172,7 @@ class ModelResultsSpectra(ModelResults):
                 label="Predicted continuum", color=contpredcolor)
 
         if drawsplit:
-            ax.axvline(1216, alpha=0.7, lw=2, ls="dashdot", color="black", label="Blue-red split")
+            ax.axvline(wave_split, alpha=0.7, lw=2, ls="dashdot", color="black", label="Blue-red split")
 
         ax.set_xlabel(r"Rest-frame wavelength ($\AA$)")
         ax.set_ylabel("Scaled flux")
@@ -289,7 +289,7 @@ class ResidualPlots(RelResids):
         super(ResidualPlots, self).__init__(testset, net, scaler_flux, scaler_cont, smooth=smooth)
 
 
-    def plot_means(self, show_std=False, drawsplit=True):
+    def plot_means(self, show_std=False, drawsplit=True, wave_split=1216):
         '''Plot the mean relative residuals as a function of wavelength, and add the deviations as shaded areas.'''
 
         fig, ax = plt.subplots(figsize=(7,5), dpi=320)
@@ -301,7 +301,7 @@ class ResidualPlots(RelResids):
                         label="MAD standard deviation", color="tab:orange")
 
         if drawsplit:
-            ax.axvline(1216, alpha=0.7, lw=2, ls="dashdot", color="black", label="Blue-red split")
+            ax.axvline(wave_split, alpha=0.7, lw=2, ls="dashdot", color="black", label="Blue-red split")
 
         ax.legend()
         ax.grid()
