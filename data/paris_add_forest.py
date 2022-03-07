@@ -32,6 +32,11 @@ wave_rest = get_wave_grid(wave_min, wave_max, dvpix)
 #z_qso = 2.8
 mags = np.full(5, 18.5)
 
+# interpolate Paris continua onto uniform wave grid wave_rest
+# this is to prevent bad pixels in the rebinned spectra
+cont_paris = interpolate.interp1d(wave_norm, cont_norm, kind="cubic", bounds_error=False,\
+                                  fill_value="extrapolate", axis=1)(wave_rest)
+
 iforest = (wave_rest > wave_1025) & (wave_rest < wave_1216)
 z_lya = wave_rest[iforest]*(1.0 + z_qso)/wave_1216 - 1.0
 mean_flux_z = F_onorbe(z_lya)
@@ -45,7 +50,7 @@ pcafilename = 'COARSE_PCA_150_1000_2000_forest.pkl' # File holding (the old) PCA
 nF = 10 # Number of mean flux
 nlogL = 5
 pcafile = '/net/vdesk/data2/buiten/MRP2/Data/' + pcafilename
-Prox = Proximity(wave_norm, fwhm, z_qso, mags, nskew, mean_flux_range, nF, npca, pcafile, nlogL=nlogL)
+Prox = Proximity(wave_rest, fwhm, z_qso, mags, nskew, mean_flux_range, nF, npca, pcafile, nlogL=nlogL)
 
 #nsamp = 1
 nsamp = len(cont_norm) # Number of mock quasars to generate
@@ -58,10 +63,10 @@ theta = Prox.sample_theta(nsamp)
 t_prox = Prox.simulator_lya(theta)
 
 #testcont = np.ones(len(wave_rest))
-testflux = t_prox*cont_norm
+testflux = t_prox*cont_paris
 
 # normalise to one at 1280 \AA
-flux_norm, cont_norm = normalise_spectra(wave_rest, testflux, cont_norm)
+flux_norm, cont_norm = normalise_spectra(wave_rest, testflux, cont_paris)
 
 # now add homoscedastic noise
 #gauss = norm(scale=0.1)
@@ -98,7 +103,7 @@ flux_blu_red, ivar_rebin, gpm_rebin, count_rebin = rebin_spectra(wave_grid,\
 flux_smooth_blu_red, _, _, _ = rebin_spectra(wave_grid, wave_rest, flux_smooth,\
                                              1/sigma_smooth**2, gpm=gpm_norm)
 
-cont_blu_red = interpolate.interp1d(wave_norm, cont_norm, kind="cubic", bounds_error=False,\
+cont_blu_red = interpolate.interp1d(wave_rest, cont_norm, kind="cubic", bounds_error=False,\
                                     fill_value="extrapolate", axis=1)(wave_grid)
 
 #flux_blu_red = interpolate.interp1d(wave_norm, testflux, kind="cubic", bounds_error=False,\

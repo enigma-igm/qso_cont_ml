@@ -82,11 +82,12 @@ def load_synth_noisy_cont(npca=10, smooth=False, window=20, homosced=True,\
         return wave_grid, qso_cont, qso_flux
 
 
-def load_paris_spectra(noise=False, version=2):
+def load_paris_spectra(noise=False, version=2, datapath=None):
     '''Convenience function for loading the Paris hand-fit continua with
     a simulated Ly-alpha forest and optional noise added in.'''
 
-    mainpath = "/net/vdesk/data2/buiten/MRP2/Data/"
+    if datapath is None:
+        mainpath = "/net/vdesk/data2/buiten/MRP2/Data/"
 
     if noise:
         if version == 1:

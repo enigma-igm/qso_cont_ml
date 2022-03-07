@@ -110,9 +110,9 @@ class SynthSpectra(Spectra):
 
 
 class ParisContinua(Spectra):
-    def __init__(self, noise=False, version=2):
+    def __init__(self, noise=False, version=2, datapath=None):
 
-        wave_grid, cont, flux, flux_smooth = load_paris_spectra(noise, version)
+        wave_grid, cont, flux, flux_smooth = load_paris_spectra(noise, version, datapath)
 
         super(ParisContinua, self).__init__(wave_grid, cont, flux, flux_smooth, \
                                            norm1280=True)
