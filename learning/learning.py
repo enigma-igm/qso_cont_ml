@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 #from qso_fitting.models.utils.QuasarScaler import QuasarScaler
 from utils.QuasarScaler import QuasarScaler
+from utils.MinMaxScaler import MinMaxScaler
 from utils.errorfuncs import WavWeights
 
 def create_learners(parameters, learning_rate=0.1):
@@ -38,20 +39,36 @@ class Trainer:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-    def _train_glob_scalers(self, trainset, floorval=0.05, globscalers="both"):
+    def _train_glob_scalers(self, trainset, floorval=0.05, globscalers="both",\
+                            scalertype="QuasarScaler"):
         '''Train the QuasarScalers on the training spectra and training continua.'''
 
         wave_grid = trainset.wave_grid.squeeze()
         flux = trainset.flux
         cont = trainset.cont
 
-        flux_mean = torch.mean(flux, dim=0)
-        flux_std = torch.std(flux, dim=0) + floorval * torch.median(flux_mean)
-        cont_mean = torch.mean(cont, dim=0)
-        cont_std = torch.std(cont, dim=0) + floorval * torch.median(cont_mean)
+        if scalertype=="QuasarScaler":
 
-        scaler_flux = QuasarScaler(wave_grid, flux_mean, flux_std)
-        scaler_cont = QuasarScaler(wave_grid, cont_mean, cont_std)
+            flux_mean = torch.mean(flux, dim=0)
+            flux_std = torch.std(flux, dim=0) + floorval * torch.median(flux_mean)
+            cont_mean = torch.mean(cont, dim=0)
+            cont_std = torch.std(cont, dim=0) + floorval * torch.median(cont_mean)
+
+            scaler_flux = QuasarScaler(wave_grid, flux_mean, flux_std)
+            scaler_cont = QuasarScaler(wave_grid, cont_mean, cont_std)
+
+        elif scalertype=="MinMaxScaler":
+
+            flux_min = torch.min(flux)
+            flux_max = torch.max(flux)
+            cont_min = torch.min(cont)
+            cont_max = torch.max(cont)
+
+            scaler_flux = MinMaxScaler(flux_min, flux_max)
+            scaler_cont = MinMaxScaler(cont_min, cont_max)
+
+        else:
+            raise ValueError("Invalid scalertype given. Use QuasarScaler or MinMaxScaler instead.")
 
         if globscalers=="both":
             self.glob_scaler_flux = scaler_flux
@@ -68,13 +85,13 @@ class Trainer:
 
     def train(self, trainset, validset, \
               savefile="simple_AdamW_net.pth", use_QSOScalers=True,\
-              globscalers="both", weight=False, weightpower=1):
+              globscalers="both", weight=False, weightpower=1, scalertype="QuasarScaler"):
         '''Train the model.'''
 
         # first train the QSO scalers if use_QSOScalers==True
         if use_QSOScalers:
 
-            self._train_glob_scalers(trainset, globscalers=globscalers)
+            self._train_glob_scalers(trainset, globscalers=globscalers, scalertype=scalertype)
 
         else:
             self.glob_scaler_flux = None
