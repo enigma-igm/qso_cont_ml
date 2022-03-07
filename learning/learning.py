@@ -183,7 +183,8 @@ class Trainer:
                     "epoch": epoch,
                     "model_state_dict": self.net.state_dict(),
                     "optimizer_state_dict": self.optimizer.state_dict(),
-                    "valid_loss": valid_loss[epoch],                        "scaler_flux": self.glob_scaler_flux,
+                    "valid_loss": valid_loss[epoch],
+                    "scaler_flux": self.glob_scaler_flux,
                     "scaler_cont": self.glob_scaler_cont
                 }, savefile)
 

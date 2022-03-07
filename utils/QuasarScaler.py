@@ -10,7 +10,17 @@ class QuasarScaler(object):
         self.std_spectrum = torch.tensor(std_spectrum).float().to(self.device)
 
     def forward(self, qso_spectrum):
-        return (qso_spectrum.to(self.device) - self.mean_spectrum) / self.std_spectrum
+        try:
+            spec_scaled = (qso_spectrum.to(self.device) - self.mean_spectrum) / self.std_spectrum
+        except:
+            spec_scaled = (qso_spectrum.to(self.device) - self.mean_spectrum.to(self.device)) / self.std_spectrum.to(self.device)
+
+        return spec_scaled
 
     def backward(self, Y):
-        return Y.to(self.device) * self.std_spectrum + self.mean_spectrum
+        try:
+            spec = Y.to(self.device) * self.std_spectrum + self.mean_spectrum
+        except:
+            spec = Y.to(self.device) * self.std_spectrum.to(self.device) + self.mean_spectrum.to(self.device)
+
+        return spec
