@@ -13,9 +13,21 @@ class MinMaxScaler:
         self.maximum = torch.tensor(maximum).float().to(self.device)
 
     def forward(self, qso_spectrum):
-        numerator = qso_spectrum.to(self.device) - self.minimum
-        denominator = self.maximum - self.minimum
+        try:
+            numerator = qso_spectrum.to(self.device) - self.minimum
+            denominator = self.maximum - self.minimum
+
+        except:
+            numerator = qso_spectrum.to(self.device) - self.minimum.to(self.device)
+            denominator = self.maximum.to(self.device) - self.minimum.to(self.device)
+
         return numerator / denominator
 
     def backward(self, Y):
-        return self.minimum + Y.to(self.device) * (self.maximum + self.minimum)
+        try:
+            spec = self.minimum + Y.to(self.device) * (self.maximum - self.minimum)
+
+        except:
+            spec = self.minimum.to(self.device) + Y.to(self.device) * (self.maximum.to(self.device) - self.minimum.to(self.device))
+
+        return spec
