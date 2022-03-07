@@ -9,7 +9,7 @@ import torch
 class Spectra(Dataset):
     def __init__(self, wave_grid, cont, flux, flux_smooth, norm1280=True,\
                  window=20, newnorm=False):
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+#        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.wave_grid = wave_grid
 
         if norm1280:
@@ -29,9 +29,12 @@ class Spectra(Dataset):
         else:
             flux_smooth_new = flux_smooth
 
-        self.flux = torch.FloatTensor(flux).to(self.device)
-        self.cont = torch.FloatTensor(cont).to(self.device)
-        self.flux_smooth = torch.FloatTensor(flux_smooth_new).to(self.device)
+#        self.flux = torch.FloatTensor(flux).to(self.device)
+#        self.cont = torch.FloatTensor(cont).to(self.device)
+#        self.flux_smooth = torch.FloatTensor(flux_smooth_new).to(self.device)
+        self.flux = torch.FloatTensor(flux)
+        self.cont = torch.FloatTensor(cont)
+        self.flux_smooth = torch.FloatTensor(flux_smooth_new)
 
     def __len__(self):
         return len(self.flux)
