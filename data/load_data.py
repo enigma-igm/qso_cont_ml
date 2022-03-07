@@ -82,14 +82,17 @@ def load_synth_noisy_cont(npca=10, smooth=False, window=20, homosced=True,\
         return wave_grid, qso_cont, qso_flux
 
 
-def load_paris_spectra(noise=False):
+def load_paris_spectra(noise=False, version=2):
     '''Convenience function for loading the Paris hand-fit continua with
     a simulated Ly-alpha forest and optional noise added in.'''
 
     mainpath = "/net/vdesk/data2/buiten/MRP2/Data/"
 
     if noise:
-        filename = mainpath + "paris_noisyflux_regridded.npy"
+        if version == 1:
+            filename = mainpath + "paris_noisyflux_regridded.npy"
+        else:
+            filename = mainpath + "paris_noisyflux_regridded_v"+str(version)+".npy"
     else:
         filename = mainpath + "paris_noiselessflux_regridded.npy"
 
@@ -97,8 +100,9 @@ def load_paris_spectra(noise=False):
     wave_grid = data[0,:,0]
     cont = data[:,:,1]
     flux = data[:,:,2]
+    flux_smooth = data[:,:,3]
 
-    return wave_grid, cont, flux
+    return wave_grid, cont, flux, flux_smooth
 
 def split_data(attributes, targets, train_size=0.9, test_size=0.05):
     from sklearn.model_selection import train_test_split

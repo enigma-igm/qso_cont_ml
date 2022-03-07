@@ -1,7 +1,7 @@
 '''Module for loading in pytorch Datasets for the QSO spectra.'''
 
 from torch.utils.data import Dataset, random_split
-from data.load_data import load_synth_spectra, load_synth_noisy_cont, split_data, normalise_spectra
+from data.load_data import load_synth_spectra, load_synth_noisy_cont, split_data, normalise_spectra, load_paris_spectra
 import numpy as np
 #from pypeit.utils import fast_running_median
 import torch
@@ -89,6 +89,33 @@ class SynthSpectra(Spectra):
 
         super(SynthSpectra, self).__init__(wave_grid, cont, flux, flux_smooth,\
                                            norm1280, window=window, newnorm=newnorm)
+
+    def split(self):
+        '''Needs to change to keep flux and flux_smooth together.
+        Can use torch.utils.data.dataset.random_split()'''
+
+        lengths = (np.array([0.9, 0.05, 0.05])*len(self)).astype(int)
+
+        trainset, validset, testset = random_split(self, lengths)
+
+        splitsets = []
+        for el in [trainset, validset, testset]:
+            splitsets.append(Spectra(self.wave_grid, self.cont[el.indices],\
+                                     self.flux[el.indices], self.flux_smooth[el.indices],\
+                                     norm1280=False))
+
+        self.trainset, self.validset, self.testset = splitsets
+
+        return self.trainset, self.validset, self.testset
+
+
+class ParisContinua(Spectra):
+    def __init__(self, noise=False, version=2):
+
+        wave_grid, cont, flux, flux_smooth = load_paris_spectra(noise, version)
+
+        super(ParisContinua, self).__init__(wave_grid, cont, flux, flux_smooth, \
+                                           norm1280=True)
 
     def split(self):
         '''Needs to change to keep flux and flux_smooth together.
