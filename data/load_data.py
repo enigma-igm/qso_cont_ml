@@ -88,6 +88,8 @@ def load_paris_spectra(noise=False, version=2, datapath=None):
 
     if datapath is None:
         mainpath = "/net/vdesk/data2/buiten/MRP2/Data/"
+    else:
+        mainpath = datapath
 
     if noise:
         if version == 1:
