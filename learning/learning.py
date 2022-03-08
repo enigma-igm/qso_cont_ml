@@ -5,6 +5,7 @@ import numpy as np
 #from qso_fitting.models.utils.QuasarScaler import QuasarScaler
 from utils.QuasarScaler import QuasarScaler
 from utils.MinMaxScaler import MinMaxScaler
+from utils.MedianScaler import MedianScaler
 from utils.errorfuncs import WavWeights
 
 def create_learners(parameters, learning_rate=0.1):
@@ -66,6 +67,14 @@ class Trainer:
 
             scaler_flux = MinMaxScaler(flux_min, flux_max)
             scaler_cont = MinMaxScaler(cont_min, cont_max)
+
+        elif scalertype=="MedianScaler":
+
+            flux_mean = torch.mean(flux, dim=0)
+            cont_mean = torch.mean(cont, dim=0)
+
+            scaler_flux = MedianScaler(flux_mean, floorval)
+            scaler_cont = MedianScaler(cont_mean, floorval)
 
         else:
             raise ValueError("Invalid scalertype given. Use QuasarScaler or MinMaxScaler instead.")
