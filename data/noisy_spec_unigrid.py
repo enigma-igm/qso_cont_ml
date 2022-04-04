@@ -128,7 +128,7 @@ savearray_regridded[:,:,0] = wave_grid
 
 for i in range(nsamp):
     savearray[i,:,1] = cont_norm[i,:]
-    savearray[i,:,2] = flux_norm[i,:]
+    savearray[i,:,2] = flux_norm_noisy[i,:]
     savearray[i,:,3] = flux_smooth[i,:]
 
     savearray_regridded[i,:,1] = cont_blu_red[i,:]
