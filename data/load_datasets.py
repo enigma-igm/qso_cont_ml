@@ -64,7 +64,7 @@ class SynthSpectra(Spectra):
     def __init__(self, regridded=True, small=False, npca=10,\
                        noise=False, norm1280=True, forest=True, window=20,\
                 newnorm=False, homosced=True, poisson=False, SN=10,\
-                 datapath=None, wave_split=None):
+                 datapath=None, wave_split=None, boss=False):
 
         if not forest:
             wave_grid, cont, flux, flux_smooth = load_synth_noisy_cont(npca, smooth=True,\
@@ -79,7 +79,8 @@ class SynthSpectra(Spectra):
                                                                         npca=npca,\
                                                                         noise=True,\
                                                                         datapath=datapath,\
-                                                                        wave_split=wave_split)
+                                                                        wave_split=wave_split,
+                                                                        boss=boss)
             else:
                 wave_grid, cont, flux = load_synth_spectra(regridded, small, npca,\
                                                            noise=False,\
