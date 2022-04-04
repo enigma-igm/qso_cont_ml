@@ -13,6 +13,8 @@ class AutofitterSpectra(SynthSpectra):
 
         if isinstance(redshifts, np.ndarray) and (redshifts.shape == (self.n_qso,)):
             self.redshifts = redshifts
+        elif isinstance(redshifts, float):
+            self.redshifts = redshifts * np.ones(self.n_qso)
         else:
             raise ValueError("Parameter 'redshifts' should be a 1D array of length n_qso.")
 
