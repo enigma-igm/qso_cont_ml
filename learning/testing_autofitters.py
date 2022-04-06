@@ -52,7 +52,7 @@ class AutofitterPredictedSpectra(AutofitterPredictions):
 
     def random_index(self, size=1):
 
-        rand_indx = np.random.rand(0, len(self.spectra), size)
+        rand_indx = np.random.randint(0, len(self.spectra), size)
 
         return rand_indx
 
@@ -63,6 +63,8 @@ class AutofitterPredictedSpectra(AutofitterPredictions):
         self.axes = []
 
         self.fig.suptitle("Model: "+self.model)
+
+        return self.fig
 
 
     def plot(self, index, wave_lims=None, figsize=(7,5), dpi=320,
@@ -77,21 +79,23 @@ class AutofitterPredictedSpectra(AutofitterPredictions):
 
         if wave_lims is None:
             grid = self.wave_grid
-            flux = self.flux_norm[index]
-            cont = self.cont_norm[index]
-            cont_pred = self.cont_norm_pred[index]
+            flux = self.flux_norm[index].squeeze()
+            cont = self.cont_norm[index].squeeze()
+            cont_pred = self.cont_norm_pred[index].squeeze()
 
         elif len(wave_lims) == 2:
             sel = (self.wave_grid > wave_lims[0]) & (self.wave_grid < wave_lims[1])
             grid = self.wave_grid[sel]
-            flux = self.flux_norm[sel][index]
-            cont = self.cont_norm[sel][index]
-            cont_pred = self.cont_norm_pred[sel][index]
+            print (sel.shape)
+            print (self.flux_norm[index].shape)
+            flux = self.flux_norm[index].squeeze()[sel]
+            cont = self.cont_norm[index].squeeze()[sel]
+            cont_pred = self.cont_norm_pred[index].squeeze()[sel]
 
         else:
             raise ValueError("Parameter 'wave_lims' must be an array-like object (wave_min, wave_max).")
 
-        ax.plot(grid, flux, alpha=alpha, lw=1., label="Mock spectrum")
+        ax.plot(grid, flux, alpha=alpha, lw=.5, label="Mock spectrum")
         ax.plot(grid, cont, alpha=alpha, lw=2., label="True continuum")
         ax.plot(grid, cont_pred, alpha=alpha, lw=1, ls="--",
                 c=contpredcolor, label="Predicted continuum")
