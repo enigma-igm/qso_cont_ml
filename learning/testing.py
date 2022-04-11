@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.ticker import AutoMinorLocator
 from utils.errorfuncs import relative_residuals, corr_matrix_relresids
 from astropy.stats import mad_std
 from scipy.stats import norm
@@ -140,7 +141,10 @@ class ModelResultsSpectra(ModelResults):
         ax.set_xlabel("Rest-frame wavelength ($\AA$)")
         ax.set_ylabel("Normalised flux")
         ax.legend()
-        ax.grid()
+        ax.xaxis.set_minor_locator(AutoMinorLocator(5))
+        ax.yaxis.set_minor_locator(AutoMinorLocator(5))
+        ax.grid(which="major")
+        ax.grid(which="minor", linewidth=.1, alpha=.3, color="grey")
         ax.set_title("Results for test spectrum "+str(index+1))
 
         self.axes.append(ax)
@@ -177,7 +181,10 @@ class ModelResultsSpectra(ModelResults):
         ax.set_xlabel(r"Rest-frame wavelength ($\AA$)")
         ax.set_ylabel("Scaled flux")
         ax.legend()
-        ax.grid()
+        ax.xaxis.set_minor_locator(AutoMinorLocator(5))
+        ax.yaxis.set_minor_locator(AutoMinorLocator(5))
+        ax.grid(which="major")
+        ax.grid(which="minor", linewidth=.1, alpha=.3, color="grey")
         ax.set_title("Raw network output for test spectrum "+str(index+1))
 
 
@@ -209,7 +216,10 @@ class ModelResultsSpectra(ModelResults):
         ax.set_xlabel("Pixel number")
         ax.set_ylabel("Scaled flux")
         ax.legend()
-        ax.grid()
+        ax.xaxis.set_minor_locator(AutoMinorLocator(5))
+        ax.yaxis.set_minor_locator(AutoMinorLocator(5))
+        ax.grid(which="major")
+        ax.grid(which="minor", linewidth=.1, alpha=.3, color="grey")
         ax.set_title("Raw network output for test spectrum "+str(index+1))
 
 
@@ -270,6 +280,10 @@ class CorrelationMatrix(RelResids):
         self.ax.set_xlabel("Rest-frame wavelength ($\AA$)")
         self.ax.set_ylabel("Rest-frame wavelength ($\AA$)")
         self.ax.set_title("Correlation matrix of residuals")
+
+        self.ax.xaxis.set_minor_locator(AutoMinorLocator(5))
+        self.ax.yaxis.set_minor_locator(AutoMinorLocator(5))
+
         self.fig.show()
 
         return self.fig, self.ax
@@ -304,7 +318,10 @@ class ResidualPlots(RelResids):
             ax.axvline(wave_split, alpha=0.7, lw=2, ls="dashdot", color="black", label="Blue-red split")
 
         ax.legend()
-        ax.grid()
+        ax.xaxis.set_minor_locator(AutoMinorLocator(5))
+        ax.yaxis.set_minor_locator(AutoMinorLocator(5))
+        ax.grid(which="major")
+        ax.grid(which="minor", linewidth=.1, alpha=.3, color="grey")
         ax.set_xlabel("Rest-frame wavelength ($\AA$)")
         ax.set_ylabel("$\\frac{F_{true} - F_{pred}}{F_{true}}$")
         ax.set_title("Residuals relative to true continuum")
@@ -344,7 +361,10 @@ class ScaledResidualPlots(ScaledResids):
         ax.fill_between(self.wave_grid, self.mean_spec-self.mad_std_spec, self.mean_spec+self.mad_std_spec, alpha=0.3,\
                         label="MAD standard deviation", color="tab:orange")
         ax.legend()
-        ax.grid()
+        ax.xaxis.set_minor_locator(AutoMinorLocator(5))
+        ax.yaxis.set_minor_locator(AutoMinorLocator(5))
+        ax.grid(which="major")
+        ax.grid(which="minor", linewidth=.1, alpha=.3, color="grey")
         ax.set_xlabel("Rest-frame wavelength ($\AA$)")
         ax.set_ylabel("$\\frac{f_{true} - f_{pred}}{f_{true}}$")
         ax.set_title("Scaled residuals relative to scaled true continuum")
