@@ -25,8 +25,12 @@ lyb_1025 = strong_lines["HI 1025"]
 wave_1216 = lya_1216["wrest"].value
 wave_1025 = lyb_1025["wrest"].value
 
+'''
 wave_min = 980.0
 wave_max = 2040.0
+'''
+wave_min = 1000.
+wave_max = 1970.
 fwhm = 131.4   # approximate BOSS FWHM (Smee+ 2013)
 #sampling = 2.0
 #dvpix = fwhm/sampling
@@ -53,7 +57,7 @@ pcafile = '/net/vdesk/data2/buiten/MRP2/Data/' + pcafilename
 Prox = Proximity(wave_rest, fwhm, z_qso, mags, nskew, mean_flux_range, nF, npca, pcafile, nlogL=nlogL)
 
 # set the number of spectra to generate
-nsamp = 25
+nsamp = 25000
 
 theta = Prox.sample_theta(nsamp)
 
@@ -124,7 +128,6 @@ fig.suptitle("Noiseless continuum vs noisy spectrum with Ly-$\\alpha$ forest")
 ax.set_title("Homoscedastic noise with $\sigma = 0.1$")
 fig.show()
 
-'''
 # save the grid, continuum and noisy continuum to an array
 savearray = np.zeros((nsamp, len(wave_rest), 4))
 savearray[:,:,0] = wave_rest
@@ -149,4 +152,3 @@ print ("Array saved.")
 np.save(savepath+"forest_spectra_with_noiseSN"+str(SN)+"_npca"+str(npca)+"BOSS-regridded.npy",
         savearray_regridded)
 print ("Regridded array saved.")
-'''

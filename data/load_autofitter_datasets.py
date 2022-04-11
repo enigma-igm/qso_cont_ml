@@ -18,12 +18,13 @@ class AutofitterSpectra(SynthSpectra):
         else:
             raise ValueError("Parameter 'redshifts' should be a 1D array of length n_qso.")
 
-        self.wave_rest = np.broadcast_to(self.wave_grid, (self.n_qso, self.n_pix))
-        self.wave_obs = self.wave_rest * (1 + redshifts)
+        self.wave_rest = np.full((self.n_qso, self.n_pix), self.wave_grid)
+        redshifts2d = np.full((self.n_pix, self.n_qso), self.redshifts).T
+        self.wave_obs = self.wave_rest * (1 + redshifts2d)
 
         if ivar is None:
             # assume homoscedastic noise described by the given signal-to-noise ratio
-            self.ivar = np.broadcast_to(SN**2, (self.n_qso, self.n_pix))
+            self.ivar = np.full((self.n_qso, self.n_pix), SN**2)
         else:
             self.ivar = ivar
 
