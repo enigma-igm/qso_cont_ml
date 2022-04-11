@@ -14,6 +14,7 @@ from scipy import interpolate
 from pypeit.utils import fast_running_median
 from qso_fitting.data.utils import rebin_spectra
 import astropy.constants as const
+from matplotlib.ticker import AutoMinorLocator
 
 plt.rcParams["font.family"] = "serif"
 
@@ -52,7 +53,7 @@ pcafile = '/net/vdesk/data2/buiten/MRP2/Data/' + pcafilename
 Prox = Proximity(wave_rest, fwhm, z_qso, mags, nskew, mean_flux_range, nF, npca, pcafile, nlogL=nlogL)
 
 # set the number of spectra to generate
-nsamp = 25000
+nsamp = 25
 
 theta = Prox.sample_theta(nsamp)
 
@@ -115,10 +116,15 @@ ax.plot(wave_rest, flux_smooth[0], alpha=0.7, color="navy", ls="--",\
 ax.set_xlabel("Rest-frame wavelength ($\AA$)")
 ax.set_ylabel("Normalised flux")
 ax.legend()
+ax.xaxis.set_minor_locator(AutoMinorLocator(5))
+ax.yaxis.set_minor_locator(AutoMinorLocator(5))
+ax.grid(which="major")
+ax.grid(which="minor", linewidth=.1, alpha=.3, color="grey")
 fig.suptitle("Noiseless continuum vs noisy spectrum with Ly-$\\alpha$ forest")
 ax.set_title("Homoscedastic noise with $\sigma = 0.1$")
 fig.show()
 
+'''
 # save the grid, continuum and noisy continuum to an array
 savearray = np.zeros((nsamp, len(wave_rest), 4))
 savearray[:,:,0] = wave_rest
@@ -143,3 +149,4 @@ print ("Array saved.")
 np.save(savepath+"forest_spectra_with_noiseSN"+str(SN)+"_npca"+str(npca)+"BOSS-regridded.npy",
         savearray_regridded)
 print ("Regridded array saved.")
+'''

@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.ticker import AutoMinorLocator
 from qso_fitting.data.sdss.sdss import autofit_continua, qsmooth_continua
 from astropy.stats import mad_std
 from scipy.stats import norm
@@ -103,7 +104,10 @@ class AutofitterPredictedSpectra(AutofitterPredictions):
         ax.set_xlabel(r"Rest-frame wavelength ($\AA$)")
         ax.set_ylabel(r"Normalised flux")
         ax.legend()
-        ax.grid()
+        ax.xaxis.set_minor_locator(AutoMinorLocator(5))
+        ax.yaxis.set_minor_locator(AutoMinorLocator(5))
+        ax.grid(which="major")
+        ax.grid(which="minor", linewidth=.1, alpha=.3, color="grey")
         ax.set_title(r"Results for test spectrum " + str(index + 1))
 
         self.axes.append(ax)
@@ -164,7 +168,10 @@ class AutofitterResidualPlots(AutofitterRelResids):
                         label="MAD standard deviation", color="tab:orange")
 
         ax.legend()
-        ax.grid()
+        ax.xaxis.set_minor_locator(AutoMinorLocator(5))
+        ax.yaxis.set_minor_locator(AutoMinorLocator(5))
+        ax.grid(which="major")
+        ax.grid(which="minor", linewidth=.1, alpha=.3, color="grey")
         ax.set_xlabel("Rest-frame wavelength ($\AA$)")
         ax.set_ylabel("$\\frac{F_{true} - F_{pred}}{F_{true}}$")
         ax.set_title("Residuals relative to true continuum")
@@ -208,6 +215,9 @@ class AutofitterCorrelationMatrix(AutofitterRelResids):
         self.ax.set_xlabel("Rest-frame wavelength ($\AA$)")
         self.ax.set_ylabel("Rest-frame wavelength ($\AA$)")
         self.ax.set_title("Correlation matrix of residuals")
+
+        self.ax.xaxis.set_minor_locator(AutoMinorLocator(5))
+        self.ax.yaxis.set_minor_locator(AutoMinorLocator(5))
 
         if wave_lims is None:
             pass
