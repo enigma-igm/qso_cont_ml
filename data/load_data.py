@@ -1,13 +1,29 @@
 import numpy as np
-from sklearn.model_selection import train_test_split
 
 
 def load_synth_spectra(regridded=True, small=False, npca=10,\
-                       noise=False, SN=10):
-    datapath = "/net/vdesk/data2/buiten/MRP2/pca-sdss-old/"
+                       noise=False, SN=10, datapath=None,\
+                       wave_split=None, boss=False):
+
+    if datapath is None:
+        datapath = "/net/vdesk/data2/buiten/MRP2/pca-sdss-old/"
 
     if noise:
-        data = np.load(datapath + "forest_spectra_with_noiseSN"+str(SN)+"_regridded_npca" + str(npca) + "smooth-window20.npy")
+        if boss:
+            if regridded:
+                data = np.load(datapath + "forest_spectra_with_noiseSN"+str(SN)+"_npca"+str(npca)+"BOSS-regridded.npy")
+            else:
+                data = np.load(datapath + "forest_spectra_with_noiseSN"+str(SN)+"_npca"+str(npca)+"BOSS-grid.npy")
+
+        else:
+            if regridded:
+                if (wave_split is None) or (wave_split == 1216):
+                    data = np.load(datapath + "forest_spectra_with_noiseSN"+str(SN)+"_regridded_npca" + str(npca) + "smooth-window20.npy")
+                else:
+                    data = np.load(datapath + "forest_spectra_with_noiseSN"+str(SN)+"_regridded_npca" + str(npca) + "smooth-window20_split"+str(int(wave_split))+".npy")
+
+            else:
+                data = np.load(datapath + "forest_spectra_with_noiseSN"+str(SN)+"_npca"+str(npca)+"smooth-window20.npy")
 
     elif npca==10:
         if regridded:
@@ -40,11 +56,12 @@ def load_synth_spectra(regridded=True, small=False, npca=10,\
 
 
 def load_synth_noisy_cont(npca=10, smooth=False, window=20, homosced=True,\
-                          poisson=False, SN=10):
+                          poisson=False, SN=10, datapath=None):
     '''Convenience function for loading the synthetic continua with homoscedastic
     noise. qso_cont contains the continua, qso_flux contain the noisy continua.'''
 
-    datapath = "/net/vdesk/data2/buiten/MRP2/pca-sdss-old/"
+    if datapath is None:
+        datapath = "/net/vdesk/data2/buiten/MRP2/pca-sdss-old/"
     npca_str = str(npca)
 
     if smooth:
@@ -76,14 +93,20 @@ def load_synth_noisy_cont(npca=10, smooth=False, window=20, homosced=True,\
         return wave_grid, qso_cont, qso_flux
 
 
-def load_paris_spectra(noise=False):
+def load_paris_spectra(noise=False, version=2, datapath=None):
     '''Convenience function for loading the Paris hand-fit continua with
     a simulated Ly-alpha forest and optional noise added in.'''
 
-    mainpath = "/net/vdesk/data2/buiten/MRP2/Data/"
+    if datapath is None:
+        mainpath = "/net/vdesk/data2/buiten/MRP2/Data/"
+    else:
+        mainpath = datapath
 
     if noise:
-        filename = mainpath + "paris_noisyflux_regridded.npy"
+        if version == 1:
+            filename = mainpath + "paris_noisyflux_regridded.npy"
+        else:
+            filename = mainpath + "paris_noisyflux_regridded_v"+str(version)+".npy"
     else:
         filename = mainpath + "paris_noiselessflux_regridded.npy"
 
@@ -91,10 +114,12 @@ def load_paris_spectra(noise=False):
     wave_grid = data[0,:,0]
     cont = data[:,:,1]
     flux = data[:,:,2]
+    flux_smooth = data[:,:,3]
 
-    return wave_grid, cont, flux
+    return wave_grid, cont, flux, flux_smooth
 
 def split_data(attributes, targets, train_size=0.9, test_size=0.05):
+    from sklearn.model_selection import train_test_split
     rest_size = 1 - train_size
     X_train, X_rest, y_train, y_rest = train_test_split(attributes, targets,\
                                                         test_size=rest_size,\

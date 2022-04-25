@@ -1,14 +1,15 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.ticker import AutoMinorLocator
 from utils.errorfuncs import relative_residuals, corr_matrix_relresids
 from astropy.stats import mad_std
 from scipy.stats import norm
 import torch
-from pypeit.utils import fast_running_median
+#from pypeit.utils import fast_running_median
 
 
 class ModelResults:
-    '''Class for predicting the continue for the test set and converting everything to numpy arrays.
+    '''Class for predicting the continua for the test set and converting everything to numpy arrays.
     Uses only global QuasarScalers, or no scalers at all.'''
 
     def __init__(self, testset, net, scaler_flux=None,\
@@ -21,51 +22,63 @@ class ModelResults:
         self.net = net
         self.smooth = smooth
 
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
         if scaler_flux is None:
             self.use_QSOScaler = False
         else:
             self.use_QSOScaler = True
 
-        flux_tensor = torch.FloatTensor(self.flux)
+        flux_tensor = torch.FloatTensor(self.flux).to(self.device)
 
         # smooth input for the final skip connection before applying the QSOScaler
         if smooth:
             try:
                 self.flux_smooth = testset.flux_smooth
             except:
+                from pypeit.utils import fast_running_median
                 flux_smooth = np.zeros(self.flux.shape)
                 for i in range(len(flux_smooth)):
                     flux_smooth[i] = fast_running_median(self.flux[i], 20)
                 self.flux_smooth = flux_smooth
 
-            input_smooth = torch.FloatTensor(self.flux_smooth)
+            input_smooth = torch.FloatTensor(self.flux_smooth).to(self.device)
 
         else:
             input_smooth = None
 
         if self.use_QSOScaler:
             input = self.scaler_flux.forward(flux_tensor)
-            self.flux_scaled = input.detach().numpy()
+            self.flux_scaled = input.cpu().detach().numpy()
 
             if self.smooth:
                 input_smooth = self.scaler_flux.forward(input_smooth)
 
-            res = self.net(input, smooth=self.smooth, x_smooth=input_smooth)
+            # the exception allows the class to work with e.g. a convolutional U-Net
+            try:
+                res = self.net(input, smooth=self.smooth, x_smooth=input_smooth)
+            except:
+                res = self.net(input)
+
             res_descaled = self.scaler_cont.backward(res)
-            res_np = res_descaled.detach().numpy()
+            res_np = res_descaled.cpu().detach().numpy()
 
         else:
-            res = self.net(flux_tensor, smooth=self.smooth, x_smooth=input_smooth)
-            res_np = res.detach().numpy()
+            try:
+                res = self.net(flux_tensor, smooth=self.smooth, x_smooth=input_smooth)
+            except:
+                res = self.net(flux_tensor)
+
+            res_np = res.cpu().detach().numpy()
             self.flux_scaled = self.flux
 
         self.cont_pred_np = res_np
-        self.cont_pred_scaled_np = res.detach().numpy()
+        self.cont_pred_scaled_np = res.cpu().detach().numpy()
 
         # also scale the true continuum
         if self.use_QSOScaler:
-            cont_true_scaled = self.scaler_cont.forward(torch.FloatTensor(self.cont))
-            self.cont_true_scaled_np = cont_true_scaled.detach().numpy()
+            cont_true_scaled = self.scaler_cont.forward(torch.FloatTensor(self.cont).to(self.device))
+            self.cont_true_scaled_np = cont_true_scaled.cpu().detach().numpy()
         else:
             self.cont_true_scaled_np = self.cont
 
@@ -95,10 +108,10 @@ class ModelResultsSpectra(ModelResults):
 
     def plot(self, index, figsize=(7,5), dpi=320, subplotloc=111,\
              alpha=0.7, contpredcolor="darkred", includesmooth=True,\
-             fluxsmoothcolor="navy"):
+             fluxsmoothcolor="navy", drawsplit=True, wave_split=1216):
         '''Plot the prediction for the spectrum of a certain index.'''
 
-        cont_pred = self.cont_pred_np[index].flatten()
+        cont_pred = self.cont_pred_np[index].squeeze()
 
         try:
             fig = self.fig
@@ -107,25 +120,31 @@ class ModelResultsSpectra(ModelResults):
 
         ax = fig.add_subplot(subplotloc)
 
-        ax.plot(self.wave_grid, self.flux[index].flatten(), alpha=alpha, lw=1, \
+        ax.plot(self.wave_grid, self.flux[index].squeeze(), alpha=alpha, lw=1, \
                 label="Mock spectrum")
-        ax.plot(self.wave_grid, self.cont[index].flatten(), alpha=alpha, lw=2, \
+        ax.plot(self.wave_grid, self.cont[index].squeeze(), alpha=alpha, lw=2, \
                 label="True continuum")
         ax.plot(self.wave_grid, cont_pred, alpha=alpha, lw=1, ls="--",\
                 label="Predicted continuum", color=contpredcolor)
         if includesmooth:
             try:
                 flux_smooth = self.flux_smooth
-                ax.plot(self.wave_grid, flux_smooth[index].flatten(), alpha=alpha, lw=1,\
+                ax.plot(self.wave_grid, flux_smooth[index].squeeze(), alpha=alpha, lw=1,\
                         ls="dashdot", label="Smoothed spectrum",\
                         color=fluxsmoothcolor)
             except:
                 print ("Warning: flux has not been smoothed.")
 
+        if drawsplit:
+            ax.axvline(wave_split, alpha=0.7, lw=2, ls="dashdot", color="black", label="Blue-red split")
+
         ax.set_xlabel("Rest-frame wavelength ($\AA$)")
         ax.set_ylabel("Normalised flux")
         ax.legend()
-        ax.grid()
+        ax.xaxis.set_minor_locator(AutoMinorLocator(5))
+        ax.yaxis.set_minor_locator(AutoMinorLocator(5))
+        ax.grid(which="major")
+        ax.grid(which="minor", linewidth=.1, alpha=.3, color="grey")
         ax.set_title("Results for test spectrum "+str(index+1))
 
         self.axes.append(ax)
@@ -134,13 +153,13 @@ class ModelResultsSpectra(ModelResults):
 
 
     def plot_scaled(self, index, figsize=(7,5), dpi=320, subplotloc=111, alpha=0.7,\
-                    contpredcolor="darkred"):
+                    contpredcolor="darkred", drawsplit=True, wave_split=1216):
 
         if not self.use_QSOScaler:
             print ("Warning: no scaling involved!")
             return
 
-        cont_pred_scaled = self.cont_pred_scaled_np[index].flatten()
+        cont_pred_scaled = self.cont_pred_scaled_np[index].squeeze()
 
         try:
             fig = self.fig
@@ -149,17 +168,58 @@ class ModelResultsSpectra(ModelResults):
 
         ax = fig.add_subplot(subplotloc)
 
-        ax.plot(self.wave_grid, self.flux_scaled[index].flatten(), alpha=alpha, lw=1,\
+        ax.plot(self.wave_grid, self.flux_scaled[index].squeeze(), alpha=alpha, lw=1,\
                 label="Mock spectrum", c="tab:blue")
-        ax.plot(self.wave_grid, self.cont_true_scaled_np[index].flatten(), alpha=alpha, lw=2,\
+        ax.plot(self.wave_grid, self.cont_true_scaled_np[index].squeeze(), alpha=alpha, lw=2,\
                 label="True continuum", c="tab:orange")
         ax.plot(self.wave_grid, cont_pred_scaled, alpha=alpha, lw=1, ls="--",\
                 label="Predicted continuum", color=contpredcolor)
 
+        if drawsplit:
+            ax.axvline(wave_split, alpha=0.7, lw=2, ls="dashdot", color="black", label="Blue-red split")
+
         ax.set_xlabel(r"Rest-frame wavelength ($\AA$)")
         ax.set_ylabel("Scaled flux")
         ax.legend()
-        ax.grid()
+        ax.xaxis.set_minor_locator(AutoMinorLocator(5))
+        ax.yaxis.set_minor_locator(AutoMinorLocator(5))
+        ax.grid(which="major")
+        ax.grid(which="minor", linewidth=.1, alpha=.3, color="grey")
+        ax.set_title("Raw network output for test spectrum "+str(index+1))
+
+
+    def plot_scaled_pixels(self, index, figsize=(7,5), dpi=320, subplotloc=111, alpha=0.7,\
+                           contpredcolor="darkred"):
+
+        pixels = np.arange(1, len(self.wave_grid)+1, 1)
+
+        if not self.use_QSOScaler:
+            print ("Warning: no scaling involved!")
+            return
+
+        cont_pred_scaled = self.cont_pred_scaled_np[index].squeeze()
+
+        try:
+            fig = self.fig
+        except:
+            fig = self.create_figure(figsize=figsize, dpi=dpi)
+
+        ax = fig.add_subplot(subplotloc)
+
+        ax.plot(pixels, self.flux_scaled[index].squeeze(), alpha=alpha, lw=1,\
+                label="Mock spectrum", c="tab:blue")
+        ax.plot(pixels, self.cont_true_scaled_np[index].squeeze(), alpha=alpha, lw=2,\
+                label="True continuum", c="tab:orange")
+        ax.plot(pixels, cont_pred_scaled, alpha=alpha, lw=1, ls="--",\
+                label="Predicted continuum", color=contpredcolor)
+
+        ax.set_xlabel("Pixel number")
+        ax.set_ylabel("Scaled flux")
+        ax.legend()
+        ax.xaxis.set_minor_locator(AutoMinorLocator(5))
+        ax.yaxis.set_minor_locator(AutoMinorLocator(5))
+        ax.grid(which="major")
+        ax.grid(which="minor", linewidth=.1, alpha=.3, color="grey")
         ax.set_title("Raw network output for test spectrum "+str(index+1))
 
 
@@ -173,7 +233,9 @@ class RelResids(ModelResults):
     def __init__(self, testset, net, scaler_flux, scaler_cont, smooth=False):
         super(RelResids, self).__init__(testset, net, scaler_flux, scaler_cont, smooth=smooth)
 
-        self.rel_resid = (self.cont - self.cont_pred_np) / self.cont
+        rel_resid = (self.cont - self.cont_pred_np) / self.cont
+        rel_resid = rel_resid.cpu().detach().numpy()
+        self.rel_resid = rel_resid.squeeze()
         self.mean_spec = np.mean(self.rel_resid, axis=0)
         self.std_spec = np.std(self.rel_resid, axis=0)
         self.mad_std_spec = mad_std(self.rel_resid, axis=0)
@@ -182,6 +244,20 @@ class RelResids(ModelResults):
         self.std_resid = np.std(self.rel_resid)
         self.mad_resid = mad_std(self.rel_resid)
 
+
+class ScaledResids(ModelResults):
+    def __init__(self, testset, net, scaler_flux, scaler_cont, smooth=False):
+        super(ScaledResids, self).__init__(testset, net, scaler_flux, scaler_cont, smooth=smooth)
+
+        scaled_resid = (self.cont_true_scaled_np - self.cont_pred_scaled_np) / self.cont_true_scaled_np
+        self.scaled_resid = scaled_resid.squeeze()
+        self.mean_spec = np.mean(self.scaled_resid, axis=0)
+        self.std_spec = np.std(self.scaled_resid, axis=0)
+        self.mad_std_spec = mad_std(self.scaled_resid, axis=0)
+
+        self.mean_resid = np.mean(self.scaled_resid)
+        self.std_resid = np.std(self.scaled_resid)
+        self.mad_resid = mad_std(self.scaled_resid)
 
 
 class CorrelationMatrix(RelResids):
@@ -204,6 +280,10 @@ class CorrelationMatrix(RelResids):
         self.ax.set_xlabel("Rest-frame wavelength ($\AA$)")
         self.ax.set_ylabel("Rest-frame wavelength ($\AA$)")
         self.ax.set_title("Correlation matrix of residuals")
+
+        self.ax.xaxis.set_minor_locator(AutoMinorLocator(5))
+        self.ax.yaxis.set_minor_locator(AutoMinorLocator(5))
+
         self.fig.show()
 
         return self.fig, self.ax
@@ -223,7 +303,7 @@ class ResidualPlots(RelResids):
         super(ResidualPlots, self).__init__(testset, net, scaler_flux, scaler_cont, smooth=smooth)
 
 
-    def plot_means(self, show_std=False):
+    def plot_means(self, show_std=False, drawsplit=True, wave_split=1216):
         '''Plot the mean relative residuals as a function of wavelength, and add the deviations as shaded areas.'''
 
         fig, ax = plt.subplots(figsize=(7,5), dpi=320)
@@ -233,8 +313,15 @@ class ResidualPlots(RelResids):
                             label="Standard deviation", color="tab:blue")
         ax.fill_between(self.wave_grid, self.mean_spec-self.mad_std_spec, self.mean_spec+self.mad_std_spec, alpha=0.3,\
                         label="MAD standard deviation", color="tab:orange")
+
+        if drawsplit:
+            ax.axvline(wave_split, alpha=0.7, lw=2, ls="dashdot", color="black", label="Blue-red split")
+
         ax.legend()
-        ax.grid()
+        ax.xaxis.set_minor_locator(AutoMinorLocator(5))
+        ax.yaxis.set_minor_locator(AutoMinorLocator(5))
+        ax.grid(which="major")
+        ax.grid(which="minor", linewidth=.1, alpha=.3, color="grey")
         ax.set_xlabel("Rest-frame wavelength ($\AA$)")
         ax.set_ylabel("$\\frac{F_{true} - F_{pred}}{F_{true}}$")
         ax.set_title("Residuals relative to true continuum")
@@ -253,5 +340,48 @@ class ResidualPlots(RelResids):
         ax.set_xlabel("$\\frac{F_{true} - F_{pred}}{F_{true}}$")
         ax.set_ylabel("Probability density")
         ax.set_title("Residuals relative to true continuum")
+        ax.legend()
+        return fig, ax
+
+
+class ScaledResidualPlots(ScaledResids):
+    def __init__(self, testset, net, scaler_flux, scaler_cont, smooth=False):
+
+        super(ScaledResidualPlots, self).__init__(testset, net, scaler_flux, scaler_cont, smooth=smooth)
+
+
+    def plot_means(self, show_std=False):
+        '''Plot the mean relative residuals as a function of wavelength, and add the deviations as shaded areas.'''
+
+        fig, ax = plt.subplots(figsize=(7,5), dpi=320)
+        ax.plot(self.wave_grid, self.mean_spec, label="Mean", color="black", lw=1, ls="--")
+        if show_std:
+            ax.fill_between(self.wave_grid, self.mean_spec-self.std_spec, self.mean_spec+self.std_spec, alpha=0.3,\
+                            label="Standard deviation", color="tab:blue")
+        ax.fill_between(self.wave_grid, self.mean_spec-self.mad_std_spec, self.mean_spec+self.mad_std_spec, alpha=0.3,\
+                        label="MAD standard deviation", color="tab:orange")
+        ax.legend()
+        ax.xaxis.set_minor_locator(AutoMinorLocator(5))
+        ax.yaxis.set_minor_locator(AutoMinorLocator(5))
+        ax.grid(which="major")
+        ax.grid(which="minor", linewidth=.1, alpha=.3, color="grey")
+        ax.set_xlabel("Rest-frame wavelength ($\AA$)")
+        ax.set_ylabel("$\\frac{f_{true} - f_{pred}}{f_{true}}$")
+        ax.set_title("Scaled residuals relative to scaled true continuum")
+
+        return fig, ax
+
+    def resid_hist(self):
+
+        fig, ax = plt.subplots()
+        hist, bins, patches = ax.hist(self.scaled_resid.flatten(), bins=100, density=True, range=(-0.3, 0.3),\
+                                       label="mean={:5.3f}, std = {:5.3f}, 1.48*mad={:5.3f}".format(self.mean_resid,\
+                                                                                                    self.std_resid,\
+                                                                                                    self.mad_resid))
+        bin_cen = (bins[:-1] + bins[1:])/2
+        ax.plot(bin_cen, norm.pdf(bin_cen, loc=self.mean_resid, scale=self.mad_resid), label="Gaussian (with MAD std)")
+        ax.set_xlabel("$\\frac{f_{true} - f_{pred}}{f_{true}}$")
+        ax.set_ylabel("Probability density")
+        ax.set_title("Scaled residuals relative to scaled true continuum")
         ax.legend()
         return fig, ax

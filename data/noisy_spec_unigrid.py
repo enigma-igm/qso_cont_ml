@@ -1,5 +1,5 @@
 '''File for generating a training sample of QSO spectra with the
-Ly-alpha forest and with homoscedastic noise added in.'''
+Ly-alpha forest and with homoscedastic noise added in, saved on a uniform grid.'''
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -12,7 +12,9 @@ from dw_inference.simulator.proximity.proximity import Proximity
 from load_data import normalise_spectra
 from scipy import interpolate
 from pypeit.utils import fast_running_median
-from qso_fitting.data.sdss.utils import rebin_spectra
+from qso_fitting.data.utils import rebin_spectra
+import astropy.constants as const
+from matplotlib.ticker import AutoMinorLocator
 
 plt.rcParams["font.family"] = "serif"
 
@@ -23,11 +25,18 @@ lyb_1025 = strong_lines["HI 1025"]
 wave_1216 = lya_1216["wrest"].value
 wave_1025 = lyb_1025["wrest"].value
 
-wave_min = 1020.0
-wave_max = 1970.0
-fwhm = 150.0
-sampling = 2.0
-dvpix = fwhm/sampling
+'''
+wave_min = 980.0
+wave_max = 2040.0
+'''
+wave_min = 1000.
+wave_max = 1970.
+fwhm = 131.4   # approximate BOSS FWHM (Smee+ 2013)
+#sampling = 2.0
+#dvpix = fwhm/sampling
+dloglam = 1.0e-4
+c_light = (const.c.to("km/s")).value
+dvpix = dloglam * c_light * np.log(10)
 wave_rest = get_wave_grid(wave_min, wave_max, dvpix)
 mags = np.full(5, 18.5)
 z_qso = 2.8
@@ -55,12 +64,6 @@ theta = Prox.sample_theta(nsamp)
 # simulate the continua and fluxes
 cont_prox, flux_prox = Prox.simulator(theta, replace=(nsamp > nskew),\
                                       ivar=None)
-#cont_prox = Prox.simulator_continuum(theta)
-#cont_norm, _ = normalise_spectra(wave_rest, cont_prox, cont_prox)
-
-# simulate the Ly-alpha forest and multiply by the continuum
-#t_prox = Prox.simulator_lya(theta)
-#flux = t_prox*cont_prox
 
 # normalise to one at 1280 \AA
 flux_norm, cont_norm = normalise_spectra(wave_rest, flux_prox, cont_prox)
@@ -77,6 +80,13 @@ flux_smooth = np.zeros(flux_norm_noisy.shape)
 for i, F in enumerate(flux_norm_noisy):
     flux_smooth[i,:] = fast_running_median(F, window_size=20)
 
+gpm_norm = None
+
+# smooth the flux before regridding
+flux_smooth = np.zeros(flux_norm_noisy.shape)
+for i, F in enumerate(flux_norm_noisy):
+    flux_smooth[i,:] = fast_running_median(F, window_size=20)
+
 # propagate the noise vector on the smoothed spectrum
 sigma_spec = std_noise1280*np.ones(cont_norm.shape)
 sigma_smooth = sigma_spec/np.sqrt(20)
@@ -86,8 +96,7 @@ dvpix_red = 500.0
 gpm_norm = None
 
 # set the wavelength of the blue-red split
-#wave_split = wave_1216
-wave_split = 1250.
+wave_split = wave_1216
 
 wave_grid, dvpix_diff, ipix_blu, ipix_red = get_blu_red_wave_grid(wave_min, wave_max,\
                                                                   wave_split, dvpix, dvpix_red)
@@ -101,35 +110,45 @@ flux_blu_red, ivar_rebin, gpm_rebin, count_rebin = rebin_spectra(wave_grid,\
 flux_smooth_blu_red, _, _, _ = rebin_spectra(wave_grid, wave_rest, flux_smooth,\
                                              1/sigma_smooth**2, gpm=gpm_norm)
 
-#flux_blu_red = interpolate.interp1d(wave_rest, flux_norm_noisy, kind="cubic", bounds_error=False,\
-#                                    fill_value="extrapolate", axis=1)(wave_grid)
-#flux_smooth_blu_red = interpolate.interp1d(wave_rest, flux_smooth, kind="cubic", bounds_error=False,\
-#                                           fill_value="extrapolate", axis=1)(wave_grid)
 
 # plot the first example
 fig, ax = plt.subplots()
-ax.plot(wave_grid, cont_blu_red[0], alpha=0.7, label="Regridded continuum")
-ax.plot(wave_grid, flux_blu_red[0], alpha=0.7, label="Regridded noisy spectrum")
-ax.plot(wave_grid, flux_smooth_blu_red[0], alpha=0.7, color="navy", ls="--",\
-        label="Regridded smoothed flux")
-ax.axvline(wave_split, ls=":", c="black", lw="1", label="Blue-red split")
+ax.plot(wave_rest, cont_norm[0], alpha=0.7, label="Continuum")
+ax.plot(wave_rest, flux_norm[0], alpha=0.7, label="Noisy spectrum")
+ax.plot(wave_rest, flux_smooth[0], alpha=0.7, color="navy", ls="--",\
+        label="Smoothed flux")
 ax.set_xlabel("Rest-frame wavelength ($\AA$)")
 ax.set_ylabel("Normalised flux")
 ax.legend()
+ax.xaxis.set_minor_locator(AutoMinorLocator(5))
+ax.yaxis.set_minor_locator(AutoMinorLocator(5))
+ax.grid(which="major")
+ax.grid(which="minor", linewidth=.1, alpha=.3, color="grey")
 fig.suptitle("Noiseless continuum vs noisy spectrum with Ly-$\\alpha$ forest")
 ax.set_title("Homoscedastic noise with $\sigma = 0.1$")
 fig.show()
 
 # save the grid, continuum and noisy continuum to an array
-savearray = np.zeros((nsamp, len(wave_grid), 4))
-savearray[:,:,0] = wave_grid
+savearray = np.zeros((nsamp, len(wave_rest), 4))
+savearray[:,:,0] = wave_rest
+
+savearray_regridded = np.zeros((nsamp, len(wave_grid), 4))
+savearray_regridded[:,:,0] = wave_grid
 
 for i in range(nsamp):
-    savearray[i,:,1] = cont_blu_red[i,:]
-    savearray[i,:,2] = flux_blu_red[i,:]
-    savearray[i,:,3] = flux_smooth_blu_red[i,:]
+    savearray[i,:,1] = cont_norm[i,:]
+    savearray[i,:,2] = flux_norm_noisy[i,:]
+    savearray[i,:,3] = flux_smooth[i,:]
+
+    savearray_regridded[i,:,1] = cont_blu_red[i,:]
+    savearray_regridded[i,:,2] = flux_blu_red[i,:]
+    savearray_regridded[i,:,3] = flux_smooth_blu_red[i,:]
 
 savepath = "/net/vdesk/data2/buiten/MRP2/pca-sdss-old/"
-np.save(savepath+"forest_spectra_with_noiseSN"+str(SN)+"_regridded_npca"+str(npca)+"smooth-window20_split"+str(int(wave_split))+".npy",\
+np.save(savepath+"forest_spectra_with_noiseSN"+str(SN)+"_npca"+str(npca)+"BOSS-grid.npy",\
         savearray)
 print ("Array saved.")
+
+np.save(savepath+"forest_spectra_with_noiseSN"+str(SN)+"_npca"+str(npca)+"BOSS-regridded.npy",
+        savearray_regridded)
+print ("Regridded array saved.")
