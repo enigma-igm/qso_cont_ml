@@ -4,14 +4,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 plt.rcParams["font.family"] = "serif"
 
-path = "/net/vdesk/data2/buiten/MRP2/misc-figures/autofitter-tests/"
+path = "/net/vdesk/data2/buiten/MRP2/misc-figures/autofitter-tests/25_04_"
 
 spectra = AutofitterSpectra(2.8)
+
 resids_auto = AutofitterResidualPlots(spectra)
 pred_spectra_auto = AutofitterPredictedSpectra(spectra)
 corrmat_auto = AutofitterCorrelationMatrix(spectra)
 
+
 resids_qsmooth = AutofitterResidualPlots(spectra, model="Qsmooth")
+
 
 rnd_idx = pred_spectra_auto.random_index(1)
 
