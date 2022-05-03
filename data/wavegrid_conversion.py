@@ -7,7 +7,8 @@ from torch.utils.data import Dataset
 import astropy.constants as const
 
 class InputSpectra(Dataset):
-    def __init__(self, wave_grid, flux, ivar, redshifts, restframe=True, wave_min=1000., wave_max=1970., dloglam=1.e-4):
+    def __init__(self, wave_grid, flux, ivar, redshifts, restframe=True, wave_min=1000., wave_max=1970., dloglam=1.e-4,
+                 cont=None):
         """
         Class for storing data we wish to get continuum predictions for.
         The spectra are regridded onto the native rest-frame wavelength grid of the network.
@@ -30,6 +31,8 @@ class InputSpectra(Dataset):
                 Maximum wavelength of the network grid.
         @param dloglam: float
                 log(wav) spacing of the network wavelength grid.
+        @param cont: NoneType or ndarray of shape (n_qso, n_wav)
+                True continuum of the quasars, if available.
         """
 
         self.n_qso = flux.shape[0]
@@ -56,6 +59,9 @@ class InputSpectra(Dataset):
         flux_norm, noise_norm = normalise_spectra(self.wave_rest_orig, flux, noise)
         ivar_norm = 1 / noise_norm**2
 
+        if cont is not None:
+            _, cont_norm = normalise_spectra(self.wave_rest_orig, flux, cont)
+
         # construct the native network grid
         self.wave_min = wave_min
         self.wave_max = wave_max
@@ -66,6 +72,11 @@ class InputSpectra(Dataset):
         # regrid onto the network grid
         self.flux, self.ivar, self.gpm, self.count_rebin = rebin_spectra(self.wave_rest, self.wave_rest_orig,
                                                                          flux_norm, ivar_norm)
+
+        if cont is not None:
+            ivar_cont = np.full(cont_norm.shape, 1e20)
+            self.cont, _, _, _ = rebin_spectra(self.wave_rest, self.wave_rest_orig, cont_norm, ivar_cont)
+            self.cont = torch.FloatTensor(self.cont)
 
         # make torch tensors of everything
         self.flux = torch.FloatTensor(self.flux)
@@ -97,7 +108,12 @@ class InputSpectra(Dataset):
         redshift = self.redshifts[idx]
         gpm = self.gpm[idx]
 
-        return flux, ivar, redshift, gpm
+        try:
+            cont = self.cont[idx]
+            return flux, ivar, redshift, gpm, cont
+
+        except:
+            return flux, ivar, redshift, gpm
 
 
     def add_channel_shape(self, n_channels=1):
