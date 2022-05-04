@@ -1,5 +1,7 @@
 import numpy as np
 from qso_fitting.data.utils import rebin_spectra, get_wave_grid
+from linetools.lists.linelist import LineList
+from dw_inference.simulator.utils import get_blu_red_wave_grid
 import torch
 from data.load_datasets import Spectra
 from data.load_data import normalise_spectra
@@ -7,8 +9,8 @@ from torch.utils.data import Dataset
 import astropy.constants as const
 
 class InputSpectra(Dataset):
-    def __init__(self, wave_grid, flux, ivar, redshifts, restframe=True, wave_min=1000., wave_max=1970., dloglam=1.e-4,
-                 cont=None):
+    def __init__(self, wave_grid, flux, ivar, redshifts, restframe=True, wave_min=980., wave_max=2040., dloglam=1.e-4,
+                 cont=None, wave_split=1216.):
         """
         Class for storing data we wish to get continuum predictions for.
         The spectra are regridded onto the native rest-frame wavelength grid of the network.
@@ -53,6 +55,10 @@ class InputSpectra(Dataset):
             self.wave_rest_orig = wave_grid / (1 + redshifts)
         else:
             self.wave_rest_orig = wave_grid
+
+        if wave_split == 1216.:
+            strong_lines = LineList("Strong", verbose=False)
+            wave_split = strong_lines["HI 1215"]["wrest"].value
             
         # normalise the flux and noise
         noise = 1 / np.sqrt(ivar)
@@ -62,20 +68,30 @@ class InputSpectra(Dataset):
         if cont is not None:
             _, cont_norm = normalise_spectra(self.wave_rest_orig, flux, cont)
 
-        # construct the native network grid
+        # construct the native uniform BOSS-like grid
         self.wave_min = wave_min
         self.wave_max = wave_max
         c_light = (const.c.to("km/s")).value
         self.dvpix = dloglam * c_light * np.log(10)
         self.wave_rest = get_wave_grid(self.wave_min, self.wave_max, self.dvpix)
 
-        # regrid onto the network grid
-        self.flux, self.ivar, self.gpm, self.count_rebin = rebin_spectra(self.wave_rest, self.wave_rest_orig,
-                                                                         flux_norm, ivar_norm)
+        # construct the hybrid network grid
+        dvpix_red = 500.0
+        self.wave_grid , _, _, _= get_blu_red_wave_grid(wave_min, wave_max, wave_split, self.dvpix, dvpix_red)
+
+        # regrid onto the uniform BOSS-like grid
+        self.flux_uni, self.ivar_uni, self.gpm_uni, self.count_rebin_uni = rebin_spectra(self.wave_rest,
+                                                                                         self.wave_rest_orig, flux_norm,
+                                                                                         ivar_norm)
+
+        # regrid onto the hybrid BOSS-like grid
+        self.flux, self.ivar, self.gpm, self.count_rebin = rebin_spectra(self.wave_grid, self.wave_rest,
+                                                                         self.flux_uni, self.ivar_uni, gpm=self.gpm_uni)
 
         if cont is not None:
             ivar_cont = np.full(cont_norm.shape, 1e20)
-            self.cont, _, _, _ = rebin_spectra(self.wave_rest, self.wave_rest_orig, cont_norm, ivar_cont)
+            self.cont, _, self.gpm_cont, _ = rebin_spectra(self.wave_grid, self.wave_rest_orig, cont_norm, ivar_cont)
+            self.cont_uni, _, _, _ = rebin_spectra(self.wave_rest, self.wave_rest_orig, cont_norm, ivar_cont)
             self.cont = torch.FloatTensor(self.cont)
 
         # make torch tensors of everything
@@ -85,6 +101,8 @@ class InputSpectra(Dataset):
         self.gpm = torch.tensor(self.gpm)
 
         print ("Regridded the spectra.")
+
+        print ("Shape of self.flux:", self.flux.shape)
         
 
     def __len__(self):
@@ -110,7 +128,8 @@ class InputSpectra(Dataset):
 
         try:
             cont = self.cont[idx]
-            return flux, ivar, redshift, gpm, cont
+            gpm_cont = self.gpm_cont[idx]
+            return flux, ivar, redshift, gpm, cont, gpm_cont
 
         except:
             return flux, ivar, redshift, gpm
