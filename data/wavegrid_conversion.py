@@ -7,6 +7,8 @@ from data.load_datasets import Spectra
 from data.load_data import normalise_spectra
 from torch.utils.data import Dataset
 import astropy.constants as const
+from scipy.interpolate import interp1d
+from IPython import embed
 
 class InputSpectra(Dataset):
     def __init__(self, wave_grid, flux, ivar, redshifts, restframe=True, wave_min=980., wave_max=2040., dloglam=1.e-4,
@@ -79,6 +81,11 @@ class InputSpectra(Dataset):
         dvpix_red = 500.0
         self.wave_grid , _, _, _= get_blu_red_wave_grid(wave_min, wave_max, wave_split, self.dvpix, dvpix_red)
 
+        # also make a 2D wavelength grid to deal with the good pixel mask more easily
+        self.wave_grid2d = np.zeros((self.n_qso, self.wave_grid.size))
+        for i in range(self.n_qso):
+            self.wave_grid2d[i] = self.wave_grid
+
         # regrid onto the uniform BOSS-like grid
         self.flux_uni, self.ivar_uni, self.gpm_uni, self.count_rebin_uni = rebin_spectra(self.wave_rest,
                                                                                          self.wave_rest_orig, flux_norm,
@@ -93,6 +100,20 @@ class InputSpectra(Dataset):
             self.cont, _, self.gpm_cont, _ = rebin_spectra(self.wave_grid, self.wave_rest_orig, cont_norm, ivar_cont)
             self.cont_uni, _, _, _ = rebin_spectra(self.wave_rest, self.wave_rest_orig, cont_norm, ivar_cont)
             self.cont = torch.FloatTensor(self.cont)
+
+        # interpolate for bad pixels
+        # needs to be done row-wise
+        flux_good = np.copy(self.flux)
+
+        for i in range(self.n_qso):
+
+            interpolator = interp1d(self.wave_grid[self.gpm[i]], self.flux[i][self.gpm[i]], kind="cubic", axis=-1,
+                                    fill_value=1., bounds_error=False)
+            interpolated = interpolator(self.wave_grid[~self.gpm[i]])
+            flux_good[i][~self.gpm[i]] = interpolated
+
+        self.flux = flux_good
+
 
         # make torch tensors of everything
         self.flux = torch.FloatTensor(self.flux)
