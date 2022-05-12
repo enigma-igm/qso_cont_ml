@@ -8,7 +8,7 @@ import torch
 
 class Spectra(Dataset):
     def __init__(self, wave_grid, cont, flux, flux_smooth, norm1280=True,\
-                 window=20, newnorm=False):
+                 window=20, newnorm=False, ivar=None):
 #        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.wave_grid = wave_grid
 
@@ -36,6 +36,11 @@ class Spectra(Dataset):
         self.cont = torch.FloatTensor(cont)
         self.flux_smooth = torch.FloatTensor(flux_smooth_new)
 
+        if ivar is not None:
+            self.ivar = torch.FloatTensor(ivar)
+        else:
+            self.ivar = ivar
+
     def __len__(self):
         return len(self.flux)
 
@@ -56,6 +61,28 @@ class Spectra(Dataset):
         self.flux = reshaped_specs[0]
         self.flux_smooth = reshaped_specs[1]
         self.cont = reshaped_specs[2]
+
+
+    def add_noise_channel(self):
+        '''
+        Add a channel for the noise vectors of the spectra. Automatically calls add_channel_shape().
+        @return:
+        '''
+
+        self.add_channel_shape(n_channels=1)
+
+        if self.ivar is None:
+            raise ValueError("No noise vectors provided.")
+
+        else:
+            # add the noise vector as a channel to the flux tensor
+            # we don't attach it to the smoothed flux because it has become obsolete
+            # we don't attach it to the continuum because it isn't present in the continuum
+            flux_2channels = np.cat((self.flux, self.ivar), dim=1)
+            self.flux = flux_2channels
+
+            print ("Attached an inverse variance channel to self.flux.")
+
 
 
 
