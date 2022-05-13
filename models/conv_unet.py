@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
+from IPython import embed
 
 class Block(nn.Module):
     def __init__(self, in_ch, out_ch, kernel_size=10, activfunc="relu",\
@@ -82,7 +83,10 @@ class Encoder(nn.Module):
     def forward(self, x):
         ftrs = []
         for block, pool in zip(self.enc_blocks, self.pools):
-            x = block(x)
+            try:
+                x = block(x)
+            except:
+                embed()
             ftrs.append(x)
             x = pool(x)
         return ftrs
