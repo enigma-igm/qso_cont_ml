@@ -147,7 +147,7 @@ class SynthSpectra(Spectra):
         for el in [trainset, validset, testset]:
             splitsets.append(Spectra(self.wave_grid, self.cont[el.indices],\
                                      self.flux[el.indices], self.flux_smooth[el.indices],\
-                                     norm1280=False))
+                                     norm1280=False, ivar=self.ivar))
 
         self.trainset, self.validset, self.testset = splitsets
 
