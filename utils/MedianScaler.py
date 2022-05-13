@@ -38,10 +38,16 @@ class MedianScaler:
     def forward(self, qso_spectrum):
 
         try:
-            spec_scaled = (qso_spectrum.to(self.device) - self.mean_spectrum) / self.median
+
+            try:
+                spec_scaled = (qso_spectrum.to(self.device) - self.mean_spectrum) / self.median
+
+            except:
+                spec_scaled = (qso_spectrum.to(self.device) - self.mean_spectrum.to(self.device)) / self.median.to(self.device)
 
         except:
-            spec_scaled = (qso_spectrum.to(self.device) - self.mean_spectrum.to(self.device)) / self.median.to(self.device)
+            print ("Input shape:", qso_spectrum.shape)
+            embed()
 
         return spec_scaled
 
