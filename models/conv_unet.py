@@ -198,11 +198,8 @@ class UNet(nn.Module):
         self.crop_enc = crop_enc
 
     def forward(self, x):
-        try:
-            enc_ftrs = self.encoder(x)
-            out = self.decoder(enc_ftrs[::-1][0], enc_ftrs[::-1][1:])
-        except:
-            embed()
+        enc_ftrs = self.encoder(x)
+        out = self.decoder(enc_ftrs[::-1][0], enc_ftrs[::-1][1:])
 
         if self.final_skip:
 
@@ -229,7 +226,10 @@ class UNet(nn.Module):
                 x_interp = F.interpolate(x, n_wav)
                 out = torch.cat([out, x_interp], dim=1)
 
-        out = self.head(out)
+        try:
+            out = self.head(out)
+        except:
+            embed()
 
         if self.retain_dim:
             out = F.interpolate(out, self.out_sz)
