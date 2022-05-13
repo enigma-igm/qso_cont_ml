@@ -83,10 +83,7 @@ class Encoder(nn.Module):
     def forward(self, x):
         ftrs = []
         for block, pool in zip(self.enc_blocks, self.pools):
-            try:
-                x = block(x)
-            except:
-                embed()
+            x = block(x)
             ftrs.append(x)
             x = pool(x)
         return ftrs
@@ -201,8 +198,11 @@ class UNet(nn.Module):
         self.crop_enc = crop_enc
 
     def forward(self, x):
-        enc_ftrs = self.encoder(x)
-        out = self.decoder(enc_ftrs[::-1][0], enc_ftrs[::-1][1:])
+        try:
+            enc_ftrs = self.encoder(x)
+            out = self.decoder(enc_ftrs[::-1][0], enc_ftrs[::-1][1:])
+        except:
+            embed()
 
         if self.final_skip:
 
