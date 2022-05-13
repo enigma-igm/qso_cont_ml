@@ -31,7 +31,7 @@ class MedianScaler:
             try:
                 self.median = torch.zeros(len(median))
                 for i in range(len(median)):
-                    self.median[i] = median[0] + floorval
+                    self.median[i] = median[i] + floorval
             except:
                 self.median = median + floorval
         except:
