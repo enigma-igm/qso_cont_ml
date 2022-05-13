@@ -7,7 +7,7 @@ class MedianScaler:
 
     Attributes:
         device: torch device instance
-        mean_spectrum: torch tensor of shape (n_wav,)
+        mean_spectrum: torch tensor of shape (n_wav,) or (n_wav,n_channels)
         median: torch tensor of shape (1,)
 
     Methods:
@@ -23,7 +23,7 @@ class MedianScaler:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.mean_spectrum = torch.tensor(mean_spectrum).float().to(self.device)
 
-        self.median = torch.median(self.mean_spectrum) + floorval
+        self.median = torch.median(self.mean_spectrum, dim=0) + torch.FloatTensor(floorval).to(self.device)
 
     def forward(self, qso_spectrum):
 
