@@ -23,7 +23,8 @@ class MedianScaler:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.mean_spectrum = torch.tensor(mean_spectrum).float().to(self.device)
 
-        self.median = torch.median(self.mean_spectrum, dim=0) + floorval
+        median = torch.median(self.mean_spectrum, dim=0)
+        self.median = median + torch.full((len(median),), floorval).to(self.device)
 
     def forward(self, qso_spectrum):
 
