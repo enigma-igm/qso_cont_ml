@@ -32,7 +32,7 @@ class MedianScaler:
             for i in range(len(median)):
                 self.median[i,:] = median[0][i] + floorval
         except:
-            self.median = median + floorval
+            self.median = median[0] + floorval
 
 
     def forward(self, qso_spectrum):
