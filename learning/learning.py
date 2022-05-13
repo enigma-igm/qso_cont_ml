@@ -7,6 +7,7 @@ from utils.QuasarScaler import QuasarScaler
 from utils.MinMaxScaler import MinMaxScaler
 from utils.MedianScaler import MedianScaler
 from utils.errorfuncs import WavWeights
+from IPython import embed
 
 def create_learners(parameters, learning_rate=0.1):
     optimizer = torch.optim.AdamW(parameters, lr=learning_rate)
@@ -72,6 +73,9 @@ class Trainer:
 
             flux_mean = torch.mean(flux, dim=0)
             cont_mean = torch.mean(cont, dim=0)
+
+            if flux_mean.shape[0] == 1:
+                embed()
 
             scaler_flux = MedianScaler(flux_mean, floorval)
             scaler_cont = MedianScaler(cont_mean, floorval)

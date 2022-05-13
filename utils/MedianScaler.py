@@ -26,16 +26,14 @@ class MedianScaler:
 
         median = torch.median(self.mean_spectrum, dim=-1)
 
+        # have to add the floor value row-wise
         try:
-            # have to add the floor value row-wise
-            try:
-                self.median = torch.zeros(len(median))
-                for i in range(len(median)):
-                    self.median[i] = median[0][i] + floorval
-            except:
-                self.median = median + floorval
+            self.median = torch.zeros(len(median))
+            for i in range(len(median)):
+                self.median[i] = median[0][i] + floorval
         except:
-            embed()
+            self.median = median + floorval
+
 
     def forward(self, qso_spectrum):
 
