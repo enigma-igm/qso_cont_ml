@@ -3,17 +3,21 @@ import numpy as np
 
 def load_synth_spectra(regridded=True, small=False, npca=10,\
                        noise=False, SN=10, datapath=None,\
-                       wave_split=None, boss=False):
+                       wave_split=None, boss=False, hetsced=False):
 
     if datapath is None:
         datapath = "/net/vdesk/data2/buiten/MRP2/pca-sdss-old/"
 
     if noise:
         if boss:
-            if regridded:
+            if (not hetsced) & regridded:
                 data = np.load(datapath + "forest_spectra_with_noiseSN"+str(SN)+"_npca"+str(npca)+"BOSS-regridded.npy")
-            else:
+            elif (not hetsced) & (not regridded):
                 data = np.load(datapath + "forest_spectra_with_noiseSN"+str(SN)+"_npca"+str(npca)+"BOSS-grid.npy")
+            elif hetsced & regridded:
+                data = np.load(datapath + "forest_spectra_hetsced_noiseSN"+str(SN)+"_npca"+str(npca)+"BOSS-regridded.npy")
+            elif hetsced & (not regridded):
+                data = np.load(datapath + "forest_spectra_hetsced_noiseSN"+str(SN)+"_npca"+str(npca)+"BOSS-grid.npy")
 
         else:
             if regridded:
@@ -48,8 +52,13 @@ def load_synth_spectra(regridded=True, small=False, npca=10,\
     qso_flux = data[:,:,2]
 
     if noise:
-        flux_smooth = data[:,:,3]
-        return wave_grid, qso_cont, qso_flux, flux_smooth
+        if not hetsced:
+            flux_smooth = data[:,:,3]
+            return wave_grid, qso_cont, qso_flux, flux_smooth
+        else:
+            flux_smooth = data[:,:,3]
+            ivar = data[:,:,4]
+            return wave_grid, qso_cont, qso_flux, flux_smooth, ivar
 
     else:
         return wave_grid, qso_cont, qso_flux

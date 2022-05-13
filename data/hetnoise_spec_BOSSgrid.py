@@ -74,11 +74,21 @@ flux_norm, cont_norm = normalise_spectra(wave_rest, flux_prox, cont_prox)
 SN = 10
 std_noise1280 = 1/SN
 noise_vector_rand = np.random.normal(std_noise1280, scale=0.01*std_noise1280, size=cont_norm.shape)
-# now smooth over the vectors
 
-#gauss = norm(scale=std_noise1280)
-#noise_vector = gauss.rvs(size=cont_norm.shape)
-flux_norm_noisy = flux_norm + noise_vector
+# now smooth over the vectors with the fast running median function
+noise_vectors_smooth = np.zeros_like(noise_vector_rand)
+for i in range(nsamp):
+    noise_vectors_smooth[i] = fast_running_median(noise_vector_rand[i], 20)
+
+# draw actual noise terms from the noise vectors
+noise_terms = np.zeros_like(cont_norm)
+for i in range(nsamp):
+    noise_terms[i] = np.random.normal(0, noise_vectors_smooth[i], size=noise_vectors_smooth.shape[-1])
+
+flux_norm_noisy = flux_norm + noise_terms
+
+# convert the noise vectors to inverse variance vectors
+ivar = 1./noise_vectors_smooth**2
 
 # smooth the flux before regridding
 flux_smooth = np.zeros(flux_norm_noisy.shape)
@@ -93,8 +103,8 @@ for i, F in enumerate(flux_norm_noisy):
     flux_smooth[i,:] = fast_running_median(F, window_size=20)
 
 # propagate the noise vector on the smoothed spectrum
-sigma_spec = std_noise1280*np.ones(cont_norm.shape)
-sigma_smooth = sigma_spec/np.sqrt(20)
+sigma_smooth = noise_vectors_smooth/np.sqrt(20)
+ivar_smooth = 1/sigma_smooth**2
 
 # interpolate onto the hybrid grid
 dvpix_red = 500.0
@@ -110,10 +120,10 @@ cont_blu_red = interpolate.interp1d(wave_rest, cont_norm, kind="cubic", bounds_e
 flux_blu_red, ivar_rebin, gpm_rebin, count_rebin = rebin_spectra(wave_grid,\
                                                                  wave_rest,\
                                                                  flux_norm_noisy,\
-                                                                 1/sigma_spec**2,\
+                                                                 ivar,\
                                                                  gpm=gpm_norm)
 flux_smooth_blu_red, _, _, _ = rebin_spectra(wave_grid, wave_rest, flux_smooth,\
-                                             1/sigma_smooth**2, gpm=gpm_norm)
+                                             ivar_smooth, gpm=gpm_norm)
 
 
 # plot the first example
@@ -134,26 +144,28 @@ ax.set_title("Homoscedastic noise with $\sigma = 0.1$")
 fig.show()
 
 # save the grid, continuum and noisy continuum to an array
-savearray = np.zeros((nsamp, len(wave_rest), 4))
+savearray = np.zeros((nsamp, len(wave_rest), 5))
 savearray[:,:,0] = wave_rest
 
-savearray_regridded = np.zeros((nsamp, len(wave_grid), 4))
+savearray_regridded = np.zeros((nsamp, len(wave_grid), 5))
 savearray_regridded[:,:,0] = wave_grid
 
 for i in range(nsamp):
     savearray[i,:,1] = cont_norm[i,:]
     savearray[i,:,2] = flux_norm_noisy[i,:]
     savearray[i,:,3] = flux_smooth[i,:]
+    savearray[i,:,4] = ivar[i,:]
 
     savearray_regridded[i,:,1] = cont_blu_red[i,:]
     savearray_regridded[i,:,2] = flux_blu_red[i,:]
     savearray_regridded[i,:,3] = flux_smooth_blu_red[i,:]
+    savearray_regridded[i,:,4] = ivar_rebin[i,:]
 
 savepath = "/net/vdesk/data2/buiten/MRP2/pca-sdss-old/"
-np.save(savepath+"forest_spectra_with_noiseSN"+str(SN)+"_npca"+str(npca)+"BOSS-grid.npy",\
+np.save(savepath+"forest_spectra_hetsced_noiseSN"+str(SN)+"_npca"+str(npca)+"BOSS-grid.npy",\
         savearray)
 print ("Array saved.")
 
-np.save(savepath+"forest_spectra_with_noiseSN"+str(SN)+"_npca"+str(npca)+"BOSS-regridded.npy",
+np.save(savepath+"forest_spectra_hetsced_noiseSN"+str(SN)+"_npca"+str(npca)+"BOSS-regridded.npy",
         savearray_regridded)
 print ("Regridded array saved.")

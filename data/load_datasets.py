@@ -91,7 +91,7 @@ class SynthSpectra(Spectra):
     def __init__(self, regridded=True, small=False, npca=10,\
                        noise=False, norm1280=True, forest=True, window=20,\
                 newnorm=False, homosced=True, poisson=False, SN=10,\
-                 datapath=None, wave_split=None, boss=False):
+                 datapath=None, wave_split=None, boss=False, hetsced=False):
 
         if not forest:
             wave_grid, cont, flux, flux_smooth = load_synth_noisy_cont(npca, smooth=True,\
@@ -100,7 +100,7 @@ class SynthSpectra(Spectra):
                                                                        datapath=datapath)
 
         else:
-            if noise:
+            if noise & (not hetsced):
                 wave_grid, cont, flux, flux_smooth = load_synth_spectra(regridded,\
                                                                         small=False,\
                                                                         npca=npca,\
@@ -108,6 +108,15 @@ class SynthSpectra(Spectra):
                                                                         datapath=datapath,\
                                                                         wave_split=wave_split,
                                                                         boss=boss)
+            elif noise & hetsced:
+                wave_grid, cont, flux, flux_smooth, ivar = load_synth_spectra(regridded,
+                                                                              small=False,
+                                                                              npca=npca,
+                                                                              noise=True,
+                                                                              datapath=datapath,
+                                                                              wave_split=wave_split,
+                                                                              boss=boss,
+                                                                              hetsced=hetsced)
             else:
                 wave_grid, cont, flux = load_synth_spectra(regridded, small, npca,\
                                                            noise=False,\
@@ -119,8 +128,12 @@ class SynthSpectra(Spectra):
                 for i, F in enumerate(flux):
                     flux_smooth[i, :] = fast_running_median(F, window_size=window)
 
+        if not hetsced:
+            ivar = None
+
         super(SynthSpectra, self).__init__(wave_grid, cont, flux, flux_smooth,\
-                                           norm1280, window=window, newnorm=newnorm)
+                                           norm1280, window=window, newnorm=newnorm,
+                                           ivar=ivar)
 
     def split(self):
         '''Needs to change to keep flux and flux_smooth together.
