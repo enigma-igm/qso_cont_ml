@@ -1,4 +1,5 @@
 import torch
+from IPython import embed
 
 class MedianScaler:
     """
@@ -24,7 +25,11 @@ class MedianScaler:
         self.mean_spectrum = torch.tensor(mean_spectrum).float().to(self.device)
 
         median = torch.median(self.mean_spectrum, dim=0)
-        self.median = median + torch.full((len(median),), floorval).to(self.device)
+
+        try:
+            self.median = median + torch.full((len(median),), floorval).to(self.device)
+        except:
+            embed()
 
     def forward(self, qso_spectrum):
 
