@@ -28,9 +28,9 @@ class MedianScaler:
 
         # have to add the floor value row-wise
         try:
-            self.median = torch.zeros(len(median))
+            self.median = torch.zeros_like(self.mean_spectrum)
             for i in range(len(median)):
-                self.median[i] = median[0][i] + floorval
+                self.median[i,:] = median[0][i] + floorval
         except:
             self.median = median + floorval
 
