@@ -24,10 +24,16 @@ class MedianScaler:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.mean_spectrum = torch.tensor(mean_spectrum).float().to(self.device)
 
-        median = torch.median(self.mean_spectrum, dim=0)
+        median = torch.median(self.mean_spectrum, dim=-1)
 
         try:
-            self.median = median + torch.full((len(median),), floorval).to(self.device)
+            # have to add the floor value row-wise
+            try:
+                self.median = torch.zeros(len(median))
+                for i in range(len(median)):
+                    self.median[i] = median[0] + floorval
+            except:
+                self.median = median + floorval
         except:
             embed()
 
