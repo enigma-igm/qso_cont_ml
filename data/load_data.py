@@ -15,9 +15,9 @@ def load_synth_spectra(regridded=True, small=False, npca=10,\
             elif (not hetsced) & (not regridded):
                 data = np.load(datapath + "forest_spectra_with_noiseSN"+str(SN)+"_npca"+str(npca)+"BOSS-grid.npy")
             elif hetsced & regridded:
-                data = np.load(datapath + "forest_spectra_hetsced_noiseSN"+str(SN)+"_npca"+str(npca)+"BOSS-regridded.npy")
+                data = np.load(datapath + "forest_spectra_hetsced_noiseSN10-100_npca"+str(npca)+"BOSS-regridded.npy")
             elif hetsced & (not regridded):
-                data = np.load(datapath + "forest_spectra_hetsced_noiseSN"+str(SN)+"_npca"+str(npca)+"BOSS-grid.npy")
+                data = np.load(datapath + "forest_spectra_hetsced_noiseSN10-100_npca"+str(npca)+"BOSS-grid.npy")
 
         else:
             if regridded:

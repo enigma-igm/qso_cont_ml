@@ -69,11 +69,12 @@ cont_prox, flux_prox = Prox.simulator(theta, replace=(nsamp > nskew),\
 flux_norm, cont_norm = normalise_spectra(wave_rest, flux_prox, cont_prox)
 
 # now generate heteroscedastic noise and add it to the flux
+# use randomly drawn mean signal-to-noise ratios to test the network properly
 # also save the noise vectors (or inverse variance)
 # draw random standard deviations and smooth over them for each spectrum to get coherent structure
-SN = 10
-std_noise1280 = 1/SN
-noise_vector_rand = np.random.normal(std_noise1280, scale=0.01*std_noise1280, size=cont_norm.shape)
+SNs = np.random.uniform(10, 100, size=nsamp)
+std_noise1280 = 1/SNs
+noise_vector_rand = np.random.normal(std_noise1280, scale=0.01*std_noise1280, size=cont_norm.T.shape).T
 
 # now smooth over the vectors with the fast running median function
 noise_vectors_smooth = np.zeros_like(noise_vector_rand)
@@ -162,10 +163,10 @@ for i in range(nsamp):
     savearray_regridded[i,:,4] = ivar_rebin[i,:]
 
 savepath = "/net/vdesk/data2/buiten/MRP2/pca-sdss-old/"
-np.save(savepath+"forest_spectra_hetsced_noiseSN"+str(SN)+"_npca"+str(npca)+"BOSS-grid.npy",\
+np.save(savepath+"forest_spectra_hetsced_noiseSN10-100_npca"+str(npca)+"BOSS-grid.npy",\
         savearray)
 print ("Array saved.")
 
-np.save(savepath+"forest_spectra_hetsced_noiseSN"+str(SN)+"_npca"+str(npca)+"BOSS-regridded.npy",
+np.save(savepath+"forest_spectra_hetsced_noiseSN10-100_npca"+str(npca)+"BOSS-regridded.npy",
         savearray_regridded)
 print ("Regridded array saved.")
