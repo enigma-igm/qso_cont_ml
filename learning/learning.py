@@ -74,9 +74,6 @@ class Trainer:
             flux_mean = torch.mean(flux, dim=0)
             cont_mean = torch.mean(cont, dim=0)
 
-            if flux_mean.shape[0] == 1:
-                embed()
-
             scaler_flux = MedianScaler(flux_mean, floorval)
             scaler_cont = MedianScaler(cont_mean, floorval)
 
