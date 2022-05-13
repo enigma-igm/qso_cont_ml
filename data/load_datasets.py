@@ -78,7 +78,8 @@ class Spectra(Dataset):
             # add the noise vector as a channel to the flux tensor
             # we don't attach it to the smoothed flux because it has become obsolete
             # we don't attach it to the continuum because it isn't present in the continuum
-            flux_2channels = torch.cat((self.flux, self.ivar), dim=1)
+            ivar_reshaped = self.ivar.reshape((len(self.ivar), 1, self.ivar.shape[-1]))
+            flux_2channels = torch.cat((self.flux, ivar_reshaped), dim=1)
             self.flux = flux_2channels
 
             print ("Attached an inverse variance channel to self.flux.")
