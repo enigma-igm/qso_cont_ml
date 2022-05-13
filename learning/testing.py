@@ -120,8 +120,14 @@ class ModelResultsSpectra(ModelResults):
 
         ax = fig.add_subplot(subplotloc)
 
-        ax.plot(self.wave_grid, self.flux[index].squeeze(), alpha=alpha, lw=1, \
-                label="Mock spectrum")
+        # squeeze only works if there is no noise channel
+        try:
+            ax.plot(self.wave_grid, self.flux[index].squeeze(), alpha=alpha, lw=1, \
+                    label="Mock spectrum")
+        except:
+            ax.plot(self.wave_grid, self.flux[index,0], alpha=alpha, lw=1,
+                    label="Mock spectrum")
+
         ax.plot(self.wave_grid, self.cont[index].squeeze(), alpha=alpha, lw=2, \
                 label="True continuum")
         ax.plot(self.wave_grid, cont_pred, alpha=alpha, lw=1, ls="--",\
@@ -168,8 +174,13 @@ class ModelResultsSpectra(ModelResults):
 
         ax = fig.add_subplot(subplotloc)
 
-        ax.plot(self.wave_grid, self.flux_scaled[index].squeeze(), alpha=alpha, lw=1,\
-                label="Mock spectrum", c="tab:blue")
+        try:
+            ax.plot(self.wave_grid, self.flux_scaled[index].squeeze(), alpha=alpha, lw=1,\
+                    label="Mock spectrum", c="tab:blue")
+        except:
+            ax.plot(self.wave_grid, self.flux_scaled[index,0], alpha=alpha, lw=1,
+                    label="Mock spectrum", c="tab:blue")
+
         ax.plot(self.wave_grid, self.cont_true_scaled_np[index].squeeze(), alpha=alpha, lw=2,\
                 label="True continuum", c="tab:orange")
         ax.plot(self.wave_grid, cont_pred_scaled, alpha=alpha, lw=1, ls="--",\
@@ -206,8 +217,13 @@ class ModelResultsSpectra(ModelResults):
 
         ax = fig.add_subplot(subplotloc)
 
-        ax.plot(pixels, self.flux_scaled[index].squeeze(), alpha=alpha, lw=1,\
-                label="Mock spectrum", c="tab:blue")
+        try:
+            ax.plot(pixels, self.flux_scaled[index].squeeze(), alpha=alpha, lw=1,\
+                    label="Mock spectrum", c="tab:blue")
+        except:
+            ax.plot(pixels, self.flux_scaled[index,0], alpha=alpha, lw=1,
+                    label="Mock spectrum", c="tab:blue")
+
         ax.plot(pixels, self.cont_true_scaled_np[index].squeeze(), alpha=alpha, lw=2,\
                 label="True continuum", c="tab:orange")
         ax.plot(pixels, cont_pred_scaled, alpha=alpha, lw=1, ls="--",\
