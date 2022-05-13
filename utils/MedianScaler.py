@@ -40,10 +40,18 @@ class MedianScaler:
         try:
 
             try:
-                spec_scaled = (qso_spectrum.to(self.device) - self.mean_spectrum) / self.median
+                if qso_spectrum.shape[1] == self.mean_spectrum.shape[0]:
+                    spec_scaled = (qso_spectrum.to(self.device) - self.mean_spectrum) / self.median
+
+                else:
+                    spec_scaled = (qso_spectrum.to(self.device) - self.mean_spectrum[0]) / self.median[0]
 
             except:
-                spec_scaled = (qso_spectrum.to(self.device) - self.mean_spectrum.to(self.device)) / self.median.to(self.device)
+                if qso_spectrum.shape[1] == self.mean_spectrum.shape[0]:
+                    spec_scaled = (qso_spectrum.to(self.device) - self.mean_spectrum.to(self.device)) / self.median.to(self.device)
+
+                else:
+                    spec_scaled = (qso_spectrum.to(self.device) - self.mean_spectrum[0].to(self.device)) / self.median[0].to(self.device)
 
         except:
             print ("Input shape:", qso_spectrum.shape)
