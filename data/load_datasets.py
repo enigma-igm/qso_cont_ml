@@ -8,7 +8,7 @@ import torch
 
 class Spectra(Dataset):
     def __init__(self, wave_grid, cont, flux, flux_smooth, norm1280=True,\
-                 window=20, newnorm=False, ivar=None):
+                 window=20, newnorm=False, ivar=None, normsmooth=False):
 #        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.wave_grid = wave_grid
 
@@ -22,9 +22,17 @@ class Spectra(Dataset):
                 flux_smooth_new = flux_smooth / normfactor
 
             else:
+                if normsmooth:
+                    # normalise such that the smoothed flux is 1 at 1280 (using a window)
+                    flux_smooth_new, flux = normalise_spectra(wave_grid, flux_smooth, flux)
+                    _, cont = normalise_spectra(wave_grid, flux_smooth, cont)
 
-                flux_smooth_new, flux = normalise_spectra(wave_grid, flux_smooth, flux)
-                _, cont = normalise_spectra(wave_grid, flux_smooth, cont)
+                else:
+                    # normalise such that the flux is 1 at 1280 (using a window)
+                    flux_new, flux_smooth = normalise_spectra(wave_grid, flux, flux_smooth)
+                    _, cont = normalise_spectra(wave_grid, flux, cont)
+                    flux = flux_new
+                    flux_smooth_new = flux_smooth
 
         else:
             flux_smooth_new = flux_smooth

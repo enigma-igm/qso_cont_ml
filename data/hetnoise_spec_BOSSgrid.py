@@ -71,8 +71,14 @@ flux_norm, cont_norm = normalise_spectra(wave_rest, flux_prox, cont_prox)
 # now generate heteroscedastic noise and add it to the flux
 # use randomly drawn mean signal-to-noise ratios to test the network properly
 # also save the noise vectors (or inverse variance)
+
+'''
 # draw random standard deviations and smooth over them for each spectrum to get coherent structure
 SNs = np.random.uniform(10, 100, size=nsamp)
+'''
+
+# draw random standard deviations from a Gamma distribution
+SNs = np.random.gamma(2., 10., size=nsamp)
 std_noise1280 = 1/SNs
 noise_vector_rand = np.random.normal(std_noise1280, scale=0.01*std_noise1280, size=cont_norm.T.shape).T
 
@@ -127,8 +133,8 @@ flux_smooth_blu_red, _, _, _ = rebin_spectra(wave_grid, wave_rest, flux_smooth,\
                                              ivar_smooth, gpm=gpm_norm)
 
 
-# plot the first example
-fig, ax = plt.subplots()
+# plot the first example and its noise vector
+fig, ax = plt.subplots(dpi=240)
 ax.plot(wave_rest, cont_norm[0], alpha=0.7, label="Continuum")
 ax.plot(wave_rest, flux_norm[0], alpha=0.7, label="Noisy spectrum")
 ax.plot(wave_rest, flux_smooth[0], alpha=0.7, color="navy", ls="--",\
@@ -141,8 +147,18 @@ ax.yaxis.set_minor_locator(AutoMinorLocator(5))
 ax.grid(which="major")
 ax.grid(which="minor", linewidth=.1, alpha=.3, color="grey")
 fig.suptitle("Noiseless continuum vs noisy spectrum with Ly-$\\alpha$ forest")
-ax.set_title("Homoscedastic noise with $\sigma = 0.1$")
+ax.set_title("Randomised heteroscedastic noise")
 fig.show()
+
+fig2, ax2 = plt.subplots(dpi=240)
+ax2.plot(wave_rest, noise_vector_rand[0])
+ax2.set_xlabel("Rest-frame wavelength ($\AA$)")
+ax2.set_ylabel("Standard deviation noise")
+ax2.xaxis.set_minor_locator(AutoMinorLocator(5))
+ax2.yaxis.set_minor_locator(AutoMinorLocator(5))
+ax2.grid(which="major")
+fig2.suptitle("Noise vector")
+fig2.show()
 
 # save the grid, continuum and noisy continuum to an array
 savearray = np.zeros((nsamp, len(wave_rest), 5))
