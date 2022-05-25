@@ -82,6 +82,16 @@ class ModelResults:
         else:
             self.cont_true_scaled_np = self.cont
 
+        # extract the noise vectors if available
+        if testset.ivar is not None:
+            self.ivar = testset.ivar.cpu().detach().numpy()
+            self.noise = 1 / np.sqrt(self.ivar)
+            self.flux = testset.flux[:,0,:]
+        else:
+            self.ivar = None
+            self.noise = None
+            self.flux = testset.flux
+
 
 class ModelResultsSpectra(ModelResults):
     '''Class for example spectra from the test set and the corresponding model predictions.'''
@@ -120,8 +130,18 @@ class ModelResultsSpectra(ModelResults):
 
         ax = fig.add_subplot(subplotloc)
 
-        ax.plot(self.wave_grid, self.flux[index].squeeze(), alpha=alpha, lw=1, \
-                label="Mock spectrum")
+        # squeeze only works if there is no noise channel
+        try:
+            ax.plot(self.wave_grid, self.flux[index].squeeze(), alpha=alpha, lw=1, \
+                    label="Mock spectrum")
+        except:
+            ax.plot(self.wave_grid, self.flux[index], alpha=alpha, lw=1,
+                    label="Mock spectrum")
+
+        if self.noise is not None:
+            ax.plot(self.wave_grid, self.noise[index], alpha=alpha, lw=.5,
+                    label="Noise", c="green")
+
         ax.plot(self.wave_grid, self.cont[index].squeeze(), alpha=alpha, lw=2, \
                 label="True continuum")
         ax.plot(self.wave_grid, cont_pred, alpha=alpha, lw=1, ls="--",\
@@ -168,8 +188,13 @@ class ModelResultsSpectra(ModelResults):
 
         ax = fig.add_subplot(subplotloc)
 
-        ax.plot(self.wave_grid, self.flux_scaled[index].squeeze(), alpha=alpha, lw=1,\
-                label="Mock spectrum", c="tab:blue")
+        try:
+            ax.plot(self.wave_grid, self.flux_scaled[index].squeeze(), alpha=alpha, lw=1,\
+                    label="Mock spectrum", c="tab:blue")
+        except:
+            ax.plot(self.wave_grid, self.flux_scaled[index,0], alpha=alpha, lw=1,
+                    label="Mock spectrum", c="tab:blue")
+
         ax.plot(self.wave_grid, self.cont_true_scaled_np[index].squeeze(), alpha=alpha, lw=2,\
                 label="True continuum", c="tab:orange")
         ax.plot(self.wave_grid, cont_pred_scaled, alpha=alpha, lw=1, ls="--",\
@@ -206,8 +231,13 @@ class ModelResultsSpectra(ModelResults):
 
         ax = fig.add_subplot(subplotloc)
 
-        ax.plot(pixels, self.flux_scaled[index].squeeze(), alpha=alpha, lw=1,\
-                label="Mock spectrum", c="tab:blue")
+        try:
+            ax.plot(pixels, self.flux_scaled[index].squeeze(), alpha=alpha, lw=1,\
+                    label="Mock spectrum", c="tab:blue")
+        except:
+            ax.plot(pixels, self.flux_scaled[index,0], alpha=alpha, lw=1,
+                    label="Mock spectrum", c="tab:blue")
+
         ax.plot(pixels, self.cont_true_scaled_np[index].squeeze(), alpha=alpha, lw=2,\
                 label="True continuum", c="tab:orange")
         ax.plot(pixels, cont_pred_scaled, alpha=alpha, lw=1, ls="--",\

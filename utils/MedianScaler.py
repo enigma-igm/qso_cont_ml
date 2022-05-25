@@ -1,4 +1,5 @@
 import torch
+from IPython import embed
 
 class MedianScaler:
     """
@@ -7,7 +8,7 @@ class MedianScaler:
 
     Attributes:
         device: torch device instance
-        mean_spectrum: torch tensor of shape (n_wav,)
+        mean_spectrum: torch tensor of shape (n_wav,) or (n_wav,n_channels)
         median: torch tensor of shape (1,)
 
     Methods:
@@ -23,15 +24,38 @@ class MedianScaler:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.mean_spectrum = torch.tensor(mean_spectrum).float().to(self.device)
 
-        self.median = torch.median(self.mean_spectrum) + floorval
+        median = torch.median(self.mean_spectrum, dim=-1)
+
+        # have to add the floor value row-wise
+        try:
+            self.median = torch.zeros_like(self.mean_spectrum)
+            for i in range(len(median)):
+                self.median[i,:] = median[0][i] + floorval
+        except:
+            self.median = median[0] + floorval
+
 
     def forward(self, qso_spectrum):
 
         try:
-            spec_scaled = (qso_spectrum.to(self.device) - self.mean_spectrum) / self.median
+
+            try:
+                if qso_spectrum.shape[1] == self.mean_spectrum.shape[0]:
+                    spec_scaled = (qso_spectrum.to(self.device) - self.mean_spectrum) / self.median
+
+                else:
+                    spec_scaled = (qso_spectrum.to(self.device) - self.mean_spectrum[0]) / self.median[0]
+
+            except:
+                if qso_spectrum.shape[1] == self.mean_spectrum.shape[0]:
+                    spec_scaled = (qso_spectrum.to(self.device) - self.mean_spectrum.to(self.device)) / self.median.to(self.device)
+
+                else:
+                    spec_scaled = (qso_spectrum.to(self.device) - self.mean_spectrum[0].to(self.device)) / self.median[0].to(self.device)
 
         except:
-            spec_scaled = (qso_spectrum.to(self.device) - self.mean_spectrum.to(self.device)) / self.median.to(self.device)
+            print ("Input shape:", qso_spectrum.shape)
+            embed()
 
         return spec_scaled
 

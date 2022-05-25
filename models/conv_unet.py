@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
+from IPython import embed
 
 class Block(nn.Module):
     def __init__(self, in_ch, out_ch, kernel_size=10, activfunc="relu",\
@@ -189,7 +190,7 @@ class UNet(nn.Module):
         self.out_sz = out_sz
         self.final_skip = final_skip
         if final_skip:
-            self.head = nn.Conv1d(dec_chs[-1]+1, num_class, (1,), padding_mode=padding_mode)
+            self.head = nn.Conv1d(dec_chs[-1]+enc_chs[0], num_class, (1,), padding_mode=padding_mode)
         else:
             self.head = nn.Conv1d(dec_chs[-1], num_class, (1,), padding_mode=padding_mode)
 
@@ -225,7 +226,10 @@ class UNet(nn.Module):
                 x_interp = F.interpolate(x, n_wav)
                 out = torch.cat([out, x_interp], dim=1)
 
-        out = self.head(out)
+        try:
+            out = self.head(out)
+        except:
+            embed()
 
         if self.retain_dim:
             out = F.interpolate(out, self.out_sz)
