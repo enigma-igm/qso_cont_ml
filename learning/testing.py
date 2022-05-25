@@ -137,6 +137,8 @@ class ModelResultsSpectra(ModelResults):
         except:
             ax.plot(self.wave_grid, self.flux[index], alpha=alpha, lw=1,
                     label="Mock spectrum")
+
+        if self.noise is not None:
             ax.plot(self.wave_grid, self.noise[index], alpha=alpha, lw=.5,
                     label="Noise", c="green")
 
