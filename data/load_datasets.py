@@ -123,6 +123,7 @@ class SynthSpectra(Spectra):
                                                                         wave_split=wave_split,
                                                                         boss=boss)
             elif noise & hetsced:
+                print ("Using noise & hetsced in SynthSpectra")
                 wave_grid, cont, flux, flux_smooth, ivar = load_synth_spectra(regridded,
                                                                               small=False,
                                                                               npca=npca,

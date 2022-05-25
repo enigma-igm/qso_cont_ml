@@ -15,7 +15,6 @@ class ModelResults:
     def __init__(self, testset, net, scaler_flux=None,\
                  scaler_cont=None, smooth=False):
         self.wave_grid = testset.wave_grid
-        self.flux = testset.flux
         self.cont = testset.cont
         self.scaler_flux = scaler_flux
         self.scaler_cont = scaler_cont
@@ -23,6 +22,11 @@ class ModelResults:
         self.smooth = smooth
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        if testset.ivar is None:
+            self.flux = testset.flux
+        else:
+            self.flux = testset.flux[:,0,:]
 
         if scaler_flux is None:
             self.use_QSOScaler = False
@@ -82,6 +86,14 @@ class ModelResults:
         else:
             self.cont_true_scaled_np = self.cont
 
+        # extract the noise vectors if available
+        if testset.ivar is not None:
+            self.ivar = testset.ivar.cpu().detach().numpy()
+            self.noise = 1 / np.sqrt(self.ivar)
+        else:
+            self.ivar = None
+            self.noise = None
+
 
 class ModelResultsSpectra(ModelResults):
     '''Class for example spectra from the test set and the corresponding model predictions.'''
@@ -125,8 +137,10 @@ class ModelResultsSpectra(ModelResults):
             ax.plot(self.wave_grid, self.flux[index].squeeze(), alpha=alpha, lw=1, \
                     label="Mock spectrum")
         except:
-            ax.plot(self.wave_grid, self.flux[index,0], alpha=alpha, lw=1,
+            ax.plot(self.wave_grid, self.flux[index], alpha=alpha, lw=1,
                     label="Mock spectrum")
+            ax.plot(self.wave_grid, self.noise[index], alpha=alpha, lw=.5,
+                    label="Noise", c="green")
 
         ax.plot(self.wave_grid, self.cont[index].squeeze(), alpha=alpha, lw=2, \
                 label="True continuum")
