@@ -95,11 +95,12 @@ def prepNoiseVectors(zmin, zmax):
 
 def rebinNoiseVectors(zmin, zmax, new_wave_grid):
     '''
-    Load empirical BOSS noise vectors and rebin them onto the desired grid.
+    Load empirical BOSS noise vectors and rebin them onto the desired grid. The noise in bad pixels is interpolated
+    over.
 
-    @param zmin:
-    @param zmax:
-    @param new_wave_grid:
+    @param zmin: float
+    @param zmax: float
+    @param new_wave_grid: ndarray of shape (n_pixels,)
     @return:
     '''
 
@@ -112,3 +113,10 @@ def rebinNoiseVectors(zmin, zmax, new_wave_grid):
                                                                    ivar, gpm)
 
     # interpolate bad noise values
+    for i in range(len(ivar_rebin)):
+
+        interpolator = interp1d(new_wave_grid[gpm_rebin[i]], ivar_rebin[i][gpm_rebin[i]], kind="cubic",
+                                bounds_error=False, fill_value="extrapolate")
+        ivar_rebin[i][~gpm_rebin[i]] = interpolator(new_wave_grid[~gpm_rebin[i]])
+
+    return flux_rebin, ivar_rebin, gpm_rebin
