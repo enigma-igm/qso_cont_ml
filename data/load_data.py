@@ -10,6 +10,7 @@ def load_synth_spectra(regridded=True, small=False, npca=10,\
         datapath = "/net/vdesk/data2/buiten/MRP2/pca-sdss-old/"
 
     if bossnoise & regridded:
+        print ("Using bossnoise & regridded in load_synth_spectra")
         # this is the setting we'll most likely be using
         filename = "{}forest_spectra_BOSSnoise_npca{}BOSS-regridded.npy".format(datapath, npca)
         print ("Using bossnoise and regridded in load_synth_spectra")

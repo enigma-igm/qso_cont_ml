@@ -15,6 +15,7 @@ class ModelResults:
     def __init__(self, testset, net, scaler_flux=None,\
                  scaler_cont=None, smooth=False):
         self.wave_grid = testset.wave_grid
+        self.flux = testset.flux
         self.cont = testset.cont
         self.scaler_flux = scaler_flux
         self.scaler_cont = scaler_cont
@@ -22,11 +23,6 @@ class ModelResults:
         self.smooth = smooth
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-        if testset.ivar is None:
-            self.flux = testset.flux
-        else:
-            self.flux = testset.flux[:,0,:]
 
         if scaler_flux is None:
             self.use_QSOScaler = False
@@ -90,9 +86,11 @@ class ModelResults:
         if testset.ivar is not None:
             self.ivar = testset.ivar.cpu().detach().numpy()
             self.noise = 1 / np.sqrt(self.ivar)
+            self.flux = testset.flux[:,0,:]
         else:
             self.ivar = None
             self.noise = None
+            self.flux = testset.flux
 
 
 class ModelResultsSpectra(ModelResults):
