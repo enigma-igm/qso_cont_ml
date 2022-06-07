@@ -2,6 +2,7 @@
 
 from torch.utils.data import Dataset, random_split
 from data.load_data import load_synth_spectra, load_synth_noisy_cont, split_data, normalise_spectra, load_paris_spectra
+from data.load_data import normalise_ivar
 import numpy as np
 #from pypeit.utils import fast_running_median
 import torch
@@ -25,7 +26,7 @@ class Spectra(Dataset):
                 flux_smooth_new = flux_smooth / normfactor
 
                 if ivar is not None:
-                    sigma_noise = sigma_noise / normfactor
+                    ivar = ivar ** normfactor**2
 
             else:
                 if normsmooth:
@@ -34,7 +35,7 @@ class Spectra(Dataset):
                     _, cont = normalise_spectra(wave_grid, flux_smooth, cont)
 
                     if ivar is not None:
-                        _, sigma_noise = normalise_spectra(wave_grid, flux_smooth, sigma_noise)
+                        _, ivar = normalise_ivar(wave_grid, flux_smooth, ivar)
 
                 else:
                     # normalise such that the flux is 1 at 1280 (using a window)
@@ -42,13 +43,10 @@ class Spectra(Dataset):
                     _, cont = normalise_spectra(wave_grid, flux, cont)
 
                     if ivar is not None:
-                        _, sigma_noise = normalise_spectra(wave_grid, flux, sigma_noise)
+                        _, ivar = normalise_ivar(wave_grid, flux, ivar)
 
                     flux = flux_new
                     flux_smooth_new = flux_smooth
-
-            if ivar is not None:
-                ivar = 1 / sigma_noise**2
 
         else:
             flux_smooth_new = flux_smooth
