@@ -21,18 +21,35 @@ class Spectra(Dataset):
                 flux = flux / normfactor
                 flux_smooth_new = flux_smooth / normfactor
 
+                if ivar is not None:
+                    ivar = normfactor**2 * ivar
+
             else:
+
+                if ivar is not None:
+                    sigma_noise = 1 / np.sqrt(ivar)
+
                 if normsmooth:
                     # normalise such that the smoothed flux is 1 at 1280 (using a window)
                     flux_smooth_new, flux = normalise_spectra(wave_grid, flux_smooth, flux)
                     _, cont = normalise_spectra(wave_grid, flux_smooth, cont)
 
+                    if ivar is not None:
+                        _, sigma_noise = normalise_spectra(wave_grid, flux_smooth, sigma_noise)
+
                 else:
                     # normalise such that the flux is 1 at 1280 (using a window)
                     flux_new, flux_smooth = normalise_spectra(wave_grid, flux, flux_smooth)
                     _, cont = normalise_spectra(wave_grid, flux, cont)
+
+                    if ivar is not None:
+                        _, sigma_noise = normalise_spectra(wave_grid, flux, sigma_noise)
+
                     flux = flux_new
                     flux_smooth_new = flux_smooth
+
+                if ivar is not None:
+                    ivar = 1 / sigma_noise**2
 
         else:
             flux_smooth_new = flux_smooth
