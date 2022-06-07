@@ -133,6 +133,8 @@ class SynthSpectra(Spectra):
                                                                               boss=boss,
                                                                               hetsced=hetsced,
                                                                               bossnoise=bossnoise)
+                print ("ivar in SynthSpectra:", ivar)
+
             else:
                 wave_grid, cont, flux = load_synth_spectra(regridded, small, npca,\
                                                            noise=False,\
@@ -161,9 +163,16 @@ class SynthSpectra(Spectra):
 
         splitsets = []
         for el in [trainset, validset, testset]:
-            splitsets.append(Spectra(self.wave_grid, self.cont[el.indices],\
-                                     self.flux[el.indices], self.flux_smooth[el.indices],\
-                                     norm1280=False, ivar=self.ivar))
+
+            if self.ivar is not None:
+                splitsets.append(Spectra(self.wave_grid, self.cont[el.indices],\
+                                         self.flux[el.indices], self.flux_smooth[el.indices],\
+                                         norm1280=False, ivar=self.ivar[el.indices]))
+
+            else:
+                splitsets.append(Spectra(self.wave_grid, self.cont[el.indices],
+                                         self.flux[el.indices], self.flux_smooth[el.indices],
+                                         norm1280=False, ivar=None))
 
         self.trainset, self.validset, self.testset = splitsets
 

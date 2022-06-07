@@ -15,7 +15,7 @@ from pypeit.utils import fast_running_median
 from qso_fitting.data.utils import rebin_spectra
 import astropy.constants as const
 from matplotlib.ticker import AutoMinorLocator
-from data.empirical_noise import rebinNoiseVectors
+from data.empirical_noise import rebinNoiseVectors, interpBadPixels
 
 import os
 print ("SPECDB environment: {}".format(os.getenv("SPECDB")))
@@ -69,11 +69,13 @@ theta = Prox.sample_theta(nsamp)
 cont_prox, flux_prox = Prox.simulator(theta, replace=(nsamp > nskew),\
                                       ivar=None)
 
+zmin = z_qso - 0.01
+zmax = z_qso + 0.01
 # normalise to one at 1280 \AA
 flux_norm, cont_norm = normalise_spectra(wave_rest, flux_prox, cont_prox)
 
 # now add noise from empirical noise vectors
-flux_boss, ivar_boss, gpm_boss = rebinNoiseVectors(2.79, 2.81, wave_rest)
+flux_boss, ivar_boss, gpm_boss = rebinNoiseVectors(zmin, zmax, wave_rest)
 
 # assign empirical noise vectors to generated spectra at random
 rand_idx = np.random.randint(0, len(ivar_boss), size=len(flux_norm))
@@ -116,8 +118,10 @@ wave_split = wave_1216
 
 wave_grid, dvpix_diff, ipix_blu, ipix_red = get_blu_red_wave_grid(wave_min, wave_max,\
                                                                   wave_split, dvpix, dvpix_red)
+
 cont_blu_red = interpolate.interp1d(wave_rest, cont_norm, kind="cubic", bounds_error=False,\
                                     fill_value="extrapolate", axis=1)(wave_grid)
+
 flux_blu_red, ivar_rebin, gpm_rebin, count_rebin = rebin_spectra(wave_grid,\
                                                                  wave_rest,\
                                                                  flux_norm_noisy,\
@@ -126,17 +130,20 @@ flux_blu_red, ivar_rebin, gpm_rebin, count_rebin = rebin_spectra(wave_grid,\
 flux_smooth_blu_red, _, _, _ = rebin_spectra(wave_grid, wave_rest, flux_smooth,\
                                              ivar_smooth, gpm=gpm_norm)
 
+# properly rebin the hybrid-grid noise vectors (i.e. with interpolation)
+ivar_rebin = interpBadPixels(wave_grid, ivar_rebin, gpm_rebin)
+sigma_rebin = 1 / np.sqrt(ivar_rebin)
 
 # plot a random example and its noise vector
 
 idx = np.random.randint(0, len(cont_norm))
 
 fig, ax = plt.subplots(dpi=240)
-ax.plot(wave_rest, cont_norm[idx], alpha=0.7, label="Continuum")
-ax.plot(wave_rest, flux_norm_noisy[idx], alpha=0.5, label="Noisy spectrum", lw=.5)
-ax.plot(wave_rest, flux_smooth[idx], alpha=0.7, color="navy", ls="--",\
+ax.plot(wave_grid, cont_blu_red[idx], alpha=0.7, label="Continuum")
+ax.plot(wave_grid, flux_blu_red[idx], alpha=0.5, label="Noisy spectrum", lw=.5)
+ax.plot(wave_grid, flux_smooth_blu_red[idx], alpha=0.7, color="navy", ls="--",\
         label="Smoothed flux", lw=.5)
-ax.plot(wave_rest, sigma_vectors[idx], alpha=.7, color="darkred", lw=.5, label="Noise vector")
+ax.plot(wave_grid, sigma_rebin[idx], alpha=.7, color="darkred", lw=.5, label="Noise vector")
 ax.set_xlabel("Rest-frame wavelength ($\AA$)")
 ax.set_ylabel("Normalised flux")
 ax.legend()

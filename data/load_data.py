@@ -13,7 +13,6 @@ def load_synth_spectra(regridded=True, small=False, npca=10,\
         print ("Using bossnoise & regridded in load_synth_spectra")
         # this is the setting we'll most likely be using
         filename = "{}forest_spectra_BOSSnoise_npca{}BOSS-regridded.npy".format(datapath, npca)
-        print ("Using bossnoise and regridded in load_synth_spectra")
         data = np.load(filename)
 
     elif bossnoise and not regridded:
@@ -70,6 +69,7 @@ def load_synth_spectra(regridded=True, small=False, npca=10,\
         else:
             flux_smooth = data[:,:,3]
             ivar = data[:,:,4]
+            print ("Loading ivar")
             return wave_grid, qso_cont, qso_flux, flux_smooth, ivar
 
     else:

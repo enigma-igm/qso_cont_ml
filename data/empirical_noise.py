@@ -50,6 +50,27 @@ def loadSpectraBOSS(zmin, zmax):
     return wave_rest, flux_obs, sigma, redshift
 
 
+def interpBadPixels(wave_grid, ivar, gpm):
+    '''
+    Interpolate over (inverse variance) noise vector in bad pixels, using the information of the good pixels.
+
+    @param wave_grid: ndarray of shape (n_wav,)
+    @param ivar:
+    @param gpm:
+    @return:
+    '''
+
+    new_ivar = np.copy(ivar)
+
+    for i in range(len(ivar)):
+
+        interpolator = interp1d(wave_grid[gpm[i]], ivar[i][gpm[i]], kind="cubic", axis=-1, bounds_error=False,
+                            fill_value="extrapolate")
+        new_ivar[i][~gpm[i]] = interpolator(wave_grid[~gpm[i]])
+
+    return new_ivar
+
+
 def prepNoiseVectors(zmin, zmax):
     '''
     Load the BOSS spectra and prep them such that the noise vectors can be used for the synthetic spectra. The noise
