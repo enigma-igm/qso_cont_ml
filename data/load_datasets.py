@@ -80,7 +80,7 @@ class Spectra(Dataset):
 
         reshaped_specs = []
         for spec in [self.flux, self.flux_smooth, self.cont]:
-            spec = spec.reshape((len(spec), n_channels, spec.shape[1]))
+            spec = spec.reshape((len(spec), n_channels, spec.shape[-1]))
             reshaped_specs.append(spec)
 
         self.flux = reshaped_specs[0]
