@@ -169,7 +169,7 @@ class SynthSpectra(Spectra):
                                            norm1280, window=window, newnorm=newnorm,
                                            ivar=ivar)
 
-    def split(self):
+    def split(self, usenoise=True):
         '''Needs to change to keep flux and flux_smooth together.
         Can use torch.utils.data.dataset.random_split()'''
 
@@ -180,7 +180,7 @@ class SynthSpectra(Spectra):
         splitsets = []
         for el in [trainset, validset, testset]:
 
-            if self.ivar is not None:
+            if (self.ivar is not None) & usenoise:
 
                 set = Spectra(self.wave_grid, self.cont[el.indices],
                               self.flux[el.indices], self.flux_smooth[el.indices],
