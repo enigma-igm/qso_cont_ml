@@ -71,8 +71,15 @@ class Trainer:
 
         elif scalertype=="MedianScaler":
 
+            if (globscalers=="cont") & (len(flux.shape) > 2) & (flux.shape[1] > 1):
+                cont_extend = torch.unsqueeze(cont, dim=1)
+                cont_ivar = torch.cat((cont_extend, flux[:,1,:]), dim=1)
+                cont_mean = torch.mean(cont_ivar, dim=0)
+
+            else:
+                cont_mean = torch.mean(cont, dim=0)
+
             flux_mean = torch.mean(flux, dim=0)
-            cont_mean = torch.mean(cont, dim=0)
 
             scaler_flux = MedianScaler(flux_mean, floorval)
             scaler_cont = MedianScaler(cont_mean, floorval)
