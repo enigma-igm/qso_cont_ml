@@ -13,8 +13,11 @@ class Spectra(Dataset):
 #        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.wave_grid = wave_grid
 
-        if ivar is not None:
-            sigma_noise = 1 / np.sqrt(ivar)
+        # if the ivar is already concatenated onto the flux, remove it
+        # this prevents incorrect normalisation of the noise
+        # particularly for splitting a set into train/validation/test
+        if len(flux.shape) == 3:
+            flux = flux[:,0,:]
 
         if norm1280:
             if newnorm:
@@ -178,9 +181,12 @@ class SynthSpectra(Spectra):
         for el in [trainset, validset, testset]:
 
             if self.ivar is not None:
-                splitsets.append(Spectra(self.wave_grid, self.cont[el.indices],\
-                                         self.flux[el.indices], self.flux_smooth[el.indices],\
-                                         norm1280=False, ivar=self.ivar[el.indices]))
+
+                set = Spectra(self.wave_grid, self.cont[el.indices],
+                              self.flux[el.indices], self.flux_smooth[el.indices],
+                              norm1280=False, ivar=self.ivar[el.indices])
+                set.add_noise_channel()
+                splitsets.append(set)
 
             else:
                 splitsets.append(Spectra(self.wave_grid, self.cont[el.indices],
