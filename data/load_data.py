@@ -69,7 +69,8 @@ def load_synth_spectra(regridded=True, small=False, npca=10,\
         else:
             flux_smooth = data[:,:,3]
             ivar = data[:,:,4]
-            print ("Loading ivar")
+            print ("ivar in load_data:", ivar)
+            print ("sigma in load_data:", 1 / np.sqrt(ivar))
             return wave_grid, qso_cont, qso_flux, flux_smooth, ivar
 
     else:

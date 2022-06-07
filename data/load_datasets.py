@@ -134,6 +134,7 @@ class SynthSpectra(Spectra):
                                                                               hetsced=hetsced,
                                                                               bossnoise=bossnoise)
                 print ("ivar in SynthSpectra:", ivar)
+                print ("sigma in SynthSpectra:", 1/torch.sqrt(ivar))
 
             else:
                 wave_grid, cont, flux = load_synth_spectra(regridded, small, npca,\
