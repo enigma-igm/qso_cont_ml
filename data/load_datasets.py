@@ -12,6 +12,9 @@ class Spectra(Dataset):
 #        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.wave_grid = wave_grid
 
+        if ivar is not None:
+            sigma_noise = 1 / np.sqrt(ivar)
+
         if norm1280:
             if newnorm:
                 # normalise by dividing everything by the smoothed flux at 1280 A
@@ -22,13 +25,9 @@ class Spectra(Dataset):
                 flux_smooth_new = flux_smooth / normfactor
 
                 if ivar is not None:
-                    ivar = normfactor**2 * ivar
+                    sigma_noise = sigma_noise / normfactor
 
             else:
-
-                if ivar is not None:
-                    sigma_noise = 1 / np.sqrt(ivar)
-
                 if normsmooth:
                     # normalise such that the smoothed flux is 1 at 1280 (using a window)
                     flux_smooth_new, flux = normalise_spectra(wave_grid, flux_smooth, flux)
@@ -48,8 +47,8 @@ class Spectra(Dataset):
                     flux = flux_new
                     flux_smooth_new = flux_smooth
 
-                if ivar is not None:
-                    ivar = 1 / sigma_noise**2
+            if ivar is not None:
+                ivar = 1 / sigma_noise**2
 
         else:
             flux_smooth_new = flux_smooth
