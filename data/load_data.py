@@ -19,7 +19,7 @@ def load_synth_spectra(regridded=True, small=False, npca=10,\
         filename = "{}forest_spectra_BOSSnoise_npca{}BOSS-grid.npy".format(datapath, npca)
         data = np.load(filename)
 
-    if noise:
+    elif noise:
         if boss:
             if (not hetsced) & regridded:
                 data = np.load(datapath + "forest_spectra_with_noiseSN"+str(SN)+"_npca"+str(npca)+"BOSS-regridded.npy")
@@ -62,6 +62,8 @@ def load_synth_spectra(regridded=True, small=False, npca=10,\
     qso_cont = data[:,:,1]
     qso_flux = data[:,:,2]
 
+    print ("Filename:", filename)
+
     if noise:
         if not hetsced:
             flux_smooth = data[:,:,3]
@@ -69,8 +71,6 @@ def load_synth_spectra(regridded=True, small=False, npca=10,\
         else:
             flux_smooth = data[:,:,3]
             ivar = data[:,:,4]
-            print ("ivar in load_data:", ivar)
-            print ("sigma in load_data:", 1 / np.sqrt(ivar))
             return wave_grid, qso_cont, qso_flux, flux_smooth, ivar
 
     else:
