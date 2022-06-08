@@ -131,7 +131,11 @@ flux_smooth_blu_red, _, _, _ = rebin_spectra(wave_grid, wave_rest, flux_smooth,\
                                              ivar_smooth, gpm=gpm_norm)
 
 # properly rebin the hybrid-grid noise vectors (i.e. with interpolation)
-ivar_rebin = interpBadPixels(wave_grid, ivar_rebin, gpm_rebin)
+#ivar_rebin = interpBadPixels(wave_grid, ivar_rebin, gpm_rebin)
+ivar_rebin = interpBadPixels(wave_grid, ivar_rebin, gpm=None)
+
+# dirty fix to deal with zero-valued ivars
+ivar_rebin[ivar_rebin == 0] = 1e-10
 sigma_rebin = 1 / np.sqrt(ivar_rebin)
 
 print ("Number of negative ivar pixels:", np.sum(ivar_rebin <= 0))

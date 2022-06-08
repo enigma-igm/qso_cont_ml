@@ -50,7 +50,7 @@ def loadSpectraBOSS(zmin, zmax):
     return wave_rest, flux_obs, sigma, redshift
 
 
-def interpBadPixels(wave_grid, ivar, gpm):
+def interpBadPixels(wave_grid, ivar, gpm=None):
     '''
     Interpolate over (inverse variance) noise vector in bad pixels, using the information of the good pixels.
     We also interpolate over pixels where ivar < 0.
@@ -63,10 +63,14 @@ def interpBadPixels(wave_grid, ivar, gpm):
 
     new_ivar = np.copy(ivar)
 
+    if gpm is None:
+        gpm = np.ones_like(ivar, dtype=bool)
+
     for i in range(len(ivar)):
 
         nan_ivar = ~np.isfinite(ivar[i])
         neg_ivar = ivar[i] <= 0
+
         bad = nan_ivar | neg_ivar | ~gpm[i]
         interpolator = interp1d(wave_grid[~bad], ivar[i][~bad], kind="cubic", axis=-1,
                                 bounds_error=False, fill_value="extrapolate")
@@ -139,10 +143,14 @@ def rebinNoiseVectors(zmin, zmax, new_wave_grid):
                                                                    ivar, gpm)
 
     # interpolate bad noise values
+    ivar_rebin = interpBadPixels(new_wave_grid, ivar_rebin, gpm=None)
+
+    '''
     for i in range(len(ivar_rebin)):
 
         interpolator = interp1d(new_wave_grid[gpm_rebin[i]], ivar_rebin[i][gpm_rebin[i]], kind="cubic",
                                 bounds_error=False, fill_value="extrapolate")
         ivar_rebin[i][~gpm_rebin[i]] = interpolator(new_wave_grid[~gpm_rebin[i]])
+    '''
 
     return flux_rebin, ivar_rebin, gpm_rebin
