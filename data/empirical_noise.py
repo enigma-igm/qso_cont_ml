@@ -53,6 +53,7 @@ def loadSpectraBOSS(zmin, zmax):
 def interpBadPixels(wave_grid, ivar, gpm):
     '''
     Interpolate over (inverse variance) noise vector in bad pixels, using the information of the good pixels.
+    We also interpolate over pixels where ivar < 0.
 
     @param wave_grid: ndarray of shape (n_wav,)
     @param ivar:
@@ -64,9 +65,10 @@ def interpBadPixels(wave_grid, ivar, gpm):
 
     for i in range(len(ivar)):
 
-        interpolator = interp1d(wave_grid[gpm[i]], ivar[i][gpm[i]], kind="cubic", axis=-1, bounds_error=False,
-                            fill_value="extrapolate")
-        new_ivar[i][~gpm[i]] = interpolator(wave_grid[~gpm[i]])
+        neg_ivar = ivar[i] <= 0
+        interpolator = interp1d(wave_grid[gpm[i] & ~neg_ivar], ivar[i][gpm[i] & ~neg_ivar], kind="cubic", axis=-1,
+                                bounds_error=False, fill_value="extrapolate")
+        new_ivar[i][~gpm[i] | neg_ivar] = interpolator(wave_grid[~gpm[i] | neg_ivar])
 
     return new_ivar
 

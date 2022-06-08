@@ -134,6 +134,8 @@ flux_smooth_blu_red, _, _, _ = rebin_spectra(wave_grid, wave_rest, flux_smooth,\
 ivar_rebin = interpBadPixels(wave_grid, ivar_rebin, gpm_rebin)
 sigma_rebin = 1 / np.sqrt(ivar_rebin)
 
+print ("Number of negative ivar pixels:", np.sum(ivar_rebin <= 0))
+
 # plot a random example and its noise vector
 
 idx = np.random.randint(0, len(cont_norm))
