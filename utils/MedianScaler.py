@@ -69,7 +69,12 @@ class MedianScaler:
 
     def backward(self, Y):
 
-        if self.n_channels > 1:
+        if len(Y.shape) == 2:
+            n_channels_input = 1
+        else:
+            n_channels_input = Y.shape[1]
+
+        if n_channels_input < self.n_channels:
             spec = Y.to(self.device) * self.median[0] + self.mean_spectrum[0]
         else:
             spec = Y.to(self.device) * self.median + self.mean_spectrum
