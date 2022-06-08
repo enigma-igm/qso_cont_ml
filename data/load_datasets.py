@@ -189,9 +189,10 @@ class SynthSpectra(Spectra):
                 splitsets.append(set)
 
             else:
-                splitsets.append(Spectra(self.wave_grid, self.cont[el.indices],
-                                         self.flux[el.indices], self.flux_smooth[el.indices],
-                                         norm1280=False, ivar=None))
+                set = Spectra(self.wave_grid, self.cont[el.indices], self.flux[el.indices],
+                              self.flux_smooth[el.indices], norm1280=False, ivar=None)
+                set.add_channel_shape()
+                splitsets.append(set)
 
         self.trainset, self.validset, self.testset = splitsets
 
