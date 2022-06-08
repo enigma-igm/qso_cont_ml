@@ -24,6 +24,13 @@ class MedianScaler:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.mean_spectrum = torch.tensor(mean_spectrum).float().to(self.device)
 
+        # deduce the number of channels when constructing the scaler
+        # if a noise channel is involved, the number of channels will be 2
+        if len(mean_spectrum.shape) == 1:
+            self.n_channels = 1
+        else:
+            self.n_channels = mean_spectrum.shape[0]
+
         median = torch.median(self.mean_spectrum, dim=-1)
 
         # have to add the floor value row-wise
@@ -37,7 +44,12 @@ class MedianScaler:
 
     def forward(self, qso_spectrum):
 
-        if (qso_spectrum.shape[1] != self.mean_spectrum.shape[0]) & (qso_spectrum.shape[1] > 1):
+        if len(qso_spectrum.shape) == 2:
+            n_channels_input = 1
+        else:
+            n_channels_input = qso_spectrum.shape[1]
+
+        if n_channels_input < self.n_channels:
             spec_scaled = (qso_spectrum.to(self.device) - self.mean_spectrum[0]) / self.median[0]
 
         else:
@@ -57,13 +69,21 @@ class MedianScaler:
 
     def backward(self, Y):
 
+        if self.n_channels > 1:
+            spec = Y.to(self.device) * self.median[0] + self.mean_spectrum[0]
+        else:
+            spec = Y.to(self.device) * self.median + self.mean_spectrum
+
+        '''
         try:
             spec = Y.to(self.device) * self.median + self.mean_spectrum
 
         except:
             spec = Y.to(self.device) * self.median.to(self.device) + self.mean_spectrum.to(self.device)
+        '''
 
         return spec
+
 
     def updateDevice(self):
         """
