@@ -143,8 +143,8 @@ idx = np.random.randint(0, len(cont_norm))
 fig, ax = plt.subplots(dpi=240)
 ax.plot(wave_grid, cont_blu_red[idx], alpha=0.7, label="Continuum")
 ax.plot(wave_grid, flux_blu_red[idx], alpha=0.5, label="Noisy spectrum", lw=.5)
-ax.plot(wave_grid, flux_smooth_blu_red[idx], alpha=0.7, color="navy", ls="--",\
-        label="Smoothed flux", lw=.5)
+#ax.plot(wave_grid, flux_smooth_blu_red[idx], alpha=0.7, color="navy", ls="--",\
+#        label="Smoothed flux", lw=.5)
 ax.plot(wave_grid, sigma_rebin[idx], alpha=.7, color="darkred", lw=.5, label="Noise vector")
 ax.set_xlabel("Rest-frame wavelength ($\AA$)")
 ax.set_ylabel("Normalised flux")
@@ -159,6 +159,15 @@ fig.show()
 
 figpath = "/net/vdesk/data2/buiten/MRP2/misc-figures/hetsced-noise/BOSS-noise/"
 fig.savefig("{}synthspec-BOSSnoise-example{}.png".format(figpath, idx))
+
+# plot the mean of the ivar across the spectrum
+ivar_mean_spec = np.mean(ivar_rebin, axis=0)
+fig2, ax2 = plt.subplots(dpi=240)
+ax2.plot(wave_grid, ivar_mean_spec)
+ax2.set_xlabel(r"Rest-frame wavelength ($\AA$)")
+ax2.set_ylabel(r"Normalised ivar (a.u.)")
+ax2.set_title("Mean of ivar noise across spectrum")
+fig2.show()
 
 # save the grid, continuum and noisy continuum to an array
 savearray = np.zeros((nsamp, len(wave_rest), 5))

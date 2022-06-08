@@ -65,10 +65,12 @@ def interpBadPixels(wave_grid, ivar, gpm):
 
     for i in range(len(ivar)):
 
+        nan_ivar = ~np.isfinite(ivar[i])
         neg_ivar = ivar[i] <= 0
-        interpolator = interp1d(wave_grid[gpm[i] & ~neg_ivar], ivar[i][gpm[i] & ~neg_ivar], kind="cubic", axis=-1,
+        bad = nan_ivar | neg_ivar | ~gpm[i]
+        interpolator = interp1d(wave_grid[~bad], ivar[i][~bad], kind="cubic", axis=-1,
                                 bounds_error=False, fill_value="extrapolate")
-        new_ivar[i][~gpm[i] | neg_ivar] = interpolator(wave_grid[~gpm[i] | neg_ivar])
+        new_ivar[i][~bad] = interpolator(wave_grid[~bad])
 
     return new_ivar
 
@@ -98,12 +100,13 @@ def prepNoiseVectors(zmin, zmax):
     '''
     for i in range(len(wave_rest)):
 
-        zero_noise = (sigma[i] == 0)
+        nan_noise = ~np.isfinite(sigma[i])
+        neg_noise = (sigma[i] <= 0)
         bad_wav = (wave_rest[i] <= 0)
-        gpm = ~zero_noise & ~bad_wav
+        gpm = ~neg_noise & ~bad_wav & ~nan_noise
         interpolator = interp1d(wave_rest[i][gpm], sigma[i][gpm], kind="cubic", axis=-1, bounds_error=False,
                                 fill_value="extrapolate")
-        sigma[i][~zero_noise] = interpolator(wave_rest[i][~zero_noise])
+        sigma[i][~gpm] = interpolator(wave_rest[i][~gpm])
 
     # make a good pixel mask indicating where the wavelength is > 0
     gpm = np.zeros_like(wave_rest, dtype=bool)
