@@ -29,14 +29,14 @@ class UNetTrainer(Trainer):
               use_QSOScalers=False, smooth=False,\
               use_DoubleScalers=False, loss_space="real-rel",\
               globscalers="both", weight=False, weightpower=1,\
-              edgepixels=None, scalertype="QuasarScaler"):
+              edgepixels=None, scalertype="QuasarScaler", scaler_floorval=0.05):
         '''DoubleScaler training currently does not work properly!'''
 
         # use the QSOScaler
         if use_QSOScalers:
 
             self._train_glob_scalers(trainset, globscalers=globscalers,\
-                                     scalertype=scalertype)
+                                     scalertype=scalertype, floorval=scaler_floorval)
 
         elif use_DoubleScalers:
             pass
