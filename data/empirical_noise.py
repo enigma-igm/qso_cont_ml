@@ -102,6 +102,7 @@ def prepNoiseVectors(zmin, zmax):
     dvpix = dloglam * c_light * np.log(10)
     wave_rest =
     '''
+
     for i in range(len(wave_rest)):
 
         nan_noise = ~np.isfinite(sigma[i])
@@ -113,9 +114,17 @@ def prepNoiseVectors(zmin, zmax):
         sigma[i][~gpm] = interpolator(wave_rest[i][~gpm])
 
     # make a good pixel mask indicating where the wavelength is > 0
+    # and the 1sigma noise is > 0
     gpm = np.zeros_like(wave_rest, dtype=bool)
     for i in range(len(wave_rest)):
-        gpm[i] = (wave_rest[i] > 0)
+        gpm[i] = (wave_rest[i] > 0) & (sigma[i] > 0)
+
+    # in places where the rest-frame wavelength is listed as 0, sigma is either negative or ~1e10
+    # the latter MUST be taken into account in the next steps
+
+    print ("Number of good noise values:", np.sum(gpm))
+    print ("Number of negative noise values:", np.sum(sigma < 0))
+    print ("Number of zero-valued noise values:", np.sum(sigma == 0))
 
     # normalise the noise vectors
     flux_norm, sigma_norm = normalise_spectra(wave_rest, flux_obs, sigma)
@@ -136,14 +145,33 @@ def rebinNoiseVectors(zmin, zmax, new_wave_grid):
 
     # load the data and convert noise vectors to inverse variance vectors
     wave_rest, flux_norm, sigma_norm, redshift, gpm = prepNoiseVectors(zmin, zmax)
-    ivar = 1 / sigma_norm**2
+
+    # set the ivar in bad pixels to 0
+    # they will be interpolated over in interpBadPixels
+    ivar = np.zeros_like(sigma_norm)
+    ivar[~gpm] = 0.
+    ivar[gpm] = 1 / sigma_norm[gpm]**2
 
     # rebin onto the grid of the desired grid
     flux_rebin, ivar_rebin, gpm_rebin, count_rebin = rebin_spectra(new_wave_grid, wave_rest, flux_norm,
                                                                    ivar, gpm)
 
     # interpolate bad noise values
-    ivar_rebin = interpBadPixels(new_wave_grid, ivar_rebin, gpm=None)
+    ivar_rebin = interpBadPixels(new_wave_grid, ivar_rebin, gpm=gpm_rebin)
+
+    # select spectra which still exhibit bad ivar values and remove them
+    bad_spec_idcs = np.unique(np.argwhere(ivar_rebin <= 0)[:,0])
+
+    print ("Number of bad BOSS spectra:", len(bad_spec_idcs))
+
+    flux_final = np.delete(flux_rebin, bad_spec_idcs, axis=0)
+    ivar_final = np.delete(ivar_rebin, bad_spec_idcs, axis=0)
+    gpm_final = np.delete(gpm_rebin, bad_spec_idcs, axis=0)
+
+    if np.sum(ivar_final <= 0) != 0:
+        embed()
+
+    print ("Number of BOSS spectra left after removing bad spectra:", len(ivar_final))
 
     '''
     for i in range(len(ivar_rebin)):
@@ -153,4 +181,5 @@ def rebinNoiseVectors(zmin, zmax, new_wave_grid):
         ivar_rebin[i][~gpm_rebin[i]] = interpolator(new_wave_grid[~gpm_rebin[i]])
     '''
 
-    return flux_rebin, ivar_rebin, gpm_rebin
+    #return flux_rebin, ivar_rebin, gpm_rebin
+    return flux_final, ivar_final, gpm_final

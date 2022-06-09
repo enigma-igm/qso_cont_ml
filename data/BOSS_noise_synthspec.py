@@ -45,6 +45,20 @@ wave_rest = get_wave_grid(wave_min, wave_max, dvpix)
 mags = np.full(5, 18.5)
 z_qso = 2.8
 
+# load empirical noise vectors
+zmin = z_qso - 0.01
+zmax = z_qso + 0.01
+flux_boss, ivar_boss, gpm_boss = rebinNoiseVectors(zmin, zmax, wave_rest)
+
+print ("Number of negative/zero-valued ivar values:", np.sum(ivar_boss <= 0))
+
+fig0, ax0 = plt.subplots(dpi=240)
+ax0.hist(ivar_boss[ivar_boss > 0])
+fig0.suptitle("Positive BOSS ivar values")
+ax0.set_xlabel("ivar noise")
+ax0.set_ylabel("Occurrences")
+fig0.show()
+
 iforest = (wave_rest > wave_1025) & (wave_rest < wave_1216)
 z_lya = wave_rest[iforest]*(1.0 + z_qso)/wave_1216 - 1.0
 mean_flux_z = F_onorbe(z_lya)
@@ -69,13 +83,8 @@ theta = Prox.sample_theta(nsamp)
 cont_prox, flux_prox = Prox.simulator(theta, replace=(nsamp > nskew),\
                                       ivar=None)
 
-zmin = z_qso - 0.01
-zmax = z_qso + 0.01
 # normalise to one at 1280 \AA
 flux_norm, cont_norm = normalise_spectra(wave_rest, flux_prox, cont_prox)
-
-# now add noise from empirical noise vectors
-flux_boss, ivar_boss, gpm_boss = rebinNoiseVectors(zmin, zmax, wave_rest)
 
 # assign empirical noise vectors to generated spectra at random
 rand_idx = np.random.randint(0, len(ivar_boss), size=len(flux_norm))
@@ -131,11 +140,11 @@ flux_smooth_blu_red, _, _, _ = rebin_spectra(wave_grid, wave_rest, flux_smooth,\
                                              ivar_smooth, gpm=gpm_norm)
 
 # properly rebin the hybrid-grid noise vectors (i.e. with interpolation)
-#ivar_rebin = interpBadPixels(wave_grid, ivar_rebin, gpm_rebin)
-ivar_rebin = interpBadPixels(wave_grid, ivar_rebin, gpm=None)
+ivar_rebin = interpBadPixels(wave_grid, ivar_rebin, gpm_rebin)
+#ivar_rebin = interpBadPixels(wave_grid, ivar_rebin, gpm=None)
 
 # dirty fix to deal with zero-valued ivars
-ivar_rebin[ivar_rebin == 0] = 1e-10
+#ivar_rebin[ivar_rebin == 0] = 1e-10
 sigma_rebin = 1 / np.sqrt(ivar_rebin)
 
 print ("Number of negative ivar pixels:", np.sum(ivar_rebin <= 0))
