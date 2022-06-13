@@ -151,6 +151,10 @@ class Decoder(nn.Module):
             else:
                 # try interpolation rather than cropping
                 # interpolate the encoder output onto the dimensions of the decoder output
+
+                # MAJOR bug fix: added up-convolution here
+                x = self.upconvs[i](x)
+
                 _, _, n_wav = x.shape
                 enc_ftrs = F.interpolate(encoder_features[i], n_wav)
                 x = torch.cat([x, enc_ftrs], dim=1)
