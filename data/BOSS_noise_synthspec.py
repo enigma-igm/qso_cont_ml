@@ -75,7 +75,7 @@ pcafile = '/net/vdesk/data2/buiten/MRP2/Data/' + pcafilename
 Prox = Proximity(wave_rest, fwhm, z_qso, mags, nskew, mean_flux_range, nF, npca, pcafile, nlogL=nlogL)
 
 # set the number of spectra to generate
-nsamp = 1250
+nsamp = 25000
 
 theta = Prox.sample_theta(nsamp)
 
@@ -194,10 +194,10 @@ for i in range(nsamp):
     savearray_regridded[i,:,4] = ivar_rebin[i,:]
 
 savepath = "/net/vdesk/data2/buiten/MRP2/pca-sdss-old/"
-np.save(savepath+"forest_spectra_BOSSnoise_npca"+str(npca)+"BOSS-grid_test-only.npy",\
+np.save(savepath+"forest_spectra_BOSSnoise_npca"+str(npca)+"BOSS-grid.npy",\
         savearray)
 print ("Array saved.")
 
-np.save(savepath+"forest_spectra_BOSSnoise_npca"+str(npca)+"BOSS-regridded_test-only.npy",
+np.save(savepath+"forest_spectra_BOSSnoise_npca"+str(npca)+"BOSS-regridded.npy",
         savearray_regridded)
 print ("Regridded array saved.")
