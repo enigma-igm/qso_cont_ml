@@ -75,7 +75,7 @@ pcafile = '/net/vdesk/data2/buiten/MRP2/Data/' + pcafilename
 Prox = Proximity(wave_rest, fwhm, z_qso, mags, nskew, mean_flux_range, nF, npca, pcafile, nlogL=nlogL)
 
 # set the number of spectra to generate
-nsamp = 25000
+nsamp = 1250
 
 theta = Prox.sample_theta(nsamp)
 
@@ -101,13 +101,6 @@ for i in range(nsamp):
     noise_terms[i] = np.random.normal(0, sigma_vectors[i], size=sigma_vectors.shape[-1])
 
 flux_norm_noisy = flux_norm + noise_terms
-
-# smooth the flux before regridding
-flux_smooth = np.zeros(flux_norm_noisy.shape)
-for i, F in enumerate(flux_norm_noisy):
-    flux_smooth[i,:] = fast_running_median(F, window_size=20)
-
-gpm_norm = None
 
 # smooth the flux before regridding
 flux_smooth = np.zeros(flux_norm_noisy.shape)
@@ -201,10 +194,10 @@ for i in range(nsamp):
     savearray_regridded[i,:,4] = ivar_rebin[i,:]
 
 savepath = "/net/vdesk/data2/buiten/MRP2/pca-sdss-old/"
-np.save(savepath+"forest_spectra_BOSSnoise_npca"+str(npca)+"BOSS-grid.npy",\
+np.save(savepath+"forest_spectra_BOSSnoise_npca"+str(npca)+"BOSS-grid_test-only.npy",\
         savearray)
 print ("Array saved.")
 
-np.save(savepath+"forest_spectra_BOSSnoise_npca"+str(npca)+"BOSS-regridded.npy",
+np.save(savepath+"forest_spectra_BOSSnoise_npca"+str(npca)+"BOSS-regridded_test-only.npy",
         savearray_regridded)
 print ("Regridded array saved.")

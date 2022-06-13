@@ -122,7 +122,7 @@ class SynthSpectra(Spectra):
                        noise=True, norm1280=True, forest=True, window=20,\
                 newnorm=False, homosced=True, poisson=False, SN=10,\
                  datapath=None, wave_split=None, boss=True, hetsced=True,
-                 bossnoise=True):
+                 bossnoise=True, test=False):
 
         if not forest:
             wave_grid, cont, flux, flux_smooth = load_synth_noisy_cont(npca, smooth=True,\
@@ -149,7 +149,8 @@ class SynthSpectra(Spectra):
                                                                               wave_split=wave_split,
                                                                               boss=boss,
                                                                               hetsced=hetsced,
-                                                                              bossnoise=bossnoise)
+                                                                              bossnoise=bossnoise,
+                                                                              test=test)
 
             else:
                 wave_grid, cont, flux = load_synth_spectra(regridded, small, npca,\
