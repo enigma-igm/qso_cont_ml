@@ -3,10 +3,11 @@ import torch
 from data.load_datasets import SynthSpectra
 
 class AutofitterSpectra(SynthSpectra):
-    def __init__(self, redshifts, ivar=None, npca=10, SN=10, datapath=None):
+    def __init__(self, redshifts, ivar=None, npca=10, SN=10, datapath=None, test=False):
         '''Needs clean splitter method.'''
 
-        super().__init__(regridded=False, npca=npca, noise=True, SN=SN, datapath=datapath, boss=True)
+        super().__init__(regridded=False, npca=npca, noise=True, SN=SN, datapath=datapath, boss=True,
+                         test=test)
 
         self.n_qso = self.flux.shape[0]
         self.n_pix = self.flux.shape[-1]
@@ -25,6 +26,8 @@ class AutofitterSpectra(SynthSpectra):
         if ivar is None:
             # assume homoscedastic noise described by the given signal-to-noise ratio
             self.ivar = np.full((self.n_qso, self.n_pix), SN**2)
+        elif self.ivar is not None:
+            pass
         else:
             self.ivar = ivar
 

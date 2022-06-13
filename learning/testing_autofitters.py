@@ -134,6 +134,14 @@ class AutofitterRelResids(AutofitterPredictions):
         self.std_resid = np.std(self.rel_resid)
         self.mad_resid = mad_std(self.rel_resid)
 
+        percent_min_1sig = np.percentile(self.rel_resid, 100.*norm.cdf(-1.), axis=0)
+        percent_plu_1sig = np.percentile(self.rel_resid, 100.*norm.cdf(1.), axis=0)
+        self.percentile_std = (percent_plu_1sig - percent_min_1sig) / 2.
+        self.percentile_median = np.percentile(self.rel_resid, 50., axis=0)
+
+        self.sigma_min = percent_min_1sig
+        self.sigma_plu = percent_plu_1sig
+
 
 class AutofitterResidualPlots(AutofitterRelResids):
     def __init__(self, spectra, model="autofitter"):
@@ -175,6 +183,43 @@ class AutofitterResidualPlots(AutofitterRelResids):
         ax.set_xlabel("Rest-frame wavelength ($\AA$)")
         ax.set_ylabel("$\\frac{F_{true} - F_{pred}}{F_{true}}$")
         ax.set_title("Residuals relative to true continuum")
+
+        return fig, ax
+
+
+    def plot_percentiles(self, wave_lims=None):
+
+        if wave_lims is None:
+            grid = self.spectra.wave_grid
+            median_spec = self.percentile_median
+            perc_std_spec = self.percentile_std
+            sigma_min = self.sigma_min
+            sigma_plu = self.sigma_plu
+
+        elif len(wave_lims) == 2:
+            sel = (self.spectra.wave_grid > wave_lims[0]) & (self.spectra.wave_grid < wave_lims[1])
+            grid = self.spectra.wave_grid[sel]
+            median_spec = self.percentile_median[sel]
+            perc_std_spec = self.percentile_std[sel]
+            sigma_min = self.sigma_min[sel]
+            sigma_plu = self.sigma_plu[sel]
+
+        else:
+            raise ValueError("Parameter 'wave_lims' must be an array-like object (wave_min, wave_max).")
+
+        fig, ax = plt.subplots(figsize=(7,5), dpi=320)
+        ax.plot(grid, median_spec, label="Median", color="black")
+        ax.fill_between(grid, sigma_min, sigma_plu, alpha=0.3,\
+                        label=r"$1 \sigma$", color="tab:orange")
+
+        ax.legend()
+        ax.xaxis.set_minor_locator(AutoMinorLocator(5))
+        ax.yaxis.set_minor_locator(AutoMinorLocator(5))
+        ax.grid(which="major")
+        ax.grid(which="minor", linewidth=.1, alpha=.3, color="grey")
+        ax.set_xlabel("Rest-frame wavelength ($\AA$)")
+        ax.set_ylabel("$\\frac{F_{true} - F_{pred}}{F_{true}}$")
+        ax.set_title("Residuals Relative to True Continuum")
 
         return fig, ax
 
