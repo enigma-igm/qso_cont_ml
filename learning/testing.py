@@ -118,7 +118,8 @@ class ModelResultsSpectra(ModelResults):
 
     def plot(self, index, figsize=(7,5), dpi=320, subplotloc=111,\
              alpha=0.7, contpredcolor="darkred", includesmooth=True,\
-             fluxsmoothcolor="navy", drawsplit=True, wave_split=1216):
+             fluxsmoothcolor="navy", drawsplit=True, wave_split=1216,
+             wave_min=1020., wave_max=1970.):
         '''Plot the prediction for the spectrum of a certain index.'''
 
         cont_pred = self.cont_pred_np[index].squeeze()
@@ -165,6 +166,9 @@ class ModelResultsSpectra(ModelResults):
         ax.yaxis.set_minor_locator(AutoMinorLocator(5))
         ax.grid(which="major")
         ax.grid(which="minor", linewidth=.1, alpha=.3, color="grey")
+
+        ax.set_xlim(wave_min, wave_max)
+
         ax.set_title("Results for test spectrum "+str(index+1))
 
         self.axes.append(ax)
@@ -333,7 +337,8 @@ class ResidualPlots(RelResids):
         super(ResidualPlots, self).__init__(testset, net, scaler_flux, scaler_cont, smooth=smooth)
 
 
-    def plot_means(self, show_std=False, drawsplit=True, wave_split=1216):
+    def plot_means(self, show_std=False, drawsplit=True, wave_split=1216,
+                   wave_min=1020., wave_max=1970.):
         '''Plot the mean relative residuals as a function of wavelength, and add the deviations as shaded areas.'''
 
         fig, ax = plt.subplots(figsize=(7,5), dpi=320)
@@ -354,6 +359,9 @@ class ResidualPlots(RelResids):
         ax.grid(which="minor", linewidth=.1, alpha=.3, color="grey")
         ax.set_xlabel("Rest-frame wavelength ($\AA$)")
         ax.set_ylabel("$\\frac{F_{true} - F_{pred}}{F_{true}}$")
+
+        ax.set_xlim(wave_min, wave_max)
+
         ax.set_title("Residuals relative to true continuum")
 
         return fig, ax
