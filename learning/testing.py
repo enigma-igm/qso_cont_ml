@@ -278,6 +278,14 @@ class RelResids(ModelResults):
         self.std_resid = np.std(self.rel_resid)
         self.mad_resid = mad_std(self.rel_resid)
 
+        percent_min_1sig = np.percentile(self.rel_resid, 100. * norm.cdf(-1.), axis=0)
+        percent_plu_1sig = np.percentile(self.rel_resid, 100. * norm.cdf(1.), axis=0)
+        self.percentile_std = (percent_plu_1sig - percent_min_1sig) / 2.
+        self.percentile_median = np.percentile(self.rel_resid, 50., axis=0)
+
+        self.sigma_min = percent_min_1sig
+        self.sigma_plu = percent_plu_1sig
+
 
 class ScaledResids(ModelResults):
     def __init__(self, testset, net, scaler_flux, scaler_cont, smooth=False):
@@ -365,6 +373,29 @@ class ResidualPlots(RelResids):
         ax.set_title("Residuals relative to true continuum")
 
         return fig, ax
+
+
+    def plot_percentiles(self, wave_min=1020., wave_max=1970.):
+
+        fig, ax = plt.subplots(figsize=(7, 5), dpi=320)
+
+        ax.plot(self.wave_grid, self.percentile_median, label="Median", color="black")
+        ax.fill_between(self.wave_grid, self.sigma_min, self.sigma_plu, alpha=0.3, \
+                        label=r"$1 \sigma$", color="tab:orange")
+
+        ax.legend()
+        ax.xaxis.set_minor_locator(AutoMinorLocator(5))
+        ax.yaxis.set_minor_locator(AutoMinorLocator(5))
+        ax.grid(which="major")
+        ax.grid(which="minor", linewidth=.1, alpha=.3, color="grey")
+        ax.set_xlabel("Rest-frame wavelength ($\AA$)")
+        ax.set_ylabel("$\\frac{F_{true} - F_{pred}}{F_{true}}$")
+        ax.set_title("Residuals Relative to True Continuum")
+
+        ax.set_xlim(wave_min, wave_max)
+
+        return fig, ax
+
 
     def resid_hist(self):
 
