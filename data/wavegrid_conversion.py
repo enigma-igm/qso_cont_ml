@@ -115,7 +115,7 @@ class InputSpectra(Dataset):
             interpolated = interpolator(self.wave_grid[~self.gpm[i]])
             flux_good[i][~self.gpm[i]] = interpolated
 
-            goodivar = self.ivar > 0
+            goodivar = self.ivar[i] > 0
             gpm_ivar = self.gpm[i] & goodivar
             interpolator_ivar = interp1d(self.wave_grid[gpm_ivar], self.ivar[i][gpm_ivar], kind="cubic", axis=-1,
                                          fill_value="extrapolate", bounds_error=False)
