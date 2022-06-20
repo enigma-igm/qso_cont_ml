@@ -21,7 +21,12 @@ def load_synth_spectra(regridded=True, small=False, npca=10,\
             data = np.load(filename)
 
     elif bossnoise and not regridded:
-        filename = "{}forest_spectra_BOSSnoise_npca{}BOSS-grid.npy".format(datapath, npca)
+        if test:
+            print ("using test-only uniform grid spectra with BOSS noise.")
+            filename = "{}forest_spectra_BOSSnoise_npca{}BOSS-grid_test-only.npy".format(datapath, npca)
+        else:
+            filename = "{}forest_spectra_BOSSnoise_npca{}BOSS-grid.npy".format(datapath, npca)
+
         data = np.load(filename)
 
     elif noise:

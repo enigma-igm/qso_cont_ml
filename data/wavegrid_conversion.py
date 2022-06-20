@@ -4,7 +4,7 @@ from linetools.lists.linelist import LineList
 from dw_inference.simulator.utils import get_blu_red_wave_grid
 import torch
 from data.load_datasets import Spectra
-from data.load_data import normalise_spectra
+from data.load_data import normalise_spectra, normalise_ivar
 from torch.utils.data import Dataset
 import astropy.constants as const
 from scipy.interpolate import interp1d
@@ -41,6 +41,7 @@ class InputSpectra(Dataset):
 
         self.n_qso = flux.shape[0]
 
+        '''TO DO: make redshifts 2D on new wavelength grid'''
         if isinstance(redshifts, float):
             self.redshifts = np.full(self.n_qso, redshifts)
         elif isinstance(redshifts, np.ndarray):
@@ -63,9 +64,7 @@ class InputSpectra(Dataset):
             wave_split = strong_lines["HI 1215"]["wrest"].value
             
         # normalise the flux and noise
-        noise = 1 / np.sqrt(ivar)
-        flux_norm, noise_norm = normalise_spectra(self.wave_rest_orig, flux, noise)
-        ivar_norm = 1 / noise_norm**2
+        flux_norm, ivar_norm = normalise_ivar(self.wave_rest_orig, flux, ivar)
 
         if cont is not None:
             _, cont_norm = normalise_spectra(self.wave_rest_orig, flux, cont)
@@ -167,3 +166,24 @@ class InputSpectra(Dataset):
 
         self.flux = reshaped_specs[0]
         self.ivar = reshaped_specs[1]
+
+
+    def add_noise_channel(self):
+        '''
+        Add a channel for the noise (ivar) vectors of the spectra.
+        @return:
+        '''
+
+        self.add_channel_shape()
+
+        if self.ivar is None:
+            raise ValueError("No noise vectors provided.")
+
+        else:
+            ivar_reshaped = self.ivar.reshape((len(self.ivar), 1, self.ivar.shape[-1]))
+
+            expanded_specs = []
+            for spec in [self.flux]:
+                expanded_specs.append(torch.cat((spec, ivar_reshaped), dim=1))
+
+            self.flux = expanded_specs[0]
