@@ -54,8 +54,11 @@ class InputSpectra(Dataset):
         self.ivar_orig = ivar
 
         # convert to rest-frame wavelengths if necessary
+        # do this row-wise
         if not restframe:
-            self.wave_rest_orig = wave_grid / (1 + redshifts)
+            self.wave_rest_orig = np.zeros_like(wave_grid)
+            for i in range(len(wave_grid)):
+                self.wave_rest_orig[i] = wave_grid[i] / (1 + redshifts[i])
         else:
             self.wave_rest_orig = wave_grid
 
@@ -103,21 +106,35 @@ class InputSpectra(Dataset):
         # interpolate for bad pixels
         # needs to be done row-wise
         flux_good = np.copy(self.flux)
+        ivar_good = np.copy(self.ivar)
 
         for i in range(self.n_qso):
 
             interpolator = interp1d(self.wave_grid[self.gpm[i]], self.flux[i][self.gpm[i]], kind="cubic", axis=-1,
-                                    fill_value=1., bounds_error=False)
+                                    fill_value="extrapolate", bounds_error=False)
             interpolated = interpolator(self.wave_grid[~self.gpm[i]])
             flux_good[i][~self.gpm[i]] = interpolated
 
-        self.flux = flux_good
+            goodivar = self.ivar > 0
+            gpm_ivar = self.gpm[i] & goodivar
+            interpolator_ivar = interp1d(self.wave_grid[gpm_ivar], self.ivar[i][gpm_ivar], kind="cubic", axis=-1,
+                                         fill_value="extrapolate", bounds_error=False)
+            ivar_good[i][~gpm_ivar] = interpolator_ivar(self.wave_grid[~gpm_ivar])
 
+
+        self.flux = flux_good
+        self.ivar = ivar_good
+
+        # make a 2D tensor for the redshifts on the new grid
+        redshifts2d = np.zeros((self.n_qso, len(self.wave_grid)))
+        for i in range(len(self.redshifts)):
+            redshifts2d[i,:] = self.redshifts[i]
 
         # make torch tensors of everything
         self.flux = torch.FloatTensor(self.flux)
         self.ivar = torch.FloatTensor(self.ivar)
         self.redshifts = torch.FloatTensor(self.redshifts)
+        self.redshifts2d = torch.FloatTensor(redshifts2d)
         self.gpm = torch.tensor(self.gpm)
 
         print ("Regridded the spectra.")

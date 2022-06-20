@@ -33,7 +33,12 @@ zq, sn, meta, wave, flux, ivar, gpm = sdss_data(wave_min, wave_max, SN_min, dvpi
 
 inputspec = InputSpectra(wave, flux, ivar, zq, restframe=False,  wave_min=1000.,
                          wave_max=1970.)
+inputspec.add_noise_channel()
 
 fig, ax = plt.subplots(dpi=240)
-ax.plot(inputspec.wave_grid, flux[0])
+ax.plot(inputspec.wave_grid, inputspec.flux[0,0], lw=.5)
+ax.plot(inputspec.wave_grid, 1 / np.sqrt(inputspec.flux[0,1]), lw=.5,
+        c="tab:green")
 fig.show()
+
+print ("Number of pixels with a bad ivar:", torch.sum(inputspec.flux[:,1] <= 0))
