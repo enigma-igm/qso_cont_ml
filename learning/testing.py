@@ -76,7 +76,7 @@ class ModelResults:
         self.cont_pred_scaled_np = res.cpu().detach().numpy()
 
         # also scale the true continuum
-        if self.use_QSOScaler:
+        if self.use_QSOScaler & (self.cont is not None):
             cont_true_scaled = self.scaler_cont.forward(torch.FloatTensor(self.cont).to(self.device))
             self.cont_true_scaled_np = cont_true_scaled.cpu().detach().numpy()
         else:
@@ -140,11 +140,12 @@ class ModelResultsSpectra(ModelResults):
                     label="Mock spectrum")
 
         if self.noise is not None:
-            ax.plot(self.wave_grid, self.noise[index], alpha=alpha, lw=.5,
+            ax.plot(self.wave_grid, self.noise[index].squeeze(), alpha=alpha, lw=.5,
                     label="Noise", c="green")
 
-        ax.plot(self.wave_grid, self.cont[index].squeeze(), alpha=alpha, lw=2, \
-                label="True continuum")
+        if self.cont is not None:
+            ax.plot(self.wave_grid, self.cont[index].squeeze(), alpha=alpha, lw=2, \
+                    label="True continuum")
         ax.plot(self.wave_grid, cont_pred, alpha=alpha, lw=1, ls="--",\
                 label="Predicted continuum", color=contpredcolor)
         if includesmooth:
@@ -159,13 +160,13 @@ class ModelResultsSpectra(ModelResults):
         if drawsplit:
             ax.axvline(wave_split, alpha=0.7, lw=2, ls="dashdot", color="black", label="Blue-red split")
 
-        ax.set_xlabel("Rest-frame wavelength ($\AA$)")
-        ax.set_ylabel("Normalised flux")
+        ax.set_xlabel(r"Rest-frame wavelength ($\AA$)")
+        ax.set_ylabel(r"$F / F_{1280 \AA}$")
         ax.legend()
         ax.xaxis.set_minor_locator(AutoMinorLocator(5))
         ax.yaxis.set_minor_locator(AutoMinorLocator(5))
-        ax.grid(which="major")
-        ax.grid(which="minor", linewidth=.1, alpha=.3, color="grey")
+        ax.grid(which="major", alpha=.3)
+        ax.grid(which="minor", alpha=.1)
 
         ax.set_xlim(wave_min, wave_max)
 

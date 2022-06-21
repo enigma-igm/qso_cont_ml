@@ -103,6 +103,9 @@ class InputSpectra(Dataset):
             self.cont_uni, _, _, _ = rebin_spectra(self.wave_rest, self.wave_rest_orig, cont_norm, ivar_cont)
             self.cont = torch.FloatTensor(self.cont)
 
+        else:
+            self.cont = None
+
         # interpolate for bad pixels
         # needs to be done row-wise
         flux_good = np.copy(self.flux)
