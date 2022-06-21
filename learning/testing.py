@@ -158,7 +158,7 @@ class ModelResultsSpectra(ModelResults):
                 print ("Warning: flux has not been smoothed.")
 
         if drawsplit:
-            ax.axvline(wave_split, alpha=0.7, lw=2, ls="dashdot", color="black", label="Blue-red split")
+            ax.axvline(wave_split, alpha=0.7, lw=1., ls="dashdot", color="black", label="Blue-red split")
 
         ax.set_xlabel(r"Rest-frame wavelength ($\AA$)")
         ax.set_ylabel(r"$F / F_{1280 \AA}$")
@@ -206,7 +206,7 @@ class ModelResultsSpectra(ModelResults):
                 label="Predicted continuum", color=contpredcolor)
 
         if drawsplit:
-            ax.axvline(wave_split, alpha=0.7, lw=2, ls="dashdot", color="black", label="Blue-red split")
+            ax.axvline(wave_split, alpha=0.7, lw=1., ls="dashdot", color="black", label="Blue-red split")
 
         ax.set_xlabel(r"Rest-frame wavelength ($\AA$)")
         ax.set_ylabel("Scaled flux")

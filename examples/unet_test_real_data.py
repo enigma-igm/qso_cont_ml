@@ -17,7 +17,7 @@ os.environ["dw_inference"] = "/net/vdesk/data2/buiten/MRP2/code/dw_inference/dw_
 # load the real spectra
 wave_min = 1020.
 wave_max = 1970.
-SN_min = 10.
+SN_min = 5.
 dloglam = 1.0e-4
 c_light = (const.c.to("km/s")).value
 dvpix = dloglam * c_light * np.log(10)
@@ -68,7 +68,7 @@ axes = []
 for i in range(len(rand_idx)):
     loc = int("21{}".format(i+1))
     ax = (modelspec.plot(rand_idx[i], subplotloc=loc, includesmooth=False))
-    ax.set_title(r"Prediction for spectrum with SN = {}".format(np.around(sn[rand_idx[i]], 2)))
+    ax.set_title(r"Prediction for a spectrum with SN = {}".format(np.around(sn[rand_idx[i]], 2)))
     axes.append(ax)
 modelspec.fig.suptitle(r"U-Net Continuum Prediction on Real Spectra of $2.79 < z < 2.81$", size=15)
 

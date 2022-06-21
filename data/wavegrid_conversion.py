@@ -124,6 +124,10 @@ class InputSpectra(Dataset):
                                          fill_value="extrapolate", bounds_error=False)
             ivar_good[i][~gpm_ivar] = interpolator_ivar(self.wave_grid[~gpm_ivar])
 
+            # set the ivar values that are still bad to 1e-4
+            bad_ivar = ivar_good[i] <= 0
+            ivar_good[i][bad_ivar] = 1e-4
+
 
         self.flux = flux_good
         self.ivar = ivar_good
