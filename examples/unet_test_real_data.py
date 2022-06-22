@@ -17,7 +17,7 @@ os.environ["dw_inference"] = "/net/vdesk/data2/buiten/MRP2/code/dw_inference/dw_
 # load the real spectra
 wave_min = 1020.
 wave_max = 1970.
-SN_min = 5.
+SN_min = 1.
 dloglam = 1.0e-4
 c_light = (const.c.to("km/s")).value
 dvpix = dloglam * c_light * np.log(10)
@@ -74,6 +74,6 @@ modelspec.fig.suptitle(r"U-Net Continuum Prediction on Real Spectra of $2.79 < z
 
 figpath = "/net/vdesk/data2/buiten/MRP2/misc-figures/thesis-figures/results/"
 
-modelspec.fig.savefig("{}real-spec_predictions_SNmin{}.png".format(figpath, SN_min), bbox_inches="tight")
-modelspec.fig.savefig("{}real-spec_predictions_SNmin{}.pdf".format(figpath, SN_min), bbox_inches="tight")
+modelspec.fig.savefig("{}real-spec_predictions_SNmin{}_22_06.png".format(figpath, SN_min), bbox_inches="tight")
+modelspec.fig.savefig("{}real-spec_predictions_SNmin{}_22_06.pdf".format(figpath, SN_min), bbox_inches="tight")
 modelspec.fig.show()
