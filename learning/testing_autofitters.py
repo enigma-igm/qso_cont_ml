@@ -123,6 +123,11 @@ class AutofitterPredictedSpectra(AutofitterPredictions):
 
 class AutofitterRelResids(AutofitterPredictions):
     def __init__(self, spectra, model="autofitter"):
+        '''
+
+        @param spectra:
+        @param model:
+        '''
         super(AutofitterRelResids, self).__init__(spectra, model)
 
         self.rel_resid = (self.cont_norm - self.cont_norm_pred) / self.cont_norm
