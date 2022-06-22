@@ -4,8 +4,10 @@ from matplotlib.ticker import AutoMinorLocator
 from utils.errorfuncs import relative_residuals, corr_matrix_relresids
 from astropy.stats import mad_std
 from scipy.stats import norm
+from scipy.interpolate import interp1d
 import torch
 #from pypeit.utils import fast_running_median
+from utils.grids import rest_BOSS_grid
 
 
 class ModelResults:
@@ -16,6 +18,8 @@ class ModelResults:
     def __init__(self, testset, net, scaler_flux=None,\
                  scaler_cont=None, smooth=False, interpolate=False):
 
+        '''TO DO: get the actual non-regridded simulator output as the uniform-grid continua.'''
+
         self.wave_grid = testset.wave_grid
         self.flux = testset.flux
         self.cont = testset.cont
@@ -23,6 +27,7 @@ class ModelResults:
         self.scaler_cont = scaler_cont
         self.net = net
         self.smooth = smooth
+        self.interpolate = interpolate
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -94,12 +99,33 @@ class ModelResults:
             self.noise = None
             self.flux = testset.flux
 
+        # interpolate the output onto a uniform grid, if desired
+        if interpolate:
+            self.uni_wave_grid = rest_BOSS_grid()
+            self.uni_cont_pred = interp1d(self.wave_grid, self.cont_pred_np, kind="cubic", axis=-1,
+                                              bounds_error=False, fill_value="extrapolate")(self.uni_wave_grid)
+            self.uni_cont = interp1d(self.wave_grid, self.cont, kind="cubic", axis=-1,
+                                         bounds_error=False, fill_value="extrapolate")(self.uni_wave_grid)
+            self.uni_cont_pred_scaled = interp1d(self.wave_grid, self.cont_pred_scaled_np, kind="cubic", axis=-1,
+                                                 bounds_error=False, fill_value="extrapolate")(self.uni_wave_grid)
+            self.uni_cont_scaled = interp1d(self.wave_grid, self.cont_true_scaled_np, kind="cubic", axis=-1,
+                                            bounds_error=False, fill_value="extrapolate")(self.uni_wave_grid)
+
+        else:
+            self.uni_wave_grid = None
+            self.uni_cont_pred = None
+            self.uni_cont = None
+            self.uni_cont_pred_scaled = None
+            self.uni_cont_scaled = None
+
 
 class ModelResultsSpectra(ModelResults):
-    '''Class for example spectra from the test set and the corresponding model predictions.'''
+    '''Class for example spectra from the test set and the corresponding model predictions.
+    TO DO: allow for interpolated plots (parameter interpolate currently does nothing).'''
 
-    def __init__(self, testset, net, scaler_flux, scaler_cont, smooth=False):
-        super(ModelResultsSpectra, self).__init__(testset, net, scaler_flux, scaler_cont, smooth=smooth)
+    def __init__(self, testset, net, scaler_flux, scaler_cont, smooth=False, interpolate=False):
+        super(ModelResultsSpectra, self).__init__(testset, net, scaler_flux, scaler_cont, smooth=smooth,
+                                                  interpolate=interpolate)
 
     def random_index(self, size=1):
         '''Draw size random indices in order to plot random predictions.'''
@@ -268,10 +294,17 @@ class ModelResultsSpectra(ModelResults):
 
 class RelResids(ModelResults):
     def __init__(self, testset, net, scaler_flux, scaler_cont, smooth=False, interpolate=False):
-        super(RelResids, self).__init__(testset, net, scaler_flux, scaler_cont, smooth=smooth)
+        super(RelResids, self).__init__(testset, net, scaler_flux, scaler_cont, smooth=smooth, interpolate=interpolate)
 
-        rel_resid = (self.cont - self.cont_pred_np) / self.cont
-        rel_resid = rel_resid.cpu().detach().numpy()
+        if interpolate:
+            # overwrite the hybrid grid with the uniform grid for simpler plotting code
+            rel_resid = (self.uni_cont - self.uni_cont_pred) / self.uni_cont
+            self.wave_grid = self.uni_wave_grid
+
+        else:
+            rel_resid = (self.cont - self.cont_pred_np) / self.cont
+            rel_resid = rel_resid.cpu().detach().numpy()
+
         self.rel_resid = rel_resid.squeeze()
         self.mean_spec = np.mean(self.rel_resid, axis=0)
         self.std_spec = np.std(self.rel_resid, axis=0)
@@ -343,9 +376,10 @@ class CorrelationMatrix(RelResids):
 
 
 class ResidualPlots(RelResids):
-    def __init__(self, testset, net, scaler_flux, scaler_cont, smooth=False):
+    def __init__(self, testset, net, scaler_flux, scaler_cont, smooth=False, interpolate=False):
 
-        super(ResidualPlots, self).__init__(testset, net, scaler_flux, scaler_cont, smooth=smooth)
+        super(ResidualPlots, self).__init__(testset, net, scaler_flux, scaler_cont, smooth=smooth,
+                                            interpolate=interpolate)
 
 
     def plot_means(self, show_std=False, drawsplit=True, wave_split=1216,
