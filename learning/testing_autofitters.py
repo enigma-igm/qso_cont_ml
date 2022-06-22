@@ -192,7 +192,7 @@ class AutofitterResidualPlots(AutofitterRelResids):
         return fig, ax
 
 
-    def plot_percentiles(self, wave_lims=None):
+    def plot_percentiles(self, wave_lims=None, figsize=(6,4), dpi=320):
 
         if wave_lims is None:
             grid = self.spectra.wave_grid
@@ -212,7 +212,7 @@ class AutofitterResidualPlots(AutofitterRelResids):
         else:
             raise ValueError("Parameter 'wave_lims' must be an array-like object (wave_min, wave_max).")
 
-        fig, ax = plt.subplots(figsize=(7,5), dpi=320)
+        fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
         ax.plot(grid, median_spec, label="Median", color="black")
         ax.fill_between(grid, sigma_min, sigma_plu, alpha=0.3,\
                         label=r"68\% interval", color="tab:orange")

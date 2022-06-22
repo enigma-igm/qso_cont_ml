@@ -10,10 +10,12 @@ import torch
 
 class ModelResults:
     '''Class for predicting the continua for the test set and converting everything to numpy arrays.
-    Uses only global QuasarScalers, or no scalers at all.'''
+    Uses only global QuasarScalers, or no scalers at all. If interpolate==True, the output is interpolated
+    onto a uniform grid.'''
 
     def __init__(self, testset, net, scaler_flux=None,\
-                 scaler_cont=None, smooth=False):
+                 scaler_cont=None, smooth=False, interpolate=False):
+
         self.wave_grid = testset.wave_grid
         self.flux = testset.flux
         self.cont = testset.cont
@@ -265,7 +267,7 @@ class ModelResultsSpectra(ModelResults):
 
 
 class RelResids(ModelResults):
-    def __init__(self, testset, net, scaler_flux, scaler_cont, smooth=False):
+    def __init__(self, testset, net, scaler_flux, scaler_cont, smooth=False, interpolate=False):
         super(RelResids, self).__init__(testset, net, scaler_flux, scaler_cont, smooth=smooth)
 
         rel_resid = (self.cont - self.cont_pred_np) / self.cont
