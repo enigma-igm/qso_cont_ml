@@ -15,7 +15,7 @@ from pypeit.utils import fast_running_median
 from qso_fitting.data.utils import rebin_spectra
 import astropy.constants as const
 from matplotlib.ticker import AutoMinorLocator
-from data.empirical_noise import rebinNoiseVectors
+from data.empirical_noise import rebinNoiseVectors, interpBadPixels
 
 import os
 print ("SPECDB environment: {}".format(os.getenv("SPECDB")))
@@ -45,6 +45,20 @@ wave_rest = get_wave_grid(wave_min, wave_max, dvpix)
 mags = np.full(5, 18.5)
 z_qso = 2.8
 
+# load empirical noise vectors
+zmin = z_qso - 0.01
+zmax = z_qso + 0.01
+flux_boss, ivar_boss, gpm_boss = rebinNoiseVectors(zmin, zmax, wave_rest)
+
+print ("Number of negative/zero-valued ivar values:", np.sum(ivar_boss <= 0))
+
+fig0, ax0 = plt.subplots(dpi=240)
+ax0.hist(ivar_boss[ivar_boss > 0])
+fig0.suptitle("Positive BOSS ivar values")
+ax0.set_xlabel("ivar noise")
+ax0.set_ylabel("Occurrences")
+fig0.show()
+
 iforest = (wave_rest > wave_1025) & (wave_rest < wave_1216)
 z_lya = wave_rest[iforest]*(1.0 + z_qso)/wave_1216 - 1.0
 mean_flux_z = F_onorbe(z_lya)
@@ -72,9 +86,6 @@ cont_prox, flux_prox = Prox.simulator(theta, replace=(nsamp > nskew),\
 # normalise to one at 1280 \AA
 flux_norm, cont_norm = normalise_spectra(wave_rest, flux_prox, cont_prox)
 
-# now add noise from empirical noise vectors
-flux_boss, ivar_boss, gpm_boss = rebinNoiseVectors(2.79, 2.81, wave_rest)
-
 # assign empirical noise vectors to generated spectra at random
 rand_idx = np.random.randint(0, len(ivar_boss), size=len(flux_norm))
 
@@ -96,13 +107,6 @@ flux_smooth = np.zeros(flux_norm_noisy.shape)
 for i, F in enumerate(flux_norm_noisy):
     flux_smooth[i,:] = fast_running_median(F, window_size=20)
 
-gpm_norm = None
-
-# smooth the flux before regridding
-flux_smooth = np.zeros(flux_norm_noisy.shape)
-for i, F in enumerate(flux_norm_noisy):
-    flux_smooth[i,:] = fast_running_median(F, window_size=20)
-
 # propagate the noise vector on the smoothed spectrum
 sigma_smooth = sigma_vectors/np.sqrt(20)
 ivar_smooth = 1/sigma_smooth**2
@@ -116,8 +120,10 @@ wave_split = wave_1216
 
 wave_grid, dvpix_diff, ipix_blu, ipix_red = get_blu_red_wave_grid(wave_min, wave_max,\
                                                                   wave_split, dvpix, dvpix_red)
+
 cont_blu_red = interpolate.interp1d(wave_rest, cont_norm, kind="cubic", bounds_error=False,\
                                     fill_value="extrapolate", axis=1)(wave_grid)
+
 flux_blu_red, ivar_rebin, gpm_rebin, count_rebin = rebin_spectra(wave_grid,\
                                                                  wave_rest,\
                                                                  flux_norm_noisy,\
@@ -126,17 +132,26 @@ flux_blu_red, ivar_rebin, gpm_rebin, count_rebin = rebin_spectra(wave_grid,\
 flux_smooth_blu_red, _, _, _ = rebin_spectra(wave_grid, wave_rest, flux_smooth,\
                                              ivar_smooth, gpm=gpm_norm)
 
+# properly rebin the hybrid-grid noise vectors (i.e. with interpolation)
+ivar_rebin = interpBadPixels(wave_grid, ivar_rebin, gpm_rebin)
+#ivar_rebin = interpBadPixels(wave_grid, ivar_rebin, gpm=None)
+
+# dirty fix to deal with zero-valued ivars
+#ivar_rebin[ivar_rebin == 0] = 1e-10
+sigma_rebin = 1 / np.sqrt(ivar_rebin)
+
+print ("Number of negative ivar pixels:", np.sum(ivar_rebin <= 0))
 
 # plot a random example and its noise vector
 
 idx = np.random.randint(0, len(cont_norm))
 
 fig, ax = plt.subplots(dpi=240)
-ax.plot(wave_rest, cont_norm[idx], alpha=0.7, label="Continuum")
-ax.plot(wave_rest, flux_norm_noisy[idx], alpha=0.5, label="Noisy spectrum", lw=.5)
-ax.plot(wave_rest, flux_smooth[idx], alpha=0.7, color="navy", ls="--",\
-        label="Smoothed flux", lw=.5)
-ax.plot(wave_rest, sigma_vectors[idx], alpha=.7, color="darkred", lw=.5, label="Noise vector")
+ax.plot(wave_grid, cont_blu_red[idx], alpha=0.7, label="Continuum")
+ax.plot(wave_grid, flux_blu_red[idx], alpha=0.5, label="Noisy spectrum", lw=.5)
+#ax.plot(wave_grid, flux_smooth_blu_red[idx], alpha=0.7, color="navy", ls="--",\
+#        label="Smoothed flux", lw=.5)
+ax.plot(wave_grid, sigma_rebin[idx], alpha=.7, color="darkred", lw=.5, label="Noise vector")
 ax.set_xlabel("Rest-frame wavelength ($\AA$)")
 ax.set_ylabel("Normalised flux")
 ax.legend()
@@ -150,6 +165,15 @@ fig.show()
 
 figpath = "/net/vdesk/data2/buiten/MRP2/misc-figures/hetsced-noise/BOSS-noise/"
 fig.savefig("{}synthspec-BOSSnoise-example{}.png".format(figpath, idx))
+
+# plot the mean of the ivar across the spectrum
+ivar_mean_spec = np.mean(ivar_rebin, axis=0)
+fig2, ax2 = plt.subplots(dpi=240)
+ax2.plot(wave_grid, ivar_mean_spec)
+ax2.set_xlabel(r"Rest-frame wavelength ($\AA$)")
+ax2.set_ylabel(r"Normalised ivar (a.u.)")
+ax2.set_title("Mean of ivar noise across spectrum")
+fig2.show()
 
 # save the grid, continuum and noisy continuum to an array
 savearray = np.zeros((nsamp, len(wave_rest), 5))

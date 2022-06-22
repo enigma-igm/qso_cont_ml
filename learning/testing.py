@@ -76,7 +76,7 @@ class ModelResults:
         self.cont_pred_scaled_np = res.cpu().detach().numpy()
 
         # also scale the true continuum
-        if self.use_QSOScaler:
+        if self.use_QSOScaler & (self.cont is not None):
             cont_true_scaled = self.scaler_cont.forward(torch.FloatTensor(self.cont).to(self.device))
             self.cont_true_scaled_np = cont_true_scaled.cpu().detach().numpy()
         else:
@@ -118,7 +118,8 @@ class ModelResultsSpectra(ModelResults):
 
     def plot(self, index, figsize=(7,5), dpi=320, subplotloc=111,\
              alpha=0.7, contpredcolor="darkred", includesmooth=True,\
-             fluxsmoothcolor="navy", drawsplit=True, wave_split=1216):
+             fluxsmoothcolor="navy", drawsplit=True, wave_split=1216,
+             wave_min=1020., wave_max=1970.):
         '''Plot the prediction for the spectrum of a certain index.'''
 
         cont_pred = self.cont_pred_np[index].squeeze()
@@ -139,11 +140,12 @@ class ModelResultsSpectra(ModelResults):
                     label="Mock spectrum")
 
         if self.noise is not None:
-            ax.plot(self.wave_grid, self.noise[index], alpha=alpha, lw=.5,
+            ax.plot(self.wave_grid, self.noise[index].squeeze(), alpha=alpha, lw=.5,
                     label="Noise", c="green")
 
-        ax.plot(self.wave_grid, self.cont[index].squeeze(), alpha=alpha, lw=2, \
-                label="True continuum")
+        if self.cont is not None:
+            ax.plot(self.wave_grid, self.cont[index].squeeze(), alpha=alpha, lw=2, \
+                    label="True continuum")
         ax.plot(self.wave_grid, cont_pred, alpha=alpha, lw=1, ls="--",\
                 label="Predicted continuum", color=contpredcolor)
         if includesmooth:
@@ -156,15 +158,18 @@ class ModelResultsSpectra(ModelResults):
                 print ("Warning: flux has not been smoothed.")
 
         if drawsplit:
-            ax.axvline(wave_split, alpha=0.7, lw=2, ls="dashdot", color="black", label="Blue-red split")
+            ax.axvline(wave_split, alpha=0.7, lw=1., ls="dashdot", color="black", label="Blue-red split")
 
-        ax.set_xlabel("Rest-frame wavelength ($\AA$)")
-        ax.set_ylabel("Normalised flux")
+        ax.set_xlabel(r"Rest-frame wavelength ($\AA$)")
+        ax.set_ylabel(r"$F / F_{1280 \AA}$")
         ax.legend()
         ax.xaxis.set_minor_locator(AutoMinorLocator(5))
         ax.yaxis.set_minor_locator(AutoMinorLocator(5))
-        ax.grid(which="major")
-        ax.grid(which="minor", linewidth=.1, alpha=.3, color="grey")
+        ax.grid(which="major", alpha=.3)
+        ax.grid(which="minor", alpha=.1)
+
+        ax.set_xlim(wave_min, wave_max)
+
         ax.set_title("Results for test spectrum "+str(index+1))
 
         self.axes.append(ax)
@@ -201,7 +206,7 @@ class ModelResultsSpectra(ModelResults):
                 label="Predicted continuum", color=contpredcolor)
 
         if drawsplit:
-            ax.axvline(wave_split, alpha=0.7, lw=2, ls="dashdot", color="black", label="Blue-red split")
+            ax.axvline(wave_split, alpha=0.7, lw=1., ls="dashdot", color="black", label="Blue-red split")
 
         ax.set_xlabel(r"Rest-frame wavelength ($\AA$)")
         ax.set_ylabel("Scaled flux")
@@ -274,6 +279,14 @@ class RelResids(ModelResults):
         self.std_resid = np.std(self.rel_resid)
         self.mad_resid = mad_std(self.rel_resid)
 
+        percent_min_1sig = np.percentile(self.rel_resid, 100. * norm.cdf(-1.), axis=0)
+        percent_plu_1sig = np.percentile(self.rel_resid, 100. * norm.cdf(1.), axis=0)
+        self.percentile_std = (percent_plu_1sig - percent_min_1sig) / 2.
+        self.percentile_median = np.percentile(self.rel_resid, 50., axis=0)
+
+        self.sigma_min = percent_min_1sig
+        self.sigma_plu = percent_plu_1sig
+
 
 class ScaledResids(ModelResults):
     def __init__(self, testset, net, scaler_flux, scaler_cont, smooth=False):
@@ -333,7 +346,8 @@ class ResidualPlots(RelResids):
         super(ResidualPlots, self).__init__(testset, net, scaler_flux, scaler_cont, smooth=smooth)
 
 
-    def plot_means(self, show_std=False, drawsplit=True, wave_split=1216):
+    def plot_means(self, show_std=False, drawsplit=True, wave_split=1216,
+                   wave_min=1020., wave_max=1970.):
         '''Plot the mean relative residuals as a function of wavelength, and add the deviations as shaded areas.'''
 
         fig, ax = plt.subplots(figsize=(7,5), dpi=320)
@@ -354,9 +368,35 @@ class ResidualPlots(RelResids):
         ax.grid(which="minor", linewidth=.1, alpha=.3, color="grey")
         ax.set_xlabel("Rest-frame wavelength ($\AA$)")
         ax.set_ylabel("$\\frac{F_{true} - F_{pred}}{F_{true}}$")
+
+        ax.set_xlim(wave_min, wave_max)
+
         ax.set_title("Residuals relative to true continuum")
 
         return fig, ax
+
+
+    def plot_percentiles(self, wave_min=1020., wave_max=1970.):
+
+        fig, ax = plt.subplots(figsize=(7, 5), dpi=320)
+
+        ax.plot(self.wave_grid, self.percentile_median, label="Median", color="black")
+        ax.fill_between(self.wave_grid, self.sigma_min, self.sigma_plu, alpha=0.3, \
+                        label=r"68\% interval", color="tab:orange")
+
+        ax.legend()
+        ax.xaxis.set_minor_locator(AutoMinorLocator(5))
+        ax.yaxis.set_minor_locator(AutoMinorLocator(5))
+        ax.grid(which="major", alpha=.3)
+        ax.grid(which="minor", alpha=.1)
+        ax.set_xlabel("Rest-frame wavelength ($\AA$)")
+        ax.set_ylabel(r"$(F_\textrm{true} - F_\textrm{pred}) / F_\textrm{true}$")
+        ax.set_title("Residuals Relative to True Continuum")
+
+        ax.set_xlim(wave_min, wave_max)
+
+        return fig, ax
+
 
     def resid_hist(self):
 

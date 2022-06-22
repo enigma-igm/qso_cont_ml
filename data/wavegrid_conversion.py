@@ -4,7 +4,7 @@ from linetools.lists.linelist import LineList
 from dw_inference.simulator.utils import get_blu_red_wave_grid
 import torch
 from data.load_datasets import Spectra
-from data.load_data import normalise_spectra
+from data.load_data import normalise_spectra, normalise_ivar
 from torch.utils.data import Dataset
 import astropy.constants as const
 from scipy.interpolate import interp1d
@@ -41,6 +41,7 @@ class InputSpectra(Dataset):
 
         self.n_qso = flux.shape[0]
 
+        '''TO DO: make redshifts 2D on new wavelength grid'''
         if isinstance(redshifts, float):
             self.redshifts = np.full(self.n_qso, redshifts)
         elif isinstance(redshifts, np.ndarray):
@@ -53,8 +54,11 @@ class InputSpectra(Dataset):
         self.ivar_orig = ivar
 
         # convert to rest-frame wavelengths if necessary
+        # do this row-wise
         if not restframe:
-            self.wave_rest_orig = wave_grid / (1 + redshifts)
+            self.wave_rest_orig = np.zeros_like(wave_grid)
+            for i in range(len(wave_grid)):
+                self.wave_rest_orig[i] = wave_grid[i] / (1 + redshifts[i])
         else:
             self.wave_rest_orig = wave_grid
 
@@ -63,9 +67,7 @@ class InputSpectra(Dataset):
             wave_split = strong_lines["HI 1215"]["wrest"].value
             
         # normalise the flux and noise
-        noise = 1 / np.sqrt(ivar)
-        flux_norm, noise_norm = normalise_spectra(self.wave_rest_orig, flux, noise)
-        ivar_norm = 1 / noise_norm**2
+        flux_norm, ivar_norm = normalise_ivar(self.wave_rest_orig, flux, ivar)
 
         if cont is not None:
             _, cont_norm = normalise_spectra(self.wave_rest_orig, flux, cont)
@@ -101,24 +103,45 @@ class InputSpectra(Dataset):
             self.cont_uni, _, _, _ = rebin_spectra(self.wave_rest, self.wave_rest_orig, cont_norm, ivar_cont)
             self.cont = torch.FloatTensor(self.cont)
 
+        else:
+            self.cont = None
+
         # interpolate for bad pixels
         # needs to be done row-wise
         flux_good = np.copy(self.flux)
+        ivar_good = np.copy(self.ivar)
 
         for i in range(self.n_qso):
 
             interpolator = interp1d(self.wave_grid[self.gpm[i]], self.flux[i][self.gpm[i]], kind="cubic", axis=-1,
-                                    fill_value=1., bounds_error=False)
+                                    fill_value="extrapolate", bounds_error=False)
             interpolated = interpolator(self.wave_grid[~self.gpm[i]])
             flux_good[i][~self.gpm[i]] = interpolated
 
-        self.flux = flux_good
+            goodivar = self.ivar[i] > 0
+            gpm_ivar = self.gpm[i] & goodivar
+            interpolator_ivar = interp1d(self.wave_grid[gpm_ivar], self.ivar[i][gpm_ivar], kind="cubic", axis=-1,
+                                         fill_value="extrapolate", bounds_error=False)
+            ivar_good[i][~gpm_ivar] = interpolator_ivar(self.wave_grid[~gpm_ivar])
 
+            # set the ivar values that are still bad to 1e-4
+            bad_ivar = ivar_good[i] <= 0
+            ivar_good[i][bad_ivar] = 1e-4
+
+
+        self.flux = flux_good
+        self.ivar = ivar_good
+
+        # make a 2D tensor for the redshifts on the new grid
+        redshifts2d = np.zeros((self.n_qso, len(self.wave_grid)))
+        for i in range(len(self.redshifts)):
+            redshifts2d[i,:] = self.redshifts[i]
 
         # make torch tensors of everything
         self.flux = torch.FloatTensor(self.flux)
         self.ivar = torch.FloatTensor(self.ivar)
         self.redshifts = torch.FloatTensor(self.redshifts)
+        self.redshifts2d = torch.FloatTensor(redshifts2d)
         self.gpm = torch.tensor(self.gpm)
 
         print ("Regridded the spectra.")
@@ -167,3 +190,24 @@ class InputSpectra(Dataset):
 
         self.flux = reshaped_specs[0]
         self.ivar = reshaped_specs[1]
+
+
+    def add_noise_channel(self):
+        '''
+        Add a channel for the noise (ivar) vectors of the spectra.
+        @return:
+        '''
+
+        self.add_channel_shape()
+
+        if self.ivar is None:
+            raise ValueError("No noise vectors provided.")
+
+        else:
+            ivar_reshaped = self.ivar.reshape((len(self.ivar), 1, self.ivar.shape[-1]))
+
+            expanded_specs = []
+            for spec in [self.flux]:
+                expanded_specs.append(torch.cat((spec, ivar_reshaped), dim=1))
+
+            self.flux = expanded_specs[0]

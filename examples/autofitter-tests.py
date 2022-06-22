@@ -4,13 +4,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 plt.rcParams["font.family"] = "serif"
 
-path = "/net/vdesk/data2/buiten/MRP2/misc-figures/autofitter-tests/25_04_"
+path = "/net/vdesk/data2/buiten/MRP2/misc-figures/autofitter-tests/13_06_"
 
-spectra = AutofitterSpectra(2.8)
+spectra = AutofitterSpectra(2.8, test=True)
 
 resids_auto = AutofitterResidualPlots(spectra)
 pred_spectra_auto = AutofitterPredictedSpectra(spectra)
-corrmat_auto = AutofitterCorrelationMatrix(spectra)
+#corrmat_auto = AutofitterCorrelationMatrix(spectra)
 
 
 resids_qsmooth = AutofitterResidualPlots(spectra, model="Qsmooth")
@@ -18,17 +18,20 @@ resids_qsmooth = AutofitterResidualPlots(spectra, model="Qsmooth")
 
 rnd_idx = pred_spectra_auto.random_index(1)
 
-fig1, ax1 = resids_auto.plot_means(wave_lims=(1000., 2000.))
+#fig1, ax1 = resids_auto.plot_means(wave_lims=(1020., 1970.))
+fig1, ax1 = resids_auto.plot_percentiles(wave_lims=(1020., 1970.))
 fig1.suptitle("Autofitter Performance")
 fig1.show()
 fig1.savefig(path+"autofitter-resids.png")
 
-pred_spectra_auto.plot(rnd_idx, wave_lims=(1000., 2000.))
+pred_spectra_auto.plot(rnd_idx, wave_lims=(1020., 1970.))
+pred_spectra_auto.axes[0].set_ylim(ymin=0)
 pred_spectra_auto.show_figure()
 
-corrmat_auto.show(wave_lims=(1000., 2000.))
+#corrmat_auto.show(wave_lims=(1000., 2000.))
 
-fig2, ax2 = resids_qsmooth.plot_means(wave_lims=(1000., 2000.))
+fig2, ax2 = resids_qsmooth.plot_percentiles(wave_lims=(1020., 1970.))
+#fig2, ax2 = resids_qsmooth.plot_means(wave_lims=(1000., 2000.))
 fig2.suptitle("Qsmooth Performance")
 fig2.show()
 fig2.savefig(path+"qsmooth-resids.png")

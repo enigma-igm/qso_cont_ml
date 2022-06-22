@@ -123,6 +123,11 @@ class AutofitterPredictedSpectra(AutofitterPredictions):
 
 class AutofitterRelResids(AutofitterPredictions):
     def __init__(self, spectra, model="autofitter"):
+        '''
+
+        @param spectra:
+        @param model:
+        '''
         super(AutofitterRelResids, self).__init__(spectra, model)
 
         self.rel_resid = (self.cont_norm - self.cont_norm_pred) / self.cont_norm
@@ -133,6 +138,14 @@ class AutofitterRelResids(AutofitterPredictions):
         self.mean_resid = np.mean(self.rel_resid)
         self.std_resid = np.std(self.rel_resid)
         self.mad_resid = mad_std(self.rel_resid)
+
+        percent_min_1sig = np.percentile(self.rel_resid, 100.*norm.cdf(-1.), axis=0)
+        percent_plu_1sig = np.percentile(self.rel_resid, 100.*norm.cdf(1.), axis=0)
+        self.percentile_std = (percent_plu_1sig - percent_min_1sig) / 2.
+        self.percentile_median = np.percentile(self.rel_resid, 50., axis=0)
+
+        self.sigma_min = percent_min_1sig
+        self.sigma_plu = percent_plu_1sig
 
 
 class AutofitterResidualPlots(AutofitterRelResids):
@@ -173,7 +186,44 @@ class AutofitterResidualPlots(AutofitterRelResids):
         ax.grid(which="major")
         ax.grid(which="minor", linewidth=.1, alpha=.3, color="grey")
         ax.set_xlabel("Rest-frame wavelength ($\AA$)")
-        ax.set_ylabel("$\\frac{F_{true} - F_{pred}}{F_{true}}$")
+        ax.set_ylabel(r"$(F_\textrm{true} - F_\textrm{pred}) / F_\textrm{true}$")
+        ax.set_title("Residuals relative to true continuum")
+
+        return fig, ax
+
+
+    def plot_percentiles(self, wave_lims=None):
+
+        if wave_lims is None:
+            grid = self.spectra.wave_grid
+            median_spec = self.percentile_median
+            perc_std_spec = self.percentile_std
+            sigma_min = self.sigma_min
+            sigma_plu = self.sigma_plu
+
+        elif len(wave_lims) == 2:
+            sel = (self.spectra.wave_grid > wave_lims[0]) & (self.spectra.wave_grid < wave_lims[1])
+            grid = self.spectra.wave_grid[sel]
+            median_spec = self.percentile_median[sel]
+            perc_std_spec = self.percentile_std[sel]
+            sigma_min = self.sigma_min[sel]
+            sigma_plu = self.sigma_plu[sel]
+
+        else:
+            raise ValueError("Parameter 'wave_lims' must be an array-like object (wave_min, wave_max).")
+
+        fig, ax = plt.subplots(figsize=(7,5), dpi=320)
+        ax.plot(grid, median_spec, label="Median", color="black")
+        ax.fill_between(grid, sigma_min, sigma_plu, alpha=0.3,\
+                        label=r"68\% interval", color="tab:orange")
+
+        ax.legend()
+        ax.xaxis.set_minor_locator(AutoMinorLocator(5))
+        ax.yaxis.set_minor_locator(AutoMinorLocator(5))
+        ax.grid(which="major", alpha=.3)
+        ax.grid(which="minor", alpha=.1)
+        ax.set_xlabel("Rest-frame wavelength ($\AA$)")
+        ax.set_ylabel(r"$(F_\textrm{true} - F_\textrm{pred}) / F_\textrm{true}$")
         ax.set_title("Residuals relative to true continuum")
 
         return fig, ax

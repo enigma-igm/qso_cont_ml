@@ -71,8 +71,16 @@ class Trainer:
 
         elif scalertype=="MedianScaler":
 
+            if (globscalers=="cont") & (len(flux.shape) > 2) & (flux.shape[1] > 1):
+                print ("Training multi-channel continuum scaler.")
+                ivar_extend = torch.unsqueeze(flux[:,1,:], dim=1)
+                cont_ivar = torch.cat((cont, ivar_extend), dim=1)
+                cont_mean = torch.mean(cont_ivar, dim=0)
+
+            else:
+                cont_mean = torch.mean(cont, dim=0)
+
             flux_mean = torch.mean(flux, dim=0)
-            cont_mean = torch.mean(cont, dim=0)
 
             scaler_flux = MedianScaler(flux_mean, floorval)
             scaler_cont = MedianScaler(cont_mean, floorval)
@@ -95,13 +103,14 @@ class Trainer:
 
     def train(self, trainset, validset, \
               savefile="simple_AdamW_net.pth", use_QSOScalers=True,\
-              globscalers="both", weight=False, weightpower=1, scalertype="QuasarScaler"):
+              globscalers="both", weight=False, weightpower=1, scalertype="QuasarScaler",
+              scaler_floorval=0.05):
         '''Train the model.'''
 
         # first train the QSO scalers if use_QSOScalers==True
         if use_QSOScalers:
 
-            self._train_glob_scalers(trainset, globscalers=globscalers, scalertype=scalertype)
+            self._train_glob_scalers(trainset, globscalers=globscalers, scalertype=scalertype, floorval=scaler_floorval)
 
         else:
             self.glob_scaler_flux = None

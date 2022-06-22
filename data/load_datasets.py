@@ -2,6 +2,7 @@
 
 from torch.utils.data import Dataset, random_split
 from data.load_data import load_synth_spectra, load_synth_noisy_cont, split_data, normalise_spectra, load_paris_spectra
+from data.load_data import normalise_ivar
 import numpy as np
 #from pypeit.utils import fast_running_median
 import torch
@@ -12,6 +13,12 @@ class Spectra(Dataset):
 #        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.wave_grid = wave_grid
 
+        # if the ivar is already concatenated onto the flux, remove it
+        # this prevents incorrect normalisation of the noise
+        # particularly for splitting a set into train/validation/test
+        if len(flux.shape) == 3:
+            flux = flux[:,0,:]
+
         if norm1280:
             if newnorm:
                 # normalise by dividing everything by the smoothed flux at 1280 A
@@ -21,16 +28,26 @@ class Spectra(Dataset):
                 flux = flux / normfactor
                 flux_smooth_new = flux_smooth / normfactor
 
+                if ivar is not None:
+                    ivar = ivar ** normfactor**2
+
             else:
                 if normsmooth:
                     # normalise such that the smoothed flux is 1 at 1280 (using a window)
                     flux_smooth_new, flux = normalise_spectra(wave_grid, flux_smooth, flux)
                     _, cont = normalise_spectra(wave_grid, flux_smooth, cont)
 
+                    if ivar is not None:
+                        _, ivar = normalise_ivar(wave_grid, flux_smooth, ivar)
+
                 else:
                     # normalise such that the flux is 1 at 1280 (using a window)
                     flux_new, flux_smooth = normalise_spectra(wave_grid, flux, flux_smooth)
                     _, cont = normalise_spectra(wave_grid, flux, cont)
+
+                    if ivar is not None:
+                        _, ivar = normalise_ivar(wave_grid, flux, ivar)
+
                     flux = flux_new
                     flux_smooth_new = flux_smooth
 
@@ -63,7 +80,7 @@ class Spectra(Dataset):
 
         reshaped_specs = []
         for spec in [self.flux, self.flux_smooth, self.cont]:
-            spec = spec.reshape((len(spec), n_channels, spec.shape[1]))
+            spec = spec.reshape((len(spec), n_channels, spec.shape[-1]))
             reshaped_specs.append(spec)
 
         self.flux = reshaped_specs[0]
@@ -105,7 +122,7 @@ class SynthSpectra(Spectra):
                        noise=True, norm1280=True, forest=True, window=20,\
                 newnorm=False, homosced=True, poisson=False, SN=10,\
                  datapath=None, wave_split=None, boss=True, hetsced=True,
-                 bossnoise=True):
+                 bossnoise=True, test=False):
 
         if not forest:
             wave_grid, cont, flux, flux_smooth = load_synth_noisy_cont(npca, smooth=True,\
@@ -132,7 +149,9 @@ class SynthSpectra(Spectra):
                                                                               wave_split=wave_split,
                                                                               boss=boss,
                                                                               hetsced=hetsced,
-                                                                              bossnoise=bossnoise)
+                                                                              bossnoise=bossnoise,
+                                                                              test=test)
+
             else:
                 wave_grid, cont, flux = load_synth_spectra(regridded, small, npca,\
                                                            noise=False,\
@@ -151,7 +170,7 @@ class SynthSpectra(Spectra):
                                            norm1280, window=window, newnorm=newnorm,
                                            ivar=ivar)
 
-    def split(self):
+    def split(self, usenoise=True):
         '''Needs to change to keep flux and flux_smooth together.
         Can use torch.utils.data.dataset.random_split()'''
 
@@ -161,9 +180,20 @@ class SynthSpectra(Spectra):
 
         splitsets = []
         for el in [trainset, validset, testset]:
-            splitsets.append(Spectra(self.wave_grid, self.cont[el.indices],\
-                                     self.flux[el.indices], self.flux_smooth[el.indices],\
-                                     norm1280=False, ivar=self.ivar))
+
+            if (self.ivar is not None) & usenoise:
+
+                set = Spectra(self.wave_grid, self.cont[el.indices],
+                              self.flux[el.indices], self.flux_smooth[el.indices],
+                              norm1280=False, ivar=self.ivar[el.indices])
+                set.add_noise_channel()
+                splitsets.append(set)
+
+            else:
+                set = Spectra(self.wave_grid, self.cont[el.indices], self.flux[el.indices],
+                              self.flux_smooth[el.indices], norm1280=False, ivar=None)
+                set.add_channel_shape()
+                splitsets.append(set)
 
         self.trainset, self.validset, self.testset = splitsets
 

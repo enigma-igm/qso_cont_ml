@@ -4,23 +4,32 @@ import numpy as np
 def load_synth_spectra(regridded=True, small=False, npca=10,\
                        noise=False, SN=10, datapath=None,\
                        wave_split=None, boss=False, hetsced=False,
-                       bossnoise=False):
+                       bossnoise=False, test=False):
 
     if datapath is None:
         datapath = "/net/vdesk/data2/buiten/MRP2/pca-sdss-old/"
 
     if bossnoise & regridded:
-        print ("Using bossnoise & regridded in load_synth_spectra")
-        # this is the setting we'll most likely be using
-        filename = "{}forest_spectra_BOSSnoise_npca{}BOSS-regridded.npy".format(datapath, npca)
-        print ("Using bossnoise and regridded in load_synth_spectra")
-        data = np.load(filename)
+        if test:
+            print ("Using test-only hybrid-grid spectra with BOSS noise.")
+            filename = "{}forest_spectra_BOSSnoise_npca{}BOSS-regridded_test-only.npy".format(datapath, npca)
+            data = np.load(filename)
+        else:
+            print ("Using bossnoise & regridded in load_synth_spectra")
+            # this is the setting we'll most likely be using
+            filename = "{}forest_spectra_BOSSnoise_npca{}BOSS-regridded.npy".format(datapath, npca)
+            data = np.load(filename)
 
     elif bossnoise and not regridded:
-        filename = "{}forest_spectra_BOSSnoise_npca{}BOSS-grid.npy".format(datapath, npca)
+        if test:
+            print ("using test-only uniform grid spectra with BOSS noise.")
+            filename = "{}forest_spectra_BOSSnoise_npca{}BOSS-grid_test-only.npy".format(datapath, npca)
+        else:
+            filename = "{}forest_spectra_BOSSnoise_npca{}BOSS-grid.npy".format(datapath, npca)
+
         data = np.load(filename)
 
-    if noise:
+    elif noise:
         if boss:
             if (not hetsced) & regridded:
                 data = np.load(datapath + "forest_spectra_with_noiseSN"+str(SN)+"_npca"+str(npca)+"BOSS-regridded.npy")
@@ -62,6 +71,8 @@ def load_synth_spectra(regridded=True, small=False, npca=10,\
     wave_grid = data[0,:,0]
     qso_cont = data[:,:,1]
     qso_flux = data[:,:,2]
+
+    print ("Filename:", filename)
 
     if noise:
         if not hetsced:
@@ -170,3 +181,21 @@ def normalise_spectra(wave_grid, flux, cont, windowmin=1270, windowmax=1290):
         cont_norm[i,:] = cont[i,:]/flux_median_window[i]
 
     return flux_norm, cont_norm
+
+
+def normalise_ivar(wave_grid, flux, ivar, windowmin=1270, windowmax=1290):
+
+    try:
+        wave_grid1d = wave_grid[0,:]
+    except:
+        wave_grid1d = wave_grid
+
+    window = (wave_grid1d > windowmin) & (wave_grid1d < windowmax)
+    flux_median_window = np.median(flux[:,window], axis=1)
+    flux_norm = np.zeros(flux.shape)
+    ivar_norm = np.zeros(ivar.shape)
+    for i in range(len(flux)):
+        flux_norm[i,:] = flux[i,:] / flux_median_window[i]
+        ivar_norm[i,:] = ivar[i,:] * flux_median_window[i]**2
+
+    return flux_norm, ivar_norm
