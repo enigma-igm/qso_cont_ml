@@ -8,6 +8,7 @@ from scipy.interpolate import interp1d
 import torch
 #from pypeit.utils import fast_running_median
 from utils.grids import rest_BOSS_grid
+from data.load_datasets import SynthSpectra
 
 
 class ModelResults:
@@ -101,15 +102,36 @@ class ModelResults:
 
         # interpolate the output onto a uniform grid, if desired
         if interpolate:
-            self.uni_wave_grid = rest_BOSS_grid()
+
+            # quick fix: simply assume that the spectra are the BOSS ones
+            # and load the uniform-grid true continua
+            uni_testset = SynthSpectra(regridded=False, test=True)
+
+            if self.ivar is None:
+                uni_testset.add_channel_shape()
+            else:
+                uni_testset.add_noise_channel()
+
+            print ("Uniform-grid spectra loaded.")
+
+            self.uni_cont = uni_testset.cont.cpu().detach().numpy()
+            self.uni_wave_grid = uni_testset.wave_grid
+            #self.uni_wave_grid = rest_BOSS_grid()
+            print ("True continua and native grid extracted.")
+
             self.uni_cont_pred = interp1d(self.wave_grid, self.cont_pred_np, kind="cubic", axis=-1,
                                               bounds_error=False, fill_value="extrapolate")(self.uni_wave_grid)
-            self.uni_cont = interp1d(self.wave_grid, self.cont, kind="cubic", axis=-1,
-                                         bounds_error=False, fill_value="extrapolate")(self.uni_wave_grid)
-            self.uni_cont_pred_scaled = interp1d(self.wave_grid, self.cont_pred_scaled_np, kind="cubic", axis=-1,
-                                                 bounds_error=False, fill_value="extrapolate")(self.uni_wave_grid)
-            self.uni_cont_scaled = interp1d(self.wave_grid, self.cont_true_scaled_np, kind="cubic", axis=-1,
-                                            bounds_error=False, fill_value="extrapolate")(self.uni_wave_grid)
+            #self.uni_cont = interp1d(self.wave_grid, self.cont, kind="cubic", axis=-1,
+            #                             bounds_error=False, fill_value="extrapolate")(self.uni_wave_grid)
+            #self.uni_cont_pred_scaled = interp1d(self.wave_grid, self.cont_pred_scaled_np, kind="cubic", axis=-1,
+            #                                     bounds_error=False, fill_value="extrapolate")(self.uni_wave_grid)
+            #self.uni_cont_scaled = interp1d(self.wave_grid, self.cont_true_scaled_np, kind="cubic", axis=-1,
+            #                                bounds_error=False, fill_value="extrapolate")(self.uni_wave_grid)
+            self.uni_cont_pred_scaled = None
+            self.uni_cont_scaled = None
+
+
+            print ("Interpolated the predictions.")
 
         else:
             self.uni_wave_grid = None
@@ -296,10 +318,16 @@ class RelResids(ModelResults):
     def __init__(self, testset, net, scaler_flux, scaler_cont, smooth=False, interpolate=False):
         super(RelResids, self).__init__(testset, net, scaler_flux, scaler_cont, smooth=smooth, interpolate=interpolate)
 
+        print ("Starting initialisation of the RelResids instance.")
+        print ("self.uni_cont.shape:", self.uni_cont.shape)
+        print ("self.uni_cont_pred.shape:", self.uni_cont_pred.shape)
+
         if interpolate:
             # overwrite the hybrid grid with the uniform grid for simpler plotting code
             rel_resid = (self.uni_cont - self.uni_cont_pred) / self.uni_cont
+            print ("Extracted residuals.")
             self.wave_grid = self.uni_wave_grid
+            print ("Extracted uniform wavelength grid.")
 
         else:
             rel_resid = (self.cont - self.cont_pred_np) / self.cont
@@ -321,6 +349,8 @@ class RelResids(ModelResults):
 
         self.sigma_min = percent_min_1sig
         self.sigma_plu = percent_plu_1sig
+
+        print ("Computed summary statistics.")
 
 
 class ScaledResids(ModelResults):
@@ -383,10 +413,10 @@ class ResidualPlots(RelResids):
 
 
     def plot_means(self, show_std=False, drawsplit=True, wave_split=1216,
-                   wave_min=1020., wave_max=1970.):
+                   wave_min=1020., wave_max=1970., figsize=(6,4), dpi=320):
         '''Plot the mean relative residuals as a function of wavelength, and add the deviations as shaded areas.'''
 
-        fig, ax = plt.subplots(figsize=(7,5), dpi=320)
+        fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
         ax.plot(self.wave_grid, self.mean_spec, label="Mean", color="black")
         if show_std:
             ax.fill_between(self.wave_grid, self.mean_spec-self.std_spec, self.mean_spec+self.std_spec, alpha=0.3,\
@@ -412,9 +442,9 @@ class ResidualPlots(RelResids):
         return fig, ax
 
 
-    def plot_percentiles(self, wave_min=1020., wave_max=1970.):
+    def plot_percentiles(self, wave_min=1020., wave_max=1970., figsize=(6,4), dpi=320):
 
-        fig, ax = plt.subplots(figsize=(7, 5), dpi=320)
+        fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
 
         ax.plot(self.wave_grid, self.percentile_median, label="Median", color="black")
         ax.fill_between(self.wave_grid, self.sigma_min, self.sigma_plu, alpha=0.3, \
