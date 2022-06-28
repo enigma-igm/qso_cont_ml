@@ -9,6 +9,8 @@ import torch
 #from pypeit.utils import fast_running_median
 from utils.grids import rest_BOSS_grid
 from data.load_datasets import SynthSpectra
+from data.wavegrid_conversion import InputSpectra
+from qso_fitting.data.sdss.sdss import autofit_continua, qsmooth_continua
 
 
 class ModelResults:
@@ -167,7 +169,7 @@ class ModelResultsSpectra(ModelResults):
 
 
     def plot(self, index, figsize=(7,5), dpi=320, subplotloc=111,\
-             alpha=0.7, contpredcolor="darkred", includesmooth=True,\
+             alpha=0.7, alpha_pred=0.9, contpredcolor="darkred", includesmooth=True,\
              fluxsmoothcolor="navy", drawsplit=True, wave_split=1216,
              wave_min=1020., wave_max=1970.):
         '''Plot the prediction for the spectrum of a certain index.'''
@@ -196,7 +198,7 @@ class ModelResultsSpectra(ModelResults):
         if self.cont is not None:
             ax.plot(self.wave_grid, self.cont[index].squeeze(), alpha=alpha, lw=2, \
                     label="True continuum")
-        ax.plot(self.wave_grid, cont_pred, alpha=alpha, lw=1, ls="--",\
+        ax.plot(self.wave_grid, cont_pred, alpha=alpha_pred, lw=1.5, ls="--",\
                 label="Predicted continuum", color=contpredcolor)
         if includesmooth:
             try:
@@ -227,7 +229,7 @@ class ModelResultsSpectra(ModelResults):
         return ax
 
 
-    def plot_scaled(self, index, figsize=(7,5), dpi=320, subplotloc=111, alpha=0.7,\
+    def plot_scaled(self, index, figsize=(7,5), dpi=320, subplotloc=111, alpha=0.7,
                     contpredcolor="darkred", drawsplit=True, wave_split=1216):
 
         if not self.use_QSOScaler:
@@ -306,6 +308,39 @@ class ModelResultsSpectra(ModelResults):
         ax.grid(which="major")
         ax.grid(which="minor", linewidth=.1, alpha=.3, color="grey")
         ax.set_title("Raw network output for test spectrum "+str(index+1))
+
+
+    def addAutofitted(self, inputspectra, idx, ax, model="autofitter", color=None):
+
+        if not isinstance(inputspectra, InputSpectra):
+            raise TypeError("Input must be an InputSpectra instance.")
+
+        if model=="autofitter":
+            _, _, _, cont_pred = autofit_continua(np.expand_dims(inputspectra.redshifts[idx], axis=0),
+                                                  np.expand_dims(inputspectra.wave_obs_uni[idx], axis=0),
+                                                  np.expand_dims(inputspectra.flux_uni[idx], axis=0),
+                                                  np.expand_dims(inputspectra.ivar_uni[idx], axis=0))
+
+            if color is None:
+                color = "indigo"
+
+            label = "Autofitter"
+
+        elif model=="Qsmooth":
+            _, _, _, cont_pred = qsmooth_continua(np.expand_dims(inputspectra.redshifts[idx], axis=0),
+                                                  np.expand_dims(inputspectra.wave_obs_uni[idx], axis=0),
+                                                  np.expand_dims(inputspectra.flux_uni[idx], axis=0),
+                                                  np.expand_dims(inputspectra.ivar_uni[idx], axis=0))
+
+            if color is None:
+                color = "saddlebrown"
+
+            label = "QSmooth"
+
+        ax.plot(inputspectra.wave_rest, cont_pred.squeeze(axis=0), c=color, ls="-", lw=1.5, alpha=.3, label=label)
+        ax.legend()
+
+        return ax
 
 
     def show_figure(self):

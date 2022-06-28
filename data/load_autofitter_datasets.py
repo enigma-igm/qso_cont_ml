@@ -30,4 +30,3 @@ class AutofitterSpectra(SynthSpectra):
             pass
         else:
             self.ivar = ivar
-

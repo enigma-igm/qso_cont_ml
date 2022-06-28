@@ -68,12 +68,14 @@ axes = []
 for i in range(len(rand_idx)):
     loc = int("21{}".format(i+1))
     ax = (modelspec.plot(rand_idx[i], subplotloc=loc, includesmooth=False))
+    ax = modelspec.addAutofitted(inputspec, rand_idx[i], ax)
+    ax = modelspec.addAutofitted(inputspec, rand_idx[i], ax, model="Qsmooth")
     ax.set_title(r"Prediction for a spectrum with SN = {}".format(np.around(sn[rand_idx[i]], 2)))
     axes.append(ax)
 modelspec.fig.suptitle(r"U-Net Continuum Prediction on Real Spectra of $2.79 < z < 2.81$", size=15)
 
 figpath = "/net/vdesk/data2/buiten/MRP2/misc-figures/thesis-figures/results/"
 
-modelspec.fig.savefig("{}real-spec_predictions_SNmin{}_22_06.png".format(figpath, SN_min), bbox_inches="tight")
-modelspec.fig.savefig("{}real-spec_predictions_SNmin{}_22_06.pdf".format(figpath, SN_min), bbox_inches="tight")
+#modelspec.fig.savefig("{}real-spec_predictions_SNmin{}_22_06.png".format(figpath, SN_min), bbox_inches="tight")
+#modelspec.fig.savefig("{}real-spec_predictions_SNmin{}_22_06.pdf".format(figpath, SN_min), bbox_inches="tight")
 modelspec.fig.show()
