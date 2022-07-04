@@ -88,6 +88,11 @@ class InputSpectra(Dataset):
         for i in range(self.n_qso):
             self.wave_grid2d[i] = self.wave_grid
 
+        # create a corresponding uniform BOSS-like observed wavelength grid
+        self.wave_obs_uni = np.zeros((self.n_qso, self.wave_rest.size))
+        for i in range(self.n_qso):
+            self.wave_obs_uni[i] = self.wave_rest * (1 + self.redshifts[i])
+
         # regrid onto the uniform BOSS-like grid
         self.flux_uni, self.ivar_uni, self.gpm_uni, self.count_rebin_uni = rebin_spectra(self.wave_rest,
                                                                                          self.wave_rest_orig, flux_norm,

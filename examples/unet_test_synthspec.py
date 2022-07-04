@@ -38,6 +38,7 @@ scaler_flux, scaler_cont = net.load(netfile)
 scaler_flux.updateDevice()
 scaler_cont.updateDevice()
 
+'''
 # predict the continua and plot it for a random spectrum
 modelspec = ModelResultsSpectra(spec, net, scaler_flux, scaler_cont)
 rand_idx = modelspec.random_index(2)
@@ -49,11 +50,13 @@ for i in range(len(rand_idx)):
     ax.set_title(r"Prediction for a spectrum constructed from 10 PCA vectors")
     axes.append(ax)
 modelspec.fig.suptitle(r"U-Net Continuum Prediction on Synthetic Spectra of $z = 2.8$", size=15)
+'''
 
 figpath = "/net/vdesk/data2/buiten/MRP2/misc-figures/thesis-figures/results/"
 
-modelspec.fig.savefig("{}synth-spec_predictions_npca{}.png".format(figpath, npca), bbox_inches="tight")
-modelspec.fig.savefig("{}synth-spec_predictions_npca{}.pdf".format(figpath, npca), bbox_inches="tight")
+'''
+#modelspec.fig.savefig("{}synth-spec_predictions_npca{}.png".format(figpath, npca), bbox_inches="tight")
+#modelspec.fig.savefig("{}synth-spec_predictions_npca{}.pdf".format(figpath, npca), bbox_inches="tight")
 modelspec.fig.show()
 
 # plot the residuals
@@ -62,6 +65,16 @@ fig, ax = resids.plot_percentiles()
 ax.set_ylim(-.2, .2)
 fig.suptitle("Network Performance on Synthetic Test Spectra ({} PCA vectors)".format(npca), size=15)
 
-fig.savefig("{}synth-spec_residuals_npca{}.png".format(figpath, npca), bbox_inches="tight")
-fig.savefig("{}synth-spec_residuals_npca{}.pdf".format(figpath, npca), bbox_inches="tight")
+#fig.savefig("{}synth-spec_residuals_npca{}.png".format(figpath, npca), bbox_inches="tight")
+#fig.savefig("{}synth-spec_residuals_npca{}.pdf".format(figpath, npca), bbox_inches="tight")
 fig.show()
+'''
+
+# also plot the residuals of output interpolated onto a uniform grid
+resids_uni = ResidualPlots(spec, net, scaler_flux, scaler_cont, interpolate=True)
+fig2, ax2 = resids_uni.plot_percentiles(figsize=(6,3.5))
+ax2.set_ylim(-.9, .9)
+fig2.suptitle("Network Performance on Synthetic Test Spectra", size=15)
+ax2.set_title("After interpolating output onto uniform grid")
+fig2.savefig("{}synth-spec_residuals_npca{}_unigrid_alt.pdf".format(figpath, npca), bbox_inches="tight")
+fig2.show()

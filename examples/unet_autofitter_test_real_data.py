@@ -4,6 +4,7 @@ import torch
 import astropy.constants as const
 from qso_fitting.data.sdss.sdss import sdss_data
 from data.wavegrid_conversion import InputSpectra
+from data.load_autofitter_datasets import AutofitterSpectra
 from models.conv_unet import UNet
 from learning.testing import ModelResultsSpectra
 
@@ -32,6 +33,9 @@ zq, sn, meta, wave, flux, ivar, gpm = sdss_data(wave_min, wave_max, SN_min, dvpi
 inputspec = InputSpectra(wave, flux, ivar, zq, restframe=False,  wave_min=1000.,
                          wave_max=1970.)
 inputspec.add_noise_channel()
+
+# load the same spectra for the autofitter
+
 
 '''
 fig, ax = plt.subplots(dpi=240)
@@ -68,14 +72,12 @@ axes = []
 for i in range(len(rand_idx)):
     loc = int("21{}".format(i+1))
     ax = (modelspec.plot(rand_idx[i], subplotloc=loc, includesmooth=False))
-    ax = modelspec.addAutofitted(inputspec, rand_idx[i], ax)
-    ax = modelspec.addAutofitted(inputspec, rand_idx[i], ax, model="Qsmooth")
     ax.set_title(r"Prediction for a spectrum with SN = {}".format(np.around(sn[rand_idx[i]], 2)))
     axes.append(ax)
 modelspec.fig.suptitle(r"U-Net Continuum Prediction on Real Spectra of $2.79 < z < 2.81$", size=15)
 
 figpath = "/net/vdesk/data2/buiten/MRP2/misc-figures/thesis-figures/results/"
 
-#modelspec.fig.savefig("{}real-spec_predictions_SNmin{}_22_06.png".format(figpath, SN_min), bbox_inches="tight")
-#modelspec.fig.savefig("{}real-spec_predictions_SNmin{}_22_06.pdf".format(figpath, SN_min), bbox_inches="tight")
+modelspec.fig.savefig("{}real-spec_predictions_SNmin{}_22_06.png".format(figpath, SN_min), bbox_inches="tight")
+modelspec.fig.savefig("{}real-spec_predictions_SNmin{}_22_06.pdf".format(figpath, SN_min), bbox_inches="tight")
 modelspec.fig.show()

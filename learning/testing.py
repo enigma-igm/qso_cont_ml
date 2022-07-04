@@ -4,16 +4,25 @@ from matplotlib.ticker import AutoMinorLocator
 from utils.errorfuncs import relative_residuals, corr_matrix_relresids
 from astropy.stats import mad_std
 from scipy.stats import norm
+from scipy.interpolate import interp1d
 import torch
 #from pypeit.utils import fast_running_median
+from utils.grids import rest_BOSS_grid
+from data.load_datasets import SynthSpectra
+from data.wavegrid_conversion import InputSpectra
+from qso_fitting.data.sdss.sdss import autofit_continua, qsmooth_continua
 
 
 class ModelResults:
     '''Class for predicting the continua for the test set and converting everything to numpy arrays.
-    Uses only global QuasarScalers, or no scalers at all.'''
+    Uses only global QuasarScalers, or no scalers at all. If interpolate==True, the output is interpolated
+    onto a uniform grid.'''
 
     def __init__(self, testset, net, scaler_flux=None,\
-                 scaler_cont=None, smooth=False):
+                 scaler_cont=None, smooth=False, interpolate=False):
+
+        '''TO DO: get the actual non-regridded simulator output as the uniform-grid continua.'''
+
         self.wave_grid = testset.wave_grid
         self.flux = testset.flux
         self.cont = testset.cont
@@ -21,6 +30,7 @@ class ModelResults:
         self.scaler_cont = scaler_cont
         self.net = net
         self.smooth = smooth
+        self.interpolate = interpolate
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -92,12 +102,54 @@ class ModelResults:
             self.noise = None
             self.flux = testset.flux
 
+        # interpolate the output onto a uniform grid, if desired
+        if interpolate:
+
+            # quick fix: simply assume that the spectra are the BOSS ones
+            # and load the uniform-grid true continua
+            uni_testset = SynthSpectra(regridded=False, test=True)
+
+            if self.ivar is None:
+                uni_testset.add_channel_shape()
+            else:
+                uni_testset.add_noise_channel()
+
+            print ("Uniform-grid spectra loaded.")
+
+            self.uni_cont = uni_testset.cont.cpu().detach().numpy()
+            self.uni_wave_grid = uni_testset.wave_grid
+            #self.uni_wave_grid = rest_BOSS_grid()
+            print ("True continua and native grid extracted.")
+
+            self.uni_cont_pred = interp1d(self.wave_grid, self.cont_pred_np, kind="cubic", axis=-1,
+                                              bounds_error=False, fill_value="extrapolate")(self.uni_wave_grid)
+            #self.uni_cont = interp1d(self.wave_grid, self.cont, kind="cubic", axis=-1,
+            #                             bounds_error=False, fill_value="extrapolate")(self.uni_wave_grid)
+            #self.uni_cont_pred_scaled = interp1d(self.wave_grid, self.cont_pred_scaled_np, kind="cubic", axis=-1,
+            #                                     bounds_error=False, fill_value="extrapolate")(self.uni_wave_grid)
+            #self.uni_cont_scaled = interp1d(self.wave_grid, self.cont_true_scaled_np, kind="cubic", axis=-1,
+            #                                bounds_error=False, fill_value="extrapolate")(self.uni_wave_grid)
+            self.uni_cont_pred_scaled = None
+            self.uni_cont_scaled = None
+
+
+            print ("Interpolated the predictions.")
+
+        else:
+            self.uni_wave_grid = None
+            self.uni_cont_pred = None
+            self.uni_cont = None
+            self.uni_cont_pred_scaled = None
+            self.uni_cont_scaled = None
+
 
 class ModelResultsSpectra(ModelResults):
-    '''Class for example spectra from the test set and the corresponding model predictions.'''
+    '''Class for example spectra from the test set and the corresponding model predictions.
+    TO DO: allow for interpolated plots (parameter interpolate currently does nothing).'''
 
-    def __init__(self, testset, net, scaler_flux, scaler_cont, smooth=False):
-        super(ModelResultsSpectra, self).__init__(testset, net, scaler_flux, scaler_cont, smooth=smooth)
+    def __init__(self, testset, net, scaler_flux, scaler_cont, smooth=False, interpolate=False):
+        super(ModelResultsSpectra, self).__init__(testset, net, scaler_flux, scaler_cont, smooth=smooth,
+                                                  interpolate=interpolate)
 
     def random_index(self, size=1):
         '''Draw size random indices in order to plot random predictions.'''
@@ -117,7 +169,7 @@ class ModelResultsSpectra(ModelResults):
 
 
     def plot(self, index, figsize=(7,5), dpi=320, subplotloc=111,\
-             alpha=0.7, contpredcolor="darkred", includesmooth=True,\
+             alpha=0.7, alpha_pred=0.9, contpredcolor="darkred", includesmooth=True,\
              fluxsmoothcolor="navy", drawsplit=True, wave_split=1216,
              wave_min=1020., wave_max=1970.):
         '''Plot the prediction for the spectrum of a certain index.'''
@@ -146,7 +198,7 @@ class ModelResultsSpectra(ModelResults):
         if self.cont is not None:
             ax.plot(self.wave_grid, self.cont[index].squeeze(), alpha=alpha, lw=2, \
                     label="True continuum")
-        ax.plot(self.wave_grid, cont_pred, alpha=alpha, lw=1, ls="--",\
+        ax.plot(self.wave_grid, cont_pred, alpha=alpha_pred, lw=1.5, ls="--",\
                 label="Predicted continuum", color=contpredcolor)
         if includesmooth:
             try:
@@ -177,7 +229,7 @@ class ModelResultsSpectra(ModelResults):
         return ax
 
 
-    def plot_scaled(self, index, figsize=(7,5), dpi=320, subplotloc=111, alpha=0.7,\
+    def plot_scaled(self, index, figsize=(7,5), dpi=320, subplotloc=111, alpha=0.7,
                     contpredcolor="darkred", drawsplit=True, wave_split=1216):
 
         if not self.use_QSOScaler:
@@ -258,6 +310,39 @@ class ModelResultsSpectra(ModelResults):
         ax.set_title("Raw network output for test spectrum "+str(index+1))
 
 
+    def addAutofitted(self, inputspectra, idx, ax, model="autofitter", color=None):
+
+        if not isinstance(inputspectra, InputSpectra):
+            raise TypeError("Input must be an InputSpectra instance.")
+
+        if model=="autofitter":
+            _, _, _, cont_pred = autofit_continua(np.expand_dims(inputspectra.redshifts[idx], axis=0),
+                                                  np.expand_dims(inputspectra.wave_obs_uni[idx], axis=0),
+                                                  np.expand_dims(inputspectra.flux_uni[idx], axis=0),
+                                                  np.expand_dims(inputspectra.ivar_uni[idx], axis=0))
+
+            if color is None:
+                color = "indigo"
+
+            label = "Autofitter"
+
+        elif model=="Qsmooth":
+            _, _, _, cont_pred = qsmooth_continua(np.expand_dims(inputspectra.redshifts[idx], axis=0),
+                                                  np.expand_dims(inputspectra.wave_obs_uni[idx], axis=0),
+                                                  np.expand_dims(inputspectra.flux_uni[idx], axis=0),
+                                                  np.expand_dims(inputspectra.ivar_uni[idx], axis=0))
+
+            if color is None:
+                color = "saddlebrown"
+
+            label = "QSmooth"
+
+        ax.plot(inputspectra.wave_rest, cont_pred.squeeze(axis=0), c=color, ls="-", lw=1.5, alpha=.3, label=label)
+        ax.legend()
+
+        return ax
+
+
     def show_figure(self):
 
         self.fig.tight_layout()
@@ -265,11 +350,24 @@ class ModelResultsSpectra(ModelResults):
 
 
 class RelResids(ModelResults):
-    def __init__(self, testset, net, scaler_flux, scaler_cont, smooth=False):
-        super(RelResids, self).__init__(testset, net, scaler_flux, scaler_cont, smooth=smooth)
+    def __init__(self, testset, net, scaler_flux, scaler_cont, smooth=False, interpolate=False):
+        super(RelResids, self).__init__(testset, net, scaler_flux, scaler_cont, smooth=smooth, interpolate=interpolate)
 
-        rel_resid = (self.cont - self.cont_pred_np) / self.cont
-        rel_resid = rel_resid.cpu().detach().numpy()
+        print ("Starting initialisation of the RelResids instance.")
+        print ("self.uni_cont.shape:", self.uni_cont.shape)
+        print ("self.uni_cont_pred.shape:", self.uni_cont_pred.shape)
+
+        if interpolate:
+            # overwrite the hybrid grid with the uniform grid for simpler plotting code
+            rel_resid = (self.uni_cont - self.uni_cont_pred) / self.uni_cont
+            print ("Extracted residuals.")
+            self.wave_grid = self.uni_wave_grid
+            print ("Extracted uniform wavelength grid.")
+
+        else:
+            rel_resid = (self.cont - self.cont_pred_np) / self.cont
+            rel_resid = rel_resid.cpu().detach().numpy()
+
         self.rel_resid = rel_resid.squeeze()
         self.mean_spec = np.mean(self.rel_resid, axis=0)
         self.std_spec = np.std(self.rel_resid, axis=0)
@@ -286,6 +384,8 @@ class RelResids(ModelResults):
 
         self.sigma_min = percent_min_1sig
         self.sigma_plu = percent_plu_1sig
+
+        print ("Computed summary statistics.")
 
 
 class ScaledResids(ModelResults):
@@ -341,16 +441,17 @@ class CorrelationMatrix(RelResids):
 
 
 class ResidualPlots(RelResids):
-    def __init__(self, testset, net, scaler_flux, scaler_cont, smooth=False):
+    def __init__(self, testset, net, scaler_flux, scaler_cont, smooth=False, interpolate=False):
 
-        super(ResidualPlots, self).__init__(testset, net, scaler_flux, scaler_cont, smooth=smooth)
+        super(ResidualPlots, self).__init__(testset, net, scaler_flux, scaler_cont, smooth=smooth,
+                                            interpolate=interpolate)
 
 
     def plot_means(self, show_std=False, drawsplit=True, wave_split=1216,
-                   wave_min=1020., wave_max=1970.):
+                   wave_min=1020., wave_max=1970., figsize=(6,4), dpi=320):
         '''Plot the mean relative residuals as a function of wavelength, and add the deviations as shaded areas.'''
 
-        fig, ax = plt.subplots(figsize=(7,5), dpi=320)
+        fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
         ax.plot(self.wave_grid, self.mean_spec, label="Mean", color="black")
         if show_std:
             ax.fill_between(self.wave_grid, self.mean_spec-self.std_spec, self.mean_spec+self.std_spec, alpha=0.3,\
@@ -376,9 +477,9 @@ class ResidualPlots(RelResids):
         return fig, ax
 
 
-    def plot_percentiles(self, wave_min=1020., wave_max=1970.):
+    def plot_percentiles(self, wave_min=1020., wave_max=1970., figsize=(6,4), dpi=320):
 
-        fig, ax = plt.subplots(figsize=(7, 5), dpi=320)
+        fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
 
         ax.plot(self.wave_grid, self.percentile_median, label="Median", color="black")
         ax.fill_between(self.wave_grid, self.sigma_min, self.sigma_plu, alpha=0.3, \
