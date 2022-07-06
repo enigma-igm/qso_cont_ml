@@ -167,32 +167,62 @@ ax2.set_title("Mean of ivar noise across spectrum")
 fig2.suptitle("Mean of inverse variance")
 fig2.show()
 
+# split the data into a training/validation/test sets
+train_frac = 0.9
+valid_frac = 0.5 * (1 - train_frac)
+test_frac = 1 - train_frac - valid_frac
+
+rng = np.random.default_rng()
+all_idcs = np.arange(0, nsamp)
+train_idcs = rng.choice(all_idcs, size=int(train_frac * nsamp), replace=False)
+valid_idcs = rng.choice(np.delete(all_idcs, train_idcs), size=int(valid_frac * nsamp), replace=False)
+test_idcs = np.delete(all_idcs, np.concatenate((train_idcs, valid_idcs)))
+
 # store everything in an hdf5 file
 filepath = "/net/vdesk/data2/buiten/MRP2/pca-sdss-old/"
 filename = "{}synthspec_BOSSlike_npca{}_z{}_large.hdf5".format(filepath, npca, z_qso)
 f = h5py.File(filename, "w")
 
-grp_data = f.create_group("data")
+# create groups for training/validation/test data and for metadata
+grp_traindata = f.create_group("train-data")
+grp_validdata = f.create_group("valid-data")
+grp_testdata = f.create_group("test-data")
 grp_meta = f.create_group("meta")
 
-grp_fine = grp_data.create_group("fine-grid")
-grp_coarse = grp_data.create_group("coarse-grid")
-grp_hybrid = grp_data.create_group("hybrid-grid")
+# create subgroups for the fine, coarse and hybrid grid
+grp_fine_train = grp_traindata.create_group("fine-grid")
+grp_coarse_train = grp_traindata.create_group("coarse-grid")
+grp_hybrid_train = grp_traindata.create_group("hybrid-grid")
 
-grp_fine.create_dataset("wave-rest", data=wave_rest)
-grp_fine.create_dataset("cont", data=cont_norm)
-grp_fine.create_dataset("flux", data=flux_norm_noisy)
-grp_fine.create_dataset("ivar", data=ivar_rand)
+grp_fine_valid = grp_validdata.create_group("fine-grid")
+grp_coarse_valid = grp_validdata.create_group("coarse-grid")
+grp_hybrid_valid = grp_validdata.create_group("hybrid-grid")
 
-grp_coarse.create_dataset("wave-rest", data=wave_coarse)
-grp_coarse.create_dataset("cont", data=cont_coarse)
-grp_coarse.create_dataset("flux", data=flux_coarse)
-grp_coarse.create_dataset("ivar", data=ivar_coarse)
+grp_fine_test = grp_testdata.create_group("fine-grid")
+grp_coarse_test = grp_testdata.create_group("coarse-grid")
+grp_hybrid_test = grp_testdata.create_group("hybrid-grid")
 
-grp_hybrid.create_dataset("wave-rest", data=wave_grid)
-grp_hybrid.create_dataset("cont", data=cont_blu_red)
-grp_hybrid.create_dataset("flux", data=flux_blu_red)
-grp_hybrid.create_dataset("ivar", data=ivar_rebin)
+grp_meta.create_dataset("wave-fine", data=wave_rest)
+grp_meta.create_dataset("wave-coarse", data=wave_coarse)
+grp_meta.create_dataset("wave-hybrid", data=wave_grid)
+
+# add the indexed spectra to the right group
+grps = [[grp_fine_train, grp_coarse_train, grp_hybrid_train], [grp_fine_valid, grp_coarse_valid, grp_hybrid_valid],
+        [grp_fine_test, grp_coarse_test, grp_hybrid_test]]
+
+for (idcs, [grp_fine, grp_coarse, grp_hybrid]) in zip([train_idcs, valid_idcs, test_idcs], grps):
+
+    grp_fine.create_dataset("cont", data=cont_norm[idcs])
+    grp_fine.create_dataset("flux", data=flux_norm_noisy[idcs])
+    grp_fine.create_dataset("ivar", data=ivar_rand[idcs])
+
+    grp_coarse.create_dataset("cont", data=cont_coarse[idcs])
+    grp_coarse.create_dataset("flux", data=flux_coarse[idcs])
+    grp_coarse.create_dataset("ivar", data=ivar_coarse[idcs])
+
+    grp_hybrid.create_dataset("cont", data=cont_blu_red[idcs])
+    grp_hybrid.create_dataset("flux", data=flux_blu_red[idcs])
+    grp_hybrid.create_dataset("ivar", data=ivar_rebin[idcs])
 
 grp_meta.attrs["fwhm"] = fwhm
 grp_meta.attrs["dv-fine"] = dvpix
