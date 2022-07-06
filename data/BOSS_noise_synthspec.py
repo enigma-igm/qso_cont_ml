@@ -160,7 +160,7 @@ fig.show()
 # plot the mean of the ivar across the spectrum
 ivar_mean_spec = np.mean(ivar_coarse, axis=0)
 fig2, ax2 = plt.subplots(dpi=240)
-ax2.plot(wave_grid, ivar_mean_spec)
+ax2.plot(wave_coarse, ivar_mean_spec)
 ax2.set_xlabel(r"Rest-frame wavelength ($\AA$)")
 ax2.set_ylabel(r"Normalised ivar (a.u.)")
 ax2.set_title("Mean of ivar noise across spectrum")
@@ -172,15 +172,36 @@ filepath = "/net/vdesk/data2/buiten/MRP2/pca-sdss-old/"
 filename = "{}synthspec_BOSSlike_npca{}_z{}_large.hdf5".format(filepath, npca, z_qso)
 f = h5py.File(filename, "w")
 
-struct_arr_fine = np.zeros((3, nsamp, len(wave_rest)))
-struct_arr_coarse = np.zeros((3, nsamp, len(wave_coarse)))
-struct_arr_hybrid = np.zeros((3, nsamp, len(wave_grid)))
+grp_data = f.create_group("data")
+grp_meta = f.create_group("meta")
 
-#for i in range(3):
-#    struct_arr_fine[i] =
+grp_fine = grp_data.create_group("fine-grid")
+grp_coarse = grp_data.create_group("coarse-grid")
+grp_hybrid = grp_data.create_group("hybrid-grid")
 
-dset_fine = f.create_dataset("uniform-fine",)
-dset_coarse = f.create_dataset("uniform-coarse")
-dset_hybrid = f.create_dataset("hybrid")
+grp_fine.create_dataset("wave-rest", data=wave_rest)
+grp_fine.create_dataset("cont", data=cont_norm)
+grp_fine.create_dataset("flux", data=flux_norm_noisy)
+grp_fine.create_dataset("ivar", data=ivar_rand)
+
+grp_coarse.create_dataset("wave-rest", data=wave_coarse)
+grp_coarse.create_dataset("cont", data=cont_coarse)
+grp_coarse.create_dataset("flux", data=flux_coarse)
+grp_coarse.create_dataset("ivar", data=ivar_coarse)
+
+grp_hybrid.create_dataset("wave-rest", data=wave_grid)
+grp_hybrid.create_dataset("cont", data=cont_blu_red)
+grp_hybrid.create_dataset("flux", data=flux_blu_red)
+grp_hybrid.create_dataset("ivar", data=ivar_rebin)
+
+grp_meta.attrs["fwhm"] = fwhm
+grp_meta.attrs["dv-fine"] = dvpix
+grp_meta.attrs["dv-coarse"] = dvpix_red
+grp_meta.attrs["npca"] = npca
+grp_meta.attrs["nskew"] = nskew
+grp_meta.create_dataset("redshifts", data=np.full(nsamp, z_qso))
+grp_meta.create_dataset("mags", data=mags)
 
 f.close()
+
+print ("Saved file to {}".format(filename))
