@@ -83,6 +83,10 @@ theta = Prox.sample_theta(nsamp)
 # simulate the continua and fluxes
 cont_prox, flux_prox = Prox.simulator(theta, replace=(nsamp > nskew), ivar=None)
 
+# extract the transmission and compute the mean before adding noise
+trans = flux_prox / cont_prox
+mean_trans = np.mean(trans, axis=0)
+
 # normalise to one at 1280 \AA
 flux_norm, cont_norm = normalise_spectra(wave_rest, flux_prox, cont_prox)
 
@@ -101,6 +105,8 @@ for i in range(nsamp):
     noise_terms[i] = np.random.normal(0, sigma_vectors[i], size=sigma_vectors.shape[-1])
 
 flux_norm_noisy = flux_norm + noise_terms
+
+mean_trans_noise = np.mean(flux_norm_noisy / cont_norm, axis=0)
 
 # create a hybrid grid
 dvpix_red = 500.0
@@ -135,6 +141,9 @@ sigma_coarse = 1 / np.sqrt(ivar_coarse)
 print ("Number of negative ivar pixels:", np.sum(ivar_rebin <= 0))
 print ("Number of negative ivar pixels on coarse grid:", np.sum(ivar_rebin <= 0))
 
+mean_trans_rebin = np.mean(flux_blu_red / cont_blu_red, axis=0)
+mean_trans_coarse = np.mean(flux_coarse / cont_coarse, axis=0)
+
 # plot a random example and its noise vector
 
 idx = np.random.randint(0, len(cont_norm))
@@ -166,6 +175,18 @@ ax2.set_ylabel(r"Normalised ivar (a.u.)")
 ax2.set_title("Mean of ivar noise across spectrum")
 fig2.suptitle("Mean of inverse variance")
 fig2.show()
+
+# plot the mean transmitted flux vs wavelength
+fig3, ax3 = plt.subplots(dpi=240)
+ax3.plot(wave_rest, mean_trans, label="Without noise", alpha=.7)
+ax3.plot(wave_rest, mean_trans_noise, label="With noise", alpha=.7)
+ax3.plot(wave_grid, mean_trans_rebin, label="Hybrid grid", alpha=.7)
+ax3.set_xlabel(r"Rest-frame wavelength ($\AA$)")
+ax3.set_ylabel(r"$\langle F_{abs} / F_{cont} \rangle$")
+fig3.suptitle("Mean Trasmitted Flux")
+ax3.set_title("Fine grid")
+ax3.legend()
+fig3.show()
 
 # split the data into a training/validation/test sets
 train_frac = 0.9
@@ -212,17 +233,22 @@ grps = [[grp_fine_train, grp_coarse_train, grp_hybrid_train], [grp_fine_valid, g
 
 for (idcs, [grp_fine, grp_coarse, grp_hybrid]) in zip([train_idcs, valid_idcs, test_idcs], grps):
 
+    nsamp_set = len(idcs)
+
     grp_fine.create_dataset("cont", data=cont_norm[idcs])
     grp_fine.create_dataset("flux", data=flux_norm_noisy[idcs])
     grp_fine.create_dataset("ivar", data=ivar_rand[idcs])
+    grp_fine.create_dataset("mean-trans-flux", data=np.full((nsamp_set, cont_norm.shape[-1]), mean_trans_noise))
 
     grp_coarse.create_dataset("cont", data=cont_coarse[idcs])
     grp_coarse.create_dataset("flux", data=flux_coarse[idcs])
     grp_coarse.create_dataset("ivar", data=ivar_coarse[idcs])
+    grp_coarse.create_dataset("mean-trans-flux", data=np.full((nsamp_set, cont_coarse.shape[-1]), mean_trans_coarse))
 
     grp_hybrid.create_dataset("cont", data=cont_blu_red[idcs])
     grp_hybrid.create_dataset("flux", data=flux_blu_red[idcs])
     grp_hybrid.create_dataset("ivar", data=ivar_rebin[idcs])
+    grp_hybrid.create_dataset("mean-trans-flux", data=np.full((nsamp_set, cont_blu_red.shape[-1]), mean_trans_rebin))
 
 grp_meta.attrs["fwhm"] = fwhm
 grp_meta.attrs["dv-fine"] = dvpix
