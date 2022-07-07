@@ -44,7 +44,7 @@ c_light = (const.c.to("km/s")).value
 dvpix = dloglam * c_light * np.log(10)
 wave_rest = get_wave_grid(wave_min, wave_max, dvpix)
 mags = np.full(5, 18.5)
-z_qso = 2.8
+z_qso = 4.0
 
 # load empirical noise vectors
 zmin = z_qso - 0.01
@@ -64,21 +64,45 @@ iforest = (wave_rest > wave_1025) & (wave_rest < wave_1216)
 z_lya = wave_rest[iforest]*(1.0 + z_qso)/wave_1216 - 1.0
 mean_flux_z = F_onorbe(z_lya)
 true_mean_flux = np.mean(mean_flux_z)
-mean_flux_range = np.clip([true_mean_flux-0.1, true_mean_flux+0.1], 0.01, 1.0)
+mean_flux_range_old = np.clip([true_mean_flux-0.1, true_mean_flux+0.1], 0.01, 1.0)
+mean_flux_range = np.clip([true_mean_flux-0.0001, true_mean_flux+0.0001], 0.01, 1.0)
+print ("Old mean flux range:", mean_flux_range_old)
+print ("New mean flux range:", mean_flux_range)
 
 nskew = 1000
 npca = 10
 
 pcafilename = 'COARSE_PCA_150_1000_2000_forest.pkl' # File holding (the old) PCA vectors
-nF = 10 # Number of mean flux
-nlogL = 5
+#nF = 10 # Number of mean flux
+#nlogL = 5
+L_rescale = 1.
+nF = 2
+nlogL = 2
+L_rescale_range = (L_rescale-1e-4, L_rescale+1e-4)
+
+mean_flux_vec = mean_flux_range[0] + (mean_flux_range[1] - mean_flux_range[0]) * np.arange(nF) / (nF - 1)
+L_rescale_vec = L_rescale_range[0] + (L_rescale_range[1] - L_rescale_range[1]) * np.arange(nlogL) / (nlogL - 1)
+
+print ("mean_flux_vec:", mean_flux_vec)
+print ("L_rescale_vec:", L_rescale_vec)
+
 pcafile = '/net/vdesk/data2/buiten/MRP2/Data/' + pcafilename
-Prox = Proximity(wave_rest, fwhm, z_qso, mags, nskew, mean_flux_range, nF, npca, pcafile, nlogL=nlogL)
+Prox = Proximity(wave_rest, fwhm, z_qso, mags, nskew, mean_flux_range, nF, npca, pcafile, nlogL=nlogL,
+                 L_rescale_range=L_rescale_range)
 
 # set the number of spectra to generate
 nsamp = 25000
 
 theta = Prox.sample_theta(nsamp)
+
+# first column sets mean flux
+# second column sets L_rescale
+# we can manually set these to the single value we want
+theta[:,0] = true_mean_flux
+theta[:,1] = L_rescale
+
+print ("Shape of theta:", theta.shape)
+print ("theta:", theta)
 
 # simulate the continua and fluxes
 cont_prox, flux_prox = Prox.simulator(theta, replace=(nsamp > nskew), ivar=None)
@@ -180,7 +204,7 @@ fig2.show()
 fig3, ax3 = plt.subplots(dpi=240)
 ax3.plot(wave_rest, mean_trans, label="Without noise", alpha=.7)
 ax3.plot(wave_rest, mean_trans_noise, label="With noise", alpha=.7)
-ax3.plot(wave_grid, mean_trans_rebin, label="Hybrid grid", alpha=.7)
+ax3.plot(wave_grid, mean_trans_rebin, label="Hybrid grid", alpha=.5, lw=.5)
 ax3.set_xlabel(r"Rest-frame wavelength ($\AA$)")
 ax3.set_ylabel(r"$\langle F_{abs} / F_{cont} \rangle$")
 fig3.suptitle("Mean Trasmitted Flux")
