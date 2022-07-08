@@ -90,30 +90,40 @@ class SynthSpectra(Dataset):
 
 
     @property
+    def cont_hybrid(self):
+
+        f = h5py.File(self.filename, "r")
+        cont_hybrid = torch.FloatTensor(f["{}/hybrid-grid/cont".format(self.grp_name)])
+        f.close()
+
+        return cont_hybrid
+
+
+    @property
     def cont_fine(self):
 
         f = h5py.File(self.filename, "r")
-        self._cont_fine = torch.FloatTensor(f["{}/fine-grid/cont".format(self.grp_name)])
+        cont_fine = torch.FloatTensor(f["{}/fine-grid/cont".format(self.grp_name)])
         f.close()
 
-        return self._cont_fine
+        return cont_fine
 
 
     @property
     def flux_fine(self):
 
         f = h5py.File(self.filename, "r")
-        self._flux_fine = torch.FloatTensor(f["{}/fine-grid/flux".format(self.grp_name)])
+        flux_fine = torch.FloatTensor(f["{}/fine-grid/flux".format(self.grp_name)])
         f.close()
 
-        return self._flux_fine
+        return flux_fine
 
 
     @property
     def flux_coarse(self):
 
         f = h5py.File(self.filename, "r")
-        self._flux_coarse = torch.FloatTensor(f["{}/coarse-grid/flux".format(self.grp_name)])
+        flux_coarse = torch.FloatTensor(f["{}/coarse-grid/flux".format(self.grp_name)])
         f.close()
 
-        return self._flux_coarse
+        return flux_coarse
