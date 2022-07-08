@@ -7,6 +7,12 @@ from data.load_data_new import SynthSpectra
 
 
 class UNetTrainer:
+    '''
+    Trainer for the convolutional UNet. Assumes that input contains absorption spectra, ivar noise vectors and
+    mean transmitted flux vectors. Also assumes the input is on the hybrid grid while the output is on a coarse grid.
+    The scaling is done by MedianScalers.
+    '''
+
     def __init__(self, net, optimizer, criterion, batch_size=1000, num_epochs=500):
 
         self.net = net
