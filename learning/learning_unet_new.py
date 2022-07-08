@@ -161,3 +161,6 @@ class UNetTrainer:
         self.training_loss = running_loss
         self.valid_loss = valid_loss
 
+
+# TO DO: write loss plotting method or class for plotting loss
+# potentially allow for restarting of the training routine?
