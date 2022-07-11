@@ -241,7 +241,7 @@ class UNet(nn.Module):
             out = F.interpolate(out, self.out_sz)
 
         else:
-            out = F.interpolate(out, self.out_sz, scale_factor=self.vel_weights)
+            out = F.interpolate(out, scale_factor=self.vel_weights)
 
         #print ("Shape of final output:", out.shape)
         return out
