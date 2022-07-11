@@ -5,8 +5,8 @@ from matplotlib.ticker import AutoMinorLocator
 from scipy.stats import norm
 from scipy.interpolate import interp1d   # necessary?
 from data.load_data_new import SynthSpectra
-from data.wavegrid_conversion import InputSpectra
-from qso_fitting.data.sdss.sdss import autofit_continua, qsmooth_continua
+#from data.wavegrid_conversion import InputSpectra
+#from qso_fitting.data.sdss.sdss import autofit_continua, qsmooth_continua
 
 
 class ModelResults:
