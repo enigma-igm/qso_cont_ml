@@ -247,6 +247,8 @@ class UNet(nn.Module):
             # first interpolate onto the hybrid grid
             out = F.interpolate(out, self.out_sz)
 
+            print ("Shape of output before passing into final interpolation step:", out.dim())
+
             # then interpolate onto the coarse grid
             out = F.interpolate(out, scale_factor=self.vel_weights, recompute_scale_factor=True)
 
