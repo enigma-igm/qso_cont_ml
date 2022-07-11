@@ -245,7 +245,7 @@ class UNet(nn.Module):
             out = F.interpolate(out, self.out_sz)
 
             # then interpolate onto the coarse grid
-            out = F.interpolate(out, scale_factor=self.vel_weights)
+            out = F.interpolate(out, scale_factor=self.vel_weights, mode="bilinear")
 
         #print ("Shape of final output:", out.shape)
         return out
