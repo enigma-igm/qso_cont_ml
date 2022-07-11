@@ -179,7 +179,7 @@ class Decoder(nn.Module):
 
 
 class UNet(nn.Module):
-    def __init__(self, out_sz, enc_chs=(1,64,128, 256), dec_chs=(256, 128, 64),\
+    def __init__(self, out_sz, vel_weights, enc_chs=(1,64,128, 256), dec_chs=(256, 128, 64),\
                  kernel_size_enc=10, kernel_size_dec=10, kernel_size_upconv=10,\
                  num_class=1, retain_dim=False, pool="avg", pool_kernel_size=10,\
                  activfunc="relu", activparam=1.0, final_skip=False, skip="concatenation",\
@@ -192,6 +192,8 @@ class UNet(nn.Module):
                                crop_enc=True)
         self.retain_dim = retain_dim
         self.out_sz = out_sz
+        self.vel_weights = vel_weights
+
         self.final_skip = final_skip
         if final_skip:
             self.head = nn.Conv1d(dec_chs[-1]+enc_chs[0], num_class, (1,), padding_mode=padding_mode)
@@ -237,6 +239,9 @@ class UNet(nn.Module):
 
         if self.retain_dim:
             out = F.interpolate(out, self.out_sz)
+
+        else:
+            out = F.interpolate(out, self.out_sz, scale_factor=self.vel_weights)
 
         #print ("Shape of final output:", out.shape)
         return out

@@ -85,8 +85,8 @@ class UNetTrainer:
         valid_loader = DataLoader(validset, batch_size=len(validset), shuffle=True)
 
         # set up velocity width weights
-        Weights = WavWeights(trainset.wave_hybrid)
-        weights_mse = Weights.weights_in_MSE.to(self.device)
+        #Weights = WavWeights(trainset.wave_hybrid)
+        #weights_mse = Weights.weights_in_MSE.to(self.device)
 
         self.wave_hybrid = trainset.wave_hybrid
         self.wave_coarse = trainset.wave_coarse
@@ -112,7 +112,8 @@ class UNetTrainer:
                 # compute the weighted loss
                 outputs_real_rel = self.scaler_coarse.backward(outputs) / true_cont_raw
                 targets_rel = true_cont_raw / true_cont_raw
-                loss = self.criterion(outputs_real_rel * weights_mse, targets_rel * weights_mse)
+                loss = self.criterion(outputs_real_rel, targets_rel)
+                #loss = self.criterion(outputs_real_rel * weights_mse, targets_rel * weights_mse)
 
                 loss.backward()
 
@@ -136,7 +137,8 @@ class UNetTrainer:
                 valid_outputs_real_rel = self.scaler_coarse.backward(valid_outputs) / valid_cont_raw
                 valid_targets_rel = valid_cont_raw / valid_cont_raw
 
-                validlossfunc = self.criterion(valid_outputs_real_rel * weights_mse, valid_targets_rel * weights_mse)
+                #validlossfunc = self.criterion(valid_outputs_real_rel * weights_mse, valid_targets_rel * weights_mse)
+                validlossfunc = self.criterion(valid_outputs_real_rel, valid_targets_rel)
                 valid_loss[epoch] += validlossfunc.item()
 
             # normalise the validation loss to the number of quasars in the validation set
