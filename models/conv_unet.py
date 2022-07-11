@@ -192,6 +192,7 @@ class UNet(nn.Module):
                                crop_enc=True)
         self.retain_dim = retain_dim
         self.out_sz = out_sz
+
         self.vel_weights = vel_weights
 
         print ("Shape of velocity width weights:", self.vel_weights.shape)
@@ -247,10 +248,12 @@ class UNet(nn.Module):
             # first interpolate onto the hybrid grid
             out = F.interpolate(out, self.out_sz)
 
-            print ("Shape of output before passing into final interpolation step:", out.dim())
+            print ("Shape of output before passing into final interpolation step:", out.shape)
+
+            weights = torch.full_like(out, self.vel_weights)
 
             # then interpolate onto the coarse grid
-            out = F.interpolate(out, scale_factor=self.vel_weights, recompute_scale_factor=False)
+            out = F.interpolate(out, scale_factor=weights, recompute_scale_factor=False)
 
         #print ("Shape of final output:", out.shape)
         return out
