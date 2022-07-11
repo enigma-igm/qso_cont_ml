@@ -4,6 +4,8 @@ from utils.MedianScaler import MedianScaler
 from utils.errorfuncs import WavWeights
 from torch.utils.data import DataLoader
 from data.load_data_new import SynthSpectra
+import matplotlib.pyplot as plt
+from matplotlib.ticker import AutoMinorLocator
 
 
 class UNetTrainer:
@@ -168,5 +170,102 @@ class UNetTrainer:
         self.valid_loss = valid_loss
 
 
-# TO DO: write loss plotting method or class for plotting loss
+    def plotSqRtLoss(self, epoch_min=50, yscale="linear", titleadd=""):
+        '''
+        Plot the square root of the MSE loss averaged over both quasars and wavelength pixels, allowing for a direct
+        comparison with the relative residuals on the test set. The loss is plotted for both the training set and the
+        validation set.
+
+        @param epoch_min:
+        @param yscale:
+        @param titleadd:
+        @return:
+        '''
+
+        n_lam = len(self.wave_coarse)
+        training_loss_avgd = self.training_loss / n_lam
+        valid_loss_avgd = self.valid_loss / n_lam
+
+        epoch_no = np.arange(1, self.num_epochs + 1)
+
+        fig, ax = plt.subplots(figsize=(6, 4), dpi=320)
+
+        ax.plot(epoch_no, training_loss_avgd, alpha=.7, label="Training")
+        ax.plot(epoch_no, valid_loss_avgd, alpha=.7, label="Validation")
+        ax.set_xlim(xmin=epoch_min)
+
+        max_loss = self.valid_loss[epoch_min - 1:].max()
+        if max_loss > 100 * self.valid_loss.min():
+            print("Large loss increase detected; yscale set to 'log'.")
+
+        if yscale == "linear":
+            ymin = 0
+        elif yscale == "log":
+            ymin = 0.8
+        else:
+            raise ValueError("yscale must be 'linear' or 'log'.")
+
+        ax.set_ylim(ymin=ymin, ymax=max_loss)
+        ax.set_yscale(yscale)
+        print("ymax = {}".format(self.valid_loss[epoch_min - 1:].max()))
+
+        ax.xaxis.set_minor_locator(AutoMinorLocator(5))
+        ax.yaxis.set_minor_locator(AutoMinorLocator(5))
+        ax.set_xlabel("Epoch number")
+        ax.set_ylabel(r"$\sqrt{MSE / n_\lambda}$")
+        ax.grid()
+
+        fig.suptitle("Square Root of MSE Loss{}".format(titleadd))
+        ax.set_title("Averaged over QSOs and pixels")
+        ax.legend()
+
+        return fig, ax
+
+
+    def plotLoss(self, epoch_min=50, yscale="linear", titleadd=""):
+        '''
+        Plot the MSE loss for the training set and the validation set as a function of epoch.
+        This method plots the loss summed over wavelength pixels and averaged over quasars.
+
+        @param epoch_min:
+        @param yscale:
+        @param titleadd:
+        @return:
+        '''
+
+        epoch_no = np.arange(1, self.num_epochs+1)
+
+        fig, ax = plt.subplots(figsize=(6,4), dpi=320)
+
+        ax.plot(epoch_no, self.training_loss, alpha=.7, label="Training")
+        ax.plot(epoch_no, self.valid_loss, alpha=.7, label="Validation")
+        ax.set_xlim(xmin=epoch_min)
+
+        max_loss = self.valid_loss[epoch_min-1:].max()
+        if max_loss > 100 * self.valid_loss.min():
+            print ("Large loss increase detected; yscale set to 'log'.")
+
+        if yscale == "linear":
+            ymin = 0
+        elif yscale == "log":
+            ymin = 0.8
+        else:
+            raise ValueError("yscale must be 'linear' or 'log'.")
+
+        ax.set_ylim(ymin=ymin, ymax=max_loss)
+        ax.set_yscale(yscale)
+        print ("ymax = {}".format(self.valid_loss[epoch_min-1:].max()))
+
+        ax.xaxis.set_minor_locator(AutoMinorLocator(5))
+        ax.yaxis.set_minor_locator(AutoMinorLocator(5))
+        ax.set_xlabel("Epoch number")
+        ax.set_ylabel("Loss per quasar")
+        ax.grid()
+
+        fig.suptitle("MSE loss{}".format(titleadd))
+        ax.set_title("Summed over wavelengths, averaged over QSOs")
+        ax.legend()
+
+        return fig, ax
+
 # potentially allow for restarting of the training routine?
