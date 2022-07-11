@@ -127,3 +127,23 @@ class SynthSpectra(Dataset):
         f.close()
 
         return flux_coarse
+
+
+    @property
+    def noise_fine(self):
+
+        f = h5py.File(self.filename, "r")
+        noise_fine = 1 / torch.sqrt(torch.FloatTensor(f["{}/fine-grid/ivar"].format(self.grp_name)))
+        f.close()
+
+        return noise_fine
+
+
+    @property
+    def noise_coarse(self):
+
+        f = h5py.File(self.filename, "r")
+        noise_coarse = 1 / torch.sqrt(torch.FloatTensor(f["{}/coarse-grid/ivar"].format(self.grp_name)))
+        f.close()
+
+        return noise_coarse

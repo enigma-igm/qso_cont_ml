@@ -213,7 +213,8 @@ class UNetTrainer:
         ax.yaxis.set_minor_locator(AutoMinorLocator(5))
         ax.set_xlabel("Epoch number")
         ax.set_ylabel(r"$\sqrt{MSE / n_\lambda}$")
-        ax.grid()
+        ax.grid(which="major", alpha=.3)
+        ax.grid(which="minor", alpha=.1)
 
         fig.suptitle("Square Root of MSE Loss{}".format(titleadd))
         ax.set_title("Averaged over QSOs and pixels")
@@ -226,6 +227,7 @@ class UNetTrainer:
         '''
         Plot the MSE loss for the training set and the validation set as a function of epoch.
         This method plots the loss summed over wavelength pixels and averaged over quasars.
+        May become deprecated.
 
         @param epoch_min:
         @param yscale:
@@ -260,7 +262,8 @@ class UNetTrainer:
         ax.yaxis.set_minor_locator(AutoMinorLocator(5))
         ax.set_xlabel("Epoch number")
         ax.set_ylabel("Loss per quasar")
-        ax.grid()
+        ax.grid(which="major", alpha=.3)
+        ax.grid(which="minor", alpha=.1)
 
         fig.suptitle("MSE loss{}".format(titleadd))
         ax.set_title("Summed over wavelengths, averaged over QSOs")
