@@ -250,7 +250,7 @@ class UNet(nn.Module):
             print ("Shape of output before passing into final interpolation step:", out.dim())
 
             # then interpolate onto the coarse grid
-            out = F.interpolate(out, scale_factor=self.vel_weights, recompute_scale_factor=True)
+            out = F.interpolate(out, scale_factor=self.vel_weights, recompute_scale_factor=False)
 
         #print ("Shape of final output:", out.shape)
         return out
