@@ -194,6 +194,9 @@ class UNet(nn.Module):
         self.out_sz = out_sz
         self.vel_weights = vel_weights
 
+        print ("Shape of velocity width weights:", self.vel_weights.shape)
+        print ("Shape ")
+
         self.final_skip = final_skip
         if final_skip:
             self.head = nn.Conv1d(dec_chs[-1]+enc_chs[0], num_class, (1,), padding_mode=padding_mode)
@@ -245,7 +248,7 @@ class UNet(nn.Module):
             out = F.interpolate(out, self.out_sz)
 
             # then interpolate onto the coarse grid
-            out = F.interpolate(out, scale_factor=self.vel_weights, mode="bilinear")
+            out = F.interpolate(out, scale_factor=self.vel_weights, recompute_scale_factor=True)
 
         #print ("Shape of final output:", out.shape)
         return out
