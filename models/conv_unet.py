@@ -250,7 +250,7 @@ class UNet(nn.Module):
 
             print ("Shape of output before passing into final interpolation step:", out.shape)
 
-            weights = torch.full_like(out, self.vel_weights)
+            weights = self.vel_weights.extend(out.size)
 
             # then interpolate onto the coarse grid
             out = F.interpolate(out, scale_factor=weights, recompute_scale_factor=False)
