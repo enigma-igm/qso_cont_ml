@@ -123,6 +123,8 @@ class UNetTrainer:
                 # store the training loss
                 running_loss[epoch] += loss.item()
 
+                print ("Running training loss:", running_loss[epoch])
+
             print("Epoch {}/{} completed.".format(epoch+1, self.num_epochs))
 
             # now compute the validation loss
@@ -140,6 +142,8 @@ class UNetTrainer:
                 #validlossfunc = self.criterion(valid_outputs_real_rel * weights_mse, valid_targets_rel * weights_mse)
                 validlossfunc = self.criterion(valid_outputs_real_rel, valid_targets_rel)
                 valid_loss[epoch] += validlossfunc.item()
+
+                print ("Valid loss:", valid_loss[epoch])
 
             # normalise the validation loss to the number of quasars in the validation set
             valid_loss[epoch] = valid_loss[epoch] / len(validset)
