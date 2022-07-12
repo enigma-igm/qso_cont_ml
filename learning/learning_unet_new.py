@@ -78,6 +78,7 @@ class UNetTrainer:
         # check the dimensions of the scalers
         print ("Shape of scaler_hybrid.mean_spectrum:", self.scaler_hybrid.mean_spectrum.shape)
         print ("Shape of scaler_coarse.mean_spectrum:", self.scaler_coarse.mean_spectrum.shape)
+        print ("Median in scaler_hybrid:", self.scaler_hybrid.median)
 
         # set up tensors for storing the loss
         running_loss = torch.zeros(self.num_epochs)
@@ -104,6 +105,7 @@ class UNetTrainer:
                 true_cont_raw = true_cont_raw.to(self.device)
 
                 print ("Number of NaN input values before scaling:", torch.sum(torch.isnan(flux_input_raw)))
+                print ("Shape of input before scaling:", flux_input_raw.shape)
 
                 # scale the input and target output
                 flux_input_train = self.scaler_hybrid.forward(flux_input_raw)
