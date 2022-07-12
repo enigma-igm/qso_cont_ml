@@ -75,6 +75,10 @@ class UNetTrainer:
         # train the hybrid-grid and coarse-grid scalers
         self.scaler_hybrid, self.scaler_coarse = self.trainScalers(trainset, scaler_floorval)
 
+        # check the dimensions of the scalers
+        print ("Shape of scaler_hybrid.mean_spectrum:", self.scaler_hybrid.mean_spectrum.shape)
+        print ("Shape of scaler_coarse.mean_spectrum:", self.scaler_coarse.mean_spectrum.shape)
+
         # set up tensors for storing the loss
         running_loss = torch.zeros(self.num_epochs)
         valid_loss = torch.zeros(self.num_epochs)
@@ -98,6 +102,8 @@ class UNetTrainer:
                 # transfer everything to the set device
                 flux_input_raw = flux_input_raw.to(self.device)
                 true_cont_raw = true_cont_raw.to(self.device)
+
+                print ("Number of NaN input values before scaling:", torch.sum(torch.isnan(flux_input_raw)))
 
                 # scale the input and target output
                 flux_input_train = self.scaler_hybrid.forward(flux_input_raw)

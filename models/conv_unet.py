@@ -237,10 +237,7 @@ class UNet(nn.Module):
                 x_interp = F.interpolate(x, n_wav)
                 out = torch.cat([out, x_interp], dim=1)
 
-        try:
-            out = self.head(out)
-        except:
-            embed()
+        out = self.head(out)
 
         if self.retain_dim:
             out = F.interpolate(out, self.n_wav_hybrid)
