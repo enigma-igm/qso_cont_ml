@@ -191,7 +191,8 @@ class UNet(nn.Module):
                                activfunc, activparam, padding_mode=padding_mode,\
                                crop_enc=True)
         self.retain_dim = retain_dim
-        self.out_sz = out_sz
+        self.n_wav_hybrid = len(vel_weights)
+        self.n_wav_coarse = out_sz
 
         self.vel_weights = vel_weights
 
@@ -242,18 +243,18 @@ class UNet(nn.Module):
             embed()
 
         if self.retain_dim:
-            out = F.interpolate(out, self.out_sz)
+            out = F.interpolate(out, self.n_wav_hybrid)
 
         else:
             # first interpolate onto the hybrid grid
-            out = F.interpolate(out, self.out_sz)
+            out = F.interpolate(out, self.n_wav_hybrid)
 
             print ("Shape of output before passing into final interpolation step:", out.shape)
 
             weights = self.vel_weights.expand(out.shape)
 
             # then interpolate onto the coarse grid
-            out = F.interpolate(out, scale_factor=weights, recompute_scale_factor=False)
+            out = F.interpolate(out, size=self.n_wav_coarse, scale_factor=weights, recompute_scale_factor=False)
 
         #print ("Shape of final output:", out.shape)
         return out
