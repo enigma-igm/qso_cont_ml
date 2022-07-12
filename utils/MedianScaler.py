@@ -37,9 +37,9 @@ class MedianScaler:
         try:
             self.median = torch.zeros_like(self.mean_spectrum)
             for i in range(len(median)):
-                self.median[i,:] = median[0][i] + floorval
+                self.median[i,:] = median.values[i] + floorval
         except:
-            self.median = median[0] + floorval
+            self.median = median.values + floorval
 
 
     def forward(self, qso_spectrum):
