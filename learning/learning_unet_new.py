@@ -103,14 +103,20 @@ class UNetTrainer:
                 flux_input_train = self.scaler_hybrid.forward(flux_input_raw)
                 true_cont_train = self.scaler_coarse.forward(true_cont_raw)
 
+                print ("Number of NaN input values:", torch.sum(torch.isnan(flux_input_train)))
+
                 # set gradients to zero
                 self.optimizer.zero_grad()
 
                 # forward the network
                 outputs = self.net(flux_input_train)
 
+                print ("Number of NaN output values:", torch.sum(torch.isnan(outputs)))
+
                 # compute the weighted loss
                 outputs_real_rel = self.scaler_coarse.backward(outputs) / true_cont_raw
+
+                print ("Number of NaN output values after descaling:", torch.sum(torch.isnan(outputs_real_rel)))
                 targets_rel = true_cont_raw / true_cont_raw
                 loss = self.criterion(outputs_real_rel, targets_rel)
                 #loss = self.criterion(outputs_real_rel * weights_mse, targets_rel * weights_mse)
