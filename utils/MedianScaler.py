@@ -34,13 +34,18 @@ class MedianScaler:
         median = torch.median(self.mean_spectrum, dim=-1)
 
         # have to add the floor value row-wise
+        self.median = (median.values + floorval).expand_as(self.mean_spectrum)
+
+        print ("Shape of median in scaler:", self.median.shape)
+        print ("Median in scaler:", self.median)
+        '''
         if self.n_channels == 1:
             self.median = median.values + floorval
         else:
             self.median = median.values + torch.full_like(median.values, floorval)
 
         print ("Median in scaler:", self.median)
-        '''
+        
         try:
             self.median = torch.zeros_like(self.mean_spectrum)
             for i in range(len(median)):
