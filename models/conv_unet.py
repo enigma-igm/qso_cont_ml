@@ -246,6 +246,7 @@ class UNet(nn.Module):
             out = F.interpolate(out, self.n_wav_hybrid)
 
         else:
+            '''
             # first interpolate onto the hybrid grid
             out = F.interpolate(out, self.n_wav_hybrid)
 
@@ -255,6 +256,9 @@ class UNet(nn.Module):
 
             # then interpolate onto the coarse grid
             out = F.interpolate(out, size=self.n_wav_coarse, scale_factor=weights, recompute_scale_factor=False)
+            '''
+            # interpolate directly onto the coarse grid (probably fails)
+            out = F.interpolate(out, self.n_wav_coarse)
 
         #print ("Shape of final output:", out.shape)
         return out
