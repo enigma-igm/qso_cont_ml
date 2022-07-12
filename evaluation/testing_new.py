@@ -144,13 +144,13 @@ class ModelResultsSpectra(ModelResults):
 
         ax = fig.add_subplot(subplotloc)
 
-        ax.plot(self.wave_grid, self.flux[index], alpha=alpha, lw=1., label="Mock spectrum", c="tab:blue")
-        ax.plot(self.wave_grid, self.noise[index], alpha=alpha, lw=.5, label="Noise", c="green")
+        ax.plot(self.wave_grid, np.squeeze(self.flux[index]), alpha=alpha, lw=1., label="Mock spectrum", c="tab:blue")
+        ax.plot(self.wave_grid, np.squeeze(self.noise[index]), alpha=alpha, lw=.5, label="Noise", c="green")
 
         if self.cont_true is not None:
-            ax.plot(self.wave_grid, self.cont_true[index], alpha=alpha, lw=2., label="True continuum", c="tab:orange")
+            ax.plot(self.wave_grid, np.squeeze(self.cont_true[index]), alpha=alpha, lw=2., label="True continuum", c="tab:orange")
 
-        ax.plot(self.wave_grid, self.cont_pred[index], alpha=alpha_pred, lw=1.5, ls="--", c=contpredcolor,
+        ax.plot(self.wave_grid, np.squeeze(self.cont_pred[index]), alpha=alpha_pred, lw=1.5, ls="--", c=contpredcolor,
                 label="Predicted continuum")
 
         ax.axvline(1216., alpha=0.7, lw=1., ls="dashdot", color="black", label="Blue-red split")
