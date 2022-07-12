@@ -34,7 +34,7 @@ class MedianScaler:
         median = torch.median(self.mean_spectrum, dim=-1)
 
         # have to add the floor value row-wise
-        self.median = (median.values + floorval).expand_as(self.mean_spectrum)
+        self.median = torch.unsqueeze(median.values + floorval, dim=-1).expand_as(self.mean_spectrum)
 
         print ("Shape of median in scaler:", self.median.shape)
         print ("Median in scaler:", self.median)
