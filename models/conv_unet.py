@@ -251,8 +251,9 @@ class UNet(nn.Module):
             out = F.interpolate(out, self.n_wav_hybrid)
 
             print ("Shape of output before passing into final interpolation step:", out.shape)
+            print ("Dimension of output before final interpolation:", out.dim())
 
-            weights = self.vel_weights.tolist()
+            weights = [self.vel_weights.tolist()]
             print ("Shape of the weights:", len(weights))
 
             # then interpolate onto the coarse grid
