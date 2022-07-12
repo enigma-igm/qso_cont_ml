@@ -249,7 +249,7 @@ class UNet(nn.Module):
 
             print ("Shape of output before passing into final interpolation step:", out.shape)
 
-            weights = self.vel_weights.expand(out.shape)
+            weights = self.vel_weights
 
             # then interpolate onto the coarse grid
             out = F.interpolate(out, scale_factor=weights, recompute_scale_factor=True,
