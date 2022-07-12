@@ -255,7 +255,7 @@ class UNet(nn.Module):
             weights = self.vel_weights.expand(out.shape)
 
             # then interpolate onto the coarse grid
-            out = F.interpolate(out, size=self.n_wav_coarse, scale_factor=weights, recompute_scale_factor=False,
+            out = F.interpolate(out, scale_factor=weights, recompute_scale_factor=False,
                                 mode="linear")
 
             # interpolate directly onto the coarse grid (probably fails)
