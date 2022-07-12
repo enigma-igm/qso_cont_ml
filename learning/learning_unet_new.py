@@ -76,9 +76,11 @@ class UNetTrainer:
         self.scaler_hybrid, self.scaler_coarse = self.trainScalers(trainset, scaler_floorval)
 
         # check the dimensions of the scalers
+        '''
         print ("Shape of scaler_hybrid.mean_spectrum:", self.scaler_hybrid.mean_spectrum.shape)
         print ("Shape of scaler_coarse.mean_spectrum:", self.scaler_coarse.mean_spectrum.shape)
         print ("Median in scaler_hybrid:", self.scaler_hybrid.median)
+        '''
 
         # set up tensors for storing the loss
         running_loss = torch.zeros(self.num_epochs)
@@ -104,14 +106,14 @@ class UNetTrainer:
                 flux_input_raw = flux_input_raw.to(self.device)
                 true_cont_raw = true_cont_raw.to(self.device)
 
-                print ("Number of NaN input values before scaling:", torch.sum(torch.isnan(flux_input_raw)))
-                print ("Shape of input before scaling:", flux_input_raw.shape)
+                #print ("Number of NaN input values before scaling:", torch.sum(torch.isnan(flux_input_raw)))
+                #print ("Shape of input before scaling:", flux_input_raw.shape)
 
                 # scale the input and target output
                 flux_input_train = self.scaler_hybrid.forward(flux_input_raw)
                 true_cont_train = self.scaler_coarse.forward(true_cont_raw)
 
-                print ("Number of NaN input values:", torch.sum(torch.isnan(flux_input_train)))
+                #print ("Number of NaN input values:", torch.sum(torch.isnan(flux_input_train)))
 
                 # set gradients to zero
                 self.optimizer.zero_grad()
@@ -119,12 +121,12 @@ class UNetTrainer:
                 # forward the network
                 outputs = self.net(flux_input_train)
 
-                print ("Number of NaN output values:", torch.sum(torch.isnan(outputs)))
+                #print ("Number of NaN output values:", torch.sum(torch.isnan(outputs)))
 
                 # compute the weighted loss
                 outputs_real_rel = self.scaler_coarse.backward(outputs) / true_cont_raw
 
-                print ("Number of NaN output values after descaling:", torch.sum(torch.isnan(outputs_real_rel)))
+                #print ("Number of NaN output values after descaling:", torch.sum(torch.isnan(outputs_real_rel)))
                 targets_rel = true_cont_raw / true_cont_raw
                 loss = self.criterion(outputs_real_rel, targets_rel)
                 #loss = self.criterion(outputs_real_rel * weights_mse, targets_rel * weights_mse)
@@ -137,7 +139,7 @@ class UNetTrainer:
                 # store the training loss
                 running_loss[epoch] += loss.item()
 
-                print ("Running training loss:", running_loss[epoch])
+                #print ("Running training loss:", running_loss[epoch])
 
             print("Epoch {}/{} completed.".format(epoch+1, self.num_epochs))
 
@@ -157,7 +159,7 @@ class UNetTrainer:
                 validlossfunc = self.criterion(valid_outputs_real_rel, valid_targets_rel)
                 valid_loss[epoch] += validlossfunc.item()
 
-                print ("Valid loss:", valid_loss[epoch])
+                #print ("Valid loss:", valid_loss[epoch])
 
             # normalise the validation loss to the number of quasars in the validation set
             valid_loss[epoch] = valid_loss[epoch] / len(validset)
