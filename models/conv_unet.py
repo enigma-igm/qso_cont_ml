@@ -179,11 +179,12 @@ class Decoder(nn.Module):
 
 
 class UNet(nn.Module):
-    def __init__(self, out_sz, vel_weights, enc_chs=(1,64,128, 256), dec_chs=(256, 128, 64),\
-                 kernel_size_enc=10, kernel_size_dec=10, kernel_size_upconv=10,\
-                 num_class=1, retain_dim=False, pool="avg", pool_kernel_size=10,\
-                 activfunc="relu", activparam=1.0, final_skip=False, skip="concatenation",\
-                 padding_mode="zeros", crop_enc=True):
+    def __init__(self, out_sz, vel_weights, enc_chs=(1,64,128, 256), dec_chs=(256, 128, 64),
+                 kernel_size_enc=10, kernel_size_dec=10, kernel_size_upconv=10,
+                 num_class=1, retain_dim=False, pool="avg", pool_kernel_size=10,
+                 activfunc="relu", activparam=1.0, final_skip=False, skip="concatenation",
+                 padding_mode="zeros", crop_enc=True, recompute_scale_factors=False,
+                 interpmode="linear", interp_align_corners=True):
         super().__init__()
         self.encoder = Encoder(enc_chs, kernel_size_enc, pool, pool_kernel_size,\
                                activfunc, activparam, padding_mode=padding_mode)
@@ -195,9 +196,11 @@ class UNet(nn.Module):
         self.n_wav_coarse = out_sz
 
         self.vel_weights = vel_weights
+        self.recompute_scale_factors = recompute_scale_factors
+        self.interpmode = interpmode
+        self.align_corners = interp_align_corners
 
         print ("Shape of velocity width weights:", self.vel_weights.shape)
-        print ("Shape ")
 
         self.final_skip = final_skip
         if final_skip:
@@ -250,10 +253,11 @@ class UNet(nn.Module):
             print ("Shape of output before passing into final interpolation step:", out.shape)
 
             weights = self.vel_weights
+            print ("Shape of the weights:", weights.shape)
 
             # then interpolate onto the coarse grid
-            out = F.interpolate(out, scale_factor=weights, recompute_scale_factor=True,
-                                mode="linear", align_corners=True)
+            out = F.interpolate(out, scale_factor=weights, recompute_scale_factor=self.recompute_scale_factors,
+                                mode=self.interpmode, align_corners=self.align_corners)
 
 
             # interpolate directly onto the coarse grid (probably fails)
