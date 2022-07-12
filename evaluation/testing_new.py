@@ -236,7 +236,7 @@ class ResidualPlots(RelResids):
         ax.grid(which="major", alpha=.3)
         ax.grid(which="minor", alpha=.1)
         ax.set_xlabel("Rest-frame wavelength ($\AA$)")
-        ax.set_ylabel(r"$(F_\textrm{true} - F_\textrm{pred}) / F_\textrm{true}$")
+        ax.set_ylabel(r"$(F_{true} - F_{pred}) / F_{true}$")
         ax.set_title("Residuals Relative to True Continuum")
 
         ax.set_xlim(wave_min, wave_max)
