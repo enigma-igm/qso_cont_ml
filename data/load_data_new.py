@@ -51,7 +51,7 @@ class SynthSpectra(Dataset):
 
         self.file, self.filename = loadSynthFile(datapath, npca, z_qso, test)
 
-        # load only the hybrid and coarse wavelength grid, the hybrid input and the coarse true continua
+        # load only the hybrid and coarse wavelength grid, the hybrid input and the hybrid true continua
         self.wave_fine = torch.FloatTensor(self.file["/meta/wave-fine"])
         self.wave_hybrid = torch.FloatTensor(self.file["/meta/wave-hybrid"])
         self.wave_coarse = torch.FloatTensor(self.file["/meta/wave-coarse"])
@@ -60,7 +60,7 @@ class SynthSpectra(Dataset):
         self.ivar_hybrid = torch.FloatTensor(self.file["{}/hybrid-grid/ivar".format(self.grp_name)])
         self.mean_trans_hybrid = torch.FloatTensor(self.file["{}/hybrid-grid/mean-trans-flux".format(self.grp_name)])
 
-        self.cont_coarse = torch.FloatTensor(self.file["{}/coarse-grid/cont".format(self.grp_name)])
+        self.cont_hybrid = torch.FloatTensor(self.file["{}/hybrid-grid/cont".format(self.grp_name)])
 
         # TO DO: normalise the spectra to 1 at 1280 A in this class as well
 
@@ -84,16 +84,16 @@ class SynthSpectra(Dataset):
     def __getitem__(self, idx):
 
         input_hybrid = self.input_hybrid[idx]
-        cont = torch.unsqueeze(self.cont_coarse, dim=1)[idx]
+        cont = torch.unsqueeze(self.cont_hybrid, dim=1)[idx]
 
         return input_hybrid, cont
 
 
     @property
-    def cont_hybrid(self):
+    def cont_coarse(self):
 
         f = h5py.File(self.filename, "r")
-        cont_hybrid = torch.FloatTensor(f["{}/hybrid-grid/cont".format(self.grp_name)])
+        cont_hybrid = torch.FloatTensor(f["{}/coarse-grid/cont".format(self.grp_name)])
         f.close()
 
         return cont_hybrid
