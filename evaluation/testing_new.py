@@ -27,7 +27,7 @@ class ModelResults:
         grid_type: str
     '''
 
-    def __init__(self, testset, net, scaler_hybrid, scaler_coarse, gridtype="coarse"):
+    def __init__(self, testset, net, scaler_hybrid, gridtype="hybrid"):
 
         if not isinstance(testset, SynthSpectra):
             raise TypeError("'testset' must be a SynthSpectra instance.")
@@ -36,7 +36,6 @@ class ModelResults:
         # update the device of the scalers if necessary
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         scaler_hybrid.updateDevice()
-        scaler_coarse.updateDevice()
 
         self.input_hybrid = testset.input_hybrid
 
@@ -46,10 +45,10 @@ class ModelResults:
         # apply the network to the input and descale the predictions again
         # squeeze the predictions such that the feature channel dimension is gone
         res_scaled = net(input_scaled)
-        res_descaled = scaler_coarse.backward(res_scaled).squeeze(dim=1)
+        res_descaled = scaler_hybrid.backward(res_scaled).squeeze(dim=1)
 
         # make numpy arrays for easier plotting and manipulation
-        res_coarse_np = res_descaled.cpu().detach().numpy()
+        res_hybrid_np = res_descaled.cpu().detach().numpy()
 
         # put everything onto the desired grid and save as numpy arrays
         # also load the true continua on the same grid
@@ -57,14 +56,15 @@ class ModelResults:
 
         # TO DO: enable NoneType true continuum for real test spectra
         if gridtype == "coarse":
-            self.cont_pred = res_coarse_np
+            self.cont_pred = interp1d(testset.wave_hybrid, res_hybrid_np, kind="cubic", axis=-1, bounds_error=False,
+                                      fill_value="extrapolate")(testset.wave_coarse)
             self.cont_true = testset.cont_coarse.cpu().detach().numpy()
             self.flux = testset.flux_coarse.cpu().detach().numpy()
             self.noise = testset.noise_coarse.cpu().detach().numpy()
             self.wave_grid = testset.wave_coarse
 
         elif gridtype == "fine":
-            self.cont_pred = interp1d(testset.wave_coarse, res_coarse_np, kind="cubic", axis=-1, bounds_error=False,
+            self.cont_pred = interp1d(testset.wave_hybrid, res_hybrid_np, kind="cubic", axis=-1, bounds_error=False,
                                       fill_value="extrapolate")(testset.wave_fine)
             self.cont_true = testset.cont_fine.cpu().detach().numpy()
             self.flux = testset.flux_fine.cpu().detach().numpy()
@@ -72,8 +72,7 @@ class ModelResults:
             self.wave_grid = testset.wave_fine
 
         elif gridtype == "hybrid":
-            self.cont_pred = interp1d(testset.wave_coarse, res_coarse_np, kind="cubic", axis=-1, bounds_error=False,
-                                      fill_value="extrapolate")(testset.wave_hybrid)
+            self.cont_pred = res_hybrid_np
             self.cont_pred = testset.cont_hybrid.cpu().detach().numpy()
             self.flux = testset.flux_hybrid.cpu().detach().numpy()
             self.noise = 1 / np.sqrt(testset.ivar_hybrid.cpu().detach().numpy())
@@ -87,9 +86,9 @@ class ModelResults:
 
 class ModelResultsSpectra(ModelResults):
 
-    def __init__(self, testset, net, scaler_hybrid, scaler_coarse, gridtype="coarse"):
+    def __init__(self, testset, net, scaler_hybrid, gridtype="coarse"):
 
-        super(ModelResultsSpectra, self).__init__(testset, net, scaler_hybrid, scaler_coarse, gridtype)
+        super(ModelResultsSpectra, self).__init__(testset, net, scaler_hybrid, gridtype)
 
 
     def randomIndex(self, size=1):
@@ -191,9 +190,9 @@ class RelResids(ModelResults):
     The residuals are defined as: Delta / F_true = (F_true - F_pred) / F_true.
     '''
 
-    def __init__(self, testset, net, scaler_hybrid, scaler_coarse, gridtype="coarse"):
+    def __init__(self, testset, net, scaler_hybrid, gridtype="coarse"):
 
-        super(RelResids, self).__init__(testset, net, scaler_hybrid, scaler_coarse, gridtype)
+        super(RelResids, self).__init__(testset, net, scaler_hybrid, gridtype)
 
         # compute the 2D array of all residuals
         self.rel_resid = (self.cont_true - self.cont_pred) / self.cont_true
@@ -208,9 +207,9 @@ class RelResids(ModelResults):
 
 
 class ResidualPlots(RelResids):
-    def __init__(self, testset, net, scaler_hybrid, scaler_coarse, gridtype="coarse"):
+    def __init__(self, testset, net, scaler_hybrid, gridtype="coarse"):
 
-        super(ResidualPlots, self).__init__(testset, net, scaler_hybrid, scaler_coarse, gridtype)
+        super(ResidualPlots, self).__init__(testset, net, scaler_hybrid, gridtype)
 
 
     def plotPercentiles(self, wave_min=1020., wave_max=1970., figsize=(6,4), dpi=320):
