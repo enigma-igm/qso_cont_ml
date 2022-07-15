@@ -108,20 +108,6 @@ class Decoder(nn.Module):
         self.dec_blocks = nn.ModuleList([Block(chs[i], chs[i+1], kernel_size[i], \
                                                activfunc, activparam, padding_mode) for i in range(len(chs)-1)])
 
-        #if skip=="concatenation:":
-        #    self.upconvs = nn.ModuleList([nn.ConvTranspose1d(chs[i], chs[i+1],\
-        #                                     upconv_kernel_size[i], (2,)) for i in range(len(chs)-1)])
-        #    print ("Skip connection type: concatenation.")
-        #    print ("self.upconvs:", self.upconvs)
-
-        #else:
-        #    print ("Skip connection type:", skip)
-        #    self.upconvs = nn.ModuleList([nn.ConvTranspose1d(chs[i], chs[i],\
-        #                                                     upconv_kernel_size[i], (2,)) for i in range(len(chs)-1)])
-
-        #self.dec_blocks = nn.ModuleList([Block(chs[i], chs[i+1], kernel_size[i], \
-        #                                       activfunc, activparam) for i in range(len(chs)-1)])
-        #print ("self.dec_blocks:", self.dec_blocks)
         self.skip = SkipOperator(skip)
         self.crop_enc = crop_enc
 
@@ -179,12 +165,11 @@ class Decoder(nn.Module):
 
 
 class UNet(nn.Module):
-    def __init__(self, out_sz, vel_weights, enc_chs=(1,64,128, 256), dec_chs=(256, 128, 64),
+    def __init__(self, out_sz, enc_chs=(1,64,128, 256), dec_chs=(256, 128, 64),
                  kernel_size_enc=10, kernel_size_dec=10, kernel_size_upconv=10,
                  num_class=1, retain_dim=False, pool="avg", pool_kernel_size=10,
                  activfunc="relu", activparam=1.0, final_skip=False, skip="concatenation",
-                 padding_mode="zeros", crop_enc=True, recompute_scale_factors=False,
-                 interpmode="linear", interp_align_corners=True):
+                 padding_mode="zeros", crop_enc=True):
         super().__init__()
         self.encoder = Encoder(enc_chs, kernel_size_enc, pool, pool_kernel_size,\
                                activfunc, activparam, padding_mode=padding_mode)
@@ -192,15 +177,7 @@ class UNet(nn.Module):
                                activfunc, activparam, padding_mode=padding_mode,\
                                crop_enc=True)
         self.retain_dim = retain_dim
-        self.n_wav_hybrid = len(vel_weights)
-        self.n_wav_coarse = out_sz
-
-        self.vel_weights = vel_weights
-        self.recompute_scale_factors = recompute_scale_factors
-        self.interpmode = interpmode
-        self.align_corners = interp_align_corners
-
-        print ("Shape of velocity width weights:", self.vel_weights.shape)
+        self.n_wav_hybrid = out_sz
 
         self.final_skip = final_skip
         if final_skip:
@@ -245,28 +222,8 @@ class UNet(nn.Module):
         if self.retain_dim:
             out = F.interpolate(out, self.n_wav_hybrid)
 
-        else:
-
-            # first interpolate onto the hybrid grid
-            out = F.interpolate(out, self.n_wav_hybrid)
-
-            print ("Shape of output before passing into final interpolation step:", out.shape)
-            print ("Dimension of output before final interpolation:", out.dim())
-
-            weights = [self.vel_weights.tolist()]
-            print ("Shape of the weights:", len(weights))
-
-            # then interpolate onto the coarse grid
-            out = F.interpolate(out, scale_factor=weights, recompute_scale_factor=self.recompute_scale_factors,
-                                mode=self.interpmode, align_corners=self.align_corners)
-
-
-            # interpolate directly onto the coarse grid (probably fails)
-            # don't use weights for now for systematic debugging
-            #out = F.interpolate(out, self.n_wav_coarse, mode="linear")
-
-        #print ("Shape of final output:", out.shape)
         return out
+
 
     def load(self, savefile):
         '''Load a previously trained model saved under <<savefile>>'''
@@ -275,6 +232,7 @@ class UNet(nn.Module):
 
         self.load_state_dict(checkpoint["model_state_dict"])
 
-        print ("Loaded previously trained model + QuasarScalers.")
+        print ("Loaded previously trained model + MedianScaler.")
 
-        return checkpoint["scaler_flux"], checkpoint["scaler_cont"]
+        #return checkpoint["scaler_flux"], checkpoint["scaler_cont"]
+        return checkpoint["scaler_hybrid"]
