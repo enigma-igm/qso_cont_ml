@@ -169,7 +169,7 @@ class UNet(nn.Module):
                  kernel_size_enc=10, kernel_size_dec=10, kernel_size_upconv=10,
                  num_class=1, retain_dim=False, pool="avg", pool_kernel_size=10,
                  activfunc="relu", activparam=1.0, final_skip=False, skip="concatenation",
-                 padding_mode="zeros", crop_enc=True):
+                 padding_mode="zeros", crop_enc=True, interpmode="nearest"):
         super().__init__()
         self.encoder = Encoder(enc_chs, kernel_size_enc, pool, pool_kernel_size,\
                                activfunc, activparam, padding_mode=padding_mode)
@@ -178,6 +178,7 @@ class UNet(nn.Module):
                                crop_enc=True)
         self.retain_dim = retain_dim
         self.n_wav_hybrid = out_sz
+        self.interpmode = interpmode
 
         self.final_skip = final_skip
         if final_skip:
@@ -220,7 +221,7 @@ class UNet(nn.Module):
         out = self.head(out)
 
         if self.retain_dim:
-            out = F.interpolate(out, self.n_wav_hybrid)
+            out = F.interpolate(out, self.n_wav_hybrid, mode=self.interpmode)
 
         return out
 
