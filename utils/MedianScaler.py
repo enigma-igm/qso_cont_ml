@@ -66,6 +66,10 @@ class MedianScaler:
         else:
             spec_scaled = (qso_spectrum.to(self.device) - self.mean_spectrum) / self.median
 
+            if self.n_channels == 3:
+                # don't scale the mean transmission channel
+                spec_scaled[:,-1] = qso_spectrum[:,-1].to(self.device)
+
         '''
         except:
             if qso_spectrum.shape[1] == self.mean_spectrum.shape[0]:
