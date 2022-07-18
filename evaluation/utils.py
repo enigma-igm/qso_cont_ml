@@ -15,14 +15,18 @@ def bootstrapMean(data, iterations=100):
 
     means = np.zeros((iterations, n_wav))
 
+    print ("Shape of data:", data.shape)
+
     for iteration, idcs_it in enumerate(idcs):
 
         data_it = data[idcs_it]
+        print ("Shape of data_it:", data_it.shape)
+        mean_it = np.mean(data_it, axis=0)
 
-        try:
-            means[iteration] = np.mean(data_it, axis=0)
-        except:
+        if isinstance(mean_it, float):
             embed()
+        else:
+            means[iteration] = mean_it
 
     sigma_min, sigma_plus = np.percentile(means, [16.,84.])
 
