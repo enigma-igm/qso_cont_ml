@@ -2,6 +2,7 @@
 
 import numpy as np
 #from numba import jit
+from IPython import embed
 
 #@jit
 def bootstrapMean(data, iterations=100):
@@ -16,7 +17,11 @@ def bootstrapMean(data, iterations=100):
     for iteration, idcs_it in enumerate(idcs):
 
         data_it = data[idcs_it]
-        means[iteration] = np.mean(data_it, axis=0)
+
+        try:
+            means[iteration] = np.mean(data_it, axis=0)
+        except:
+            embed()
 
     sigma_min, sigma_plus = np.percentile(means, [16.,84.])
 
