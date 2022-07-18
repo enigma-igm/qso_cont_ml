@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import AutoMinorLocator
 from data.load_data_new import SynthSpectra
 from evaluation.testing_new import ModelResults
+from evaluation.utils import bootstrapMean
 
 class MeanTransmission(ModelResults):
     '''
@@ -46,6 +47,8 @@ class MeanTransmission(ModelResults):
         self.mean_trans_true = np.mean(trans_true, axis=0)
 
         #TODO: add non-parametric bootstrap algorithm for error margins?
+        self.sigma_min_pred, self.sigma_plus_pred = bootstrapMean(trans_pred)
+        self.sigma_min_true, self.sigma_plus_true = bootstrapMean(trans_true)
 
 
 
