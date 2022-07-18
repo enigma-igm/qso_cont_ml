@@ -158,3 +158,23 @@ class SynthSpectra(Dataset):
         f.close()
 
         return flux_noiseless
+
+
+    @property
+    def redshifts(self):
+
+        f = h5py.File(self.filename, "r")
+        redshifts = torch.FloatTensor(f["{}/redshifts".format(self.grp_name)])
+        f.close()
+
+        return redshifts
+
+
+    @property
+    def magnitudes(self):
+
+        f = h5py.File(self.filename, "r")
+        mags = torch.FloatTensor(f["{}/mags".format(self.grp_name)])
+        f.close()
+
+        return mags

@@ -290,8 +290,17 @@ grp_meta.attrs["dv-fine"] = dvpix
 grp_meta.attrs["dv-coarse"] = dvpix_red
 grp_meta.attrs["npca"] = npca
 grp_meta.attrs["nskew"] = nskew
-grp_meta.create_dataset("redshifts", data=np.full(nsamp, z_qso))
-grp_meta.create_dataset("mags", data=mags)
+
+# add redshifts and magnitudes to the training/validation/test groups
+grp_traindata.create_dataset("redshifts", data=np.full(len(train_idcs), z_qso))
+grp_traindata.create_dataset("mags", data=mags[train_idcs])
+grp_validdata.create_dataset("redshifts", data=np.full(len(valid_idcs), z_qso))
+grp_validdata.create_dataset("mags", data=mags[valid_idcs])
+grp_testdata.create_dataset("redshifts", data=np.full(len(test_idcs), z_qso))
+grp_testdata.create_dataset("mags", data=mags[test_idcs])
+
+#grp_meta.create_dataset("redshifts", data=np.full(nsamp, z_qso))
+#grp_meta.create_dataset("mags", data=mags)
 
 f.close()
 
