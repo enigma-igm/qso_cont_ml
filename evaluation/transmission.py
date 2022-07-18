@@ -33,7 +33,7 @@ class MeanTransmission(ModelResults):
         mean_trans_true: ndarray of shape (n_wav,)
     '''
 
-    def __init__(self, testset, net, scaler_hybrid):
+    def __init__(self, testset, net, scaler_hybrid, n_iterations=100):
 
         super(MeanTransmission, self).__init__(testset, net, scaler_hybrid, gridtype="fine")
 
@@ -47,8 +47,8 @@ class MeanTransmission(ModelResults):
         self.mean_trans_true = np.mean(trans_true, axis=0)
 
         #TODO: add non-parametric bootstrap algorithm for error margins?
-        self.sigma_min_pred, self.sigma_plus_pred = bootstrapMean(trans_pred)
-        self.sigma_min_true, self.sigma_plus_true = bootstrapMean(trans_true)
+        self.sigma_min_pred, self.sigma_plus_pred = bootstrapMean(trans_pred, iterations=n_iterations)
+        self.sigma_min_true, self.sigma_plus_true = bootstrapMean(trans_true, iterations=n_iterations)
 
 
 
@@ -100,10 +100,10 @@ class MeanTransmissionPlot(MeanTransmission):
 
         ax = fig.add_subplot(subplotloc)
 
-        ax.plot(self.wave_grid, self.mean_trans_true, alpha=alpha, lw=1.5, c="tab:orange", label="Ground truth")
+        ax.plot(self.wave_grid, self.mean_trans_true, alpha=alpha, lw=.5, c="tab:orange", label="Ground truth")
         ax.fill_between(self.wave_grid, self.sigma_min_true, self.sigma_plus_true, alpha=.3, color="tab:orange")
 
-        ax.plot(self.wave_grid, self.mean_trans_pred, alpha=alpha, lw=1., c=contpredcolor, label="Prediction")
+        ax.plot(self.wave_grid, self.mean_trans_pred, alpha=alpha, lw=.5, c=contpredcolor, label="Prediction")
         ax.fill_between(self.wave_grid, self.sigma_min_pred, self.sigma_plus_pred, alpha=.3, color=contpredcolor)
 
         ax.axvline(1216., alpha=0.7, lw=1., ls="dashdot", color="black", label="Blue-red split")
@@ -117,7 +117,7 @@ class MeanTransmissionPlot(MeanTransmission):
         ax.grid(which="minor", alpha=.1)
 
         ax.set_xlim(wave_min, wave_max)
-        ax.set_ylim(-.2, 1.2)
+        ax.set_ylim(-.1, 1.1)
 
         ax.set_title("Input truth vs. network prediction")
 
