@@ -111,7 +111,7 @@ class MeanTransmissionPlot(MeanTransmission):
         ax.grid(which="minor", alpha=.1)
 
         ax.set_xlim(wave_min, wave_max)
-        ax.set_ylim(-.2, .2)
+        ax.set_ylim(-.2, 1.2)
 
         ax.set_title("Input truth vs. network prediction")
 
