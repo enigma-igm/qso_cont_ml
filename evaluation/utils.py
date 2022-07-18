@@ -1,9 +1,9 @@
 '''Utility functions for the evaluation procedures.'''
 
 import numpy as np
-from numba import jit
+#from numba import jit
 
-@jit
+#@jit
 def bootstrapMean(data, iterations=100):
 
     # draw [iterations] random samples from data and compute the mean spectrum over this set
