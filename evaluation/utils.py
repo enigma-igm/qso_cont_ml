@@ -9,10 +9,11 @@ def bootstrapMean(data, iterations=100):
 
     # draw [iterations] random samples from data and compute the mean spectrum over this set
     n_qso = data.shape[0]
+    n_wav = data.shape[-1]
     rng = np.random.default_rng()
     idcs = rng.integers(0, n_qso, size=(iterations, n_qso))
 
-    means = np.zeros(iterations)
+    means = np.zeros((iterations, n_wav))
 
     for iteration, idcs_it in enumerate(idcs):
 
