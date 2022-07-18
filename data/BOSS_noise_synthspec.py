@@ -44,7 +44,7 @@ c_light = (const.c.to("km/s")).value
 dvpix = dloglam * c_light * np.log(10)
 wave_rest = get_wave_grid(wave_min, wave_max, dvpix)
 mags = np.full(5, 18.5)
-z_qso = 4.0
+z_qso = 3.5
 
 # load empirical noise vectors
 zmin = z_qso - 0.01
@@ -272,6 +272,8 @@ for (idcs, [grp_fine, grp_coarse, grp_hybrid]) in zip([train_idcs, valid_idcs, t
     grp_fine.create_dataset("flux", data=flux_norm_noisy[idcs])
     grp_fine.create_dataset("ivar", data=ivar_rand[idcs])
     grp_fine.create_dataset("mean-trans-flux", data=np.full((nsamp_set, cont_norm.shape[-1]), mean_trans))
+    # also save the noiseless absorption spectrum
+    grp_fine.create_dataset("noiseless-flux", data=flux_norm[idcs])
 
     grp_coarse.create_dataset("cont", data=cont_coarse[idcs])
     grp_coarse.create_dataset("flux", data=flux_coarse[idcs])

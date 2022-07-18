@@ -148,3 +148,13 @@ class SynthSpectra(Dataset):
         f.close()
 
         return noise_coarse
+
+
+    @property
+    def noiseless_flux_fine(self):
+
+        f = h5py.File(self.filename, "r")
+        flux_noiseless = torch.FloatTensor(f["{}/fine-grid/noiseless-flux".format(self.grp_name)])
+        f.close()
+
+        return flux_noiseless

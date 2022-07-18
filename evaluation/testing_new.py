@@ -21,6 +21,8 @@ class ModelResults:
     Attributes:
         device: torch.device
         input_hybrid: torch tensor of shape (n_qso, 3, n_wav)
+        flux: ndarray of shape (n_qso, n_wav)
+        noise: ndarray of shape (n_qso, n_wav)
         cont_pred: ndarray of shape (n_qso, n_wav)
         cont_true: ndarray of shape (n_qso, n_wav)
         wave_grid: ndarray of shape (n_wav,)
@@ -104,7 +106,7 @@ class ModelResultsSpectra(ModelResults):
         return rand_indx
 
 
-    def createFigure(self, figsize=(7,5), dpi=320):
+    def createFigure(self, figsize=(6,4), dpi=320):
         '''
         Create a figure to add subplots to.
 
