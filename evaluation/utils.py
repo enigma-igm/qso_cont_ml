@@ -16,7 +16,7 @@ def bootstrapMean(data, iterations=100):
     for iteration, idcs_it in enumerate(idcs):
 
         data_it = data[idcs_it]
-        means[iteration] = np.means(data_it, axis=0)
+        means[iteration] = np.mean(data_it, axis=0)
 
     sigma_min, sigma_plus = np.percentile(means, [16.,84.])
 
