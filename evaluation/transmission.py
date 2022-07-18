@@ -101,7 +101,10 @@ class MeanTransmissionPlot(MeanTransmission):
         ax = fig.add_subplot(subplotloc)
 
         ax.plot(self.wave_grid, self.mean_trans_true, alpha=alpha, lw=1.5, c="tab:orange", label="Ground truth")
+        ax.fill_between(self.wave_grid, self.sigma_min_true, self.sigma_plus_true, alpha=.3, c="tab:orange")
+
         ax.plot(self.wave_grid, self.mean_trans_pred, alpha=alpha, lw=1., c=contpredcolor, label="Prediction")
+        ax.fill_between(self.wave_grid, self.sigma_min_pred, self.sigma_plus_pred, alpha=.3, c=contpredcolor)
 
         ax.axvline(1216., alpha=0.7, lw=1., ls="dashdot", color="black", label="Blue-red split")
 
