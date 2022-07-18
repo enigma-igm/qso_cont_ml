@@ -73,7 +73,6 @@ class MeanTransmissionPlot(MeanTransmission):
         '''
 
         self.fig = plt.figure(figsize=figsize, dpi=dpi)
-        self.fig.suptitle("Mean Transmission", size=15)
 
         return self.fig
 
@@ -128,4 +127,5 @@ class MeanTransmissionPlot(MeanTransmission):
         @return:
         '''
 
+        self.fig.suptitle("Mean Transmission", size=15)
         self.fig.show()
