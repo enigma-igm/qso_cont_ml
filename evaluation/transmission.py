@@ -37,7 +37,7 @@ class MeanTransmission(ModelResults):
         super(MeanTransmission, self).__init__(testset, net, scaler_hybrid, gridtype="fine")
 
         # load the noiseless absorption spectra and compute the transmission for each QSO
-        flux_noiseless = testset.noiseless_flux_fine
+        flux_noiseless = testset.noiseless_flux_fine.cpu().detach().numpy()
         trans_pred = flux_noiseless / self.cont_pred
         trans_true = flux_noiseless / self.cont_true
 
