@@ -5,7 +5,15 @@ import numpy as np
 from IPython import embed
 
 #@jit
-def bootstrapMean(data, iterations=100):
+def bootstrapMean(data, iterations=100, interval=68.):
+    '''
+    Compute confidence intervals on the mean of a given data set, using a non-parametric bootstrap algorithm.
+
+    @param data: ndarray of shape (n_qso, n_wav)
+    @param iterations: int
+    @param interval: float or int
+    @return: sigma_min, sigma_plus
+    '''
 
     # draw [iterations] random samples from data and compute the mean spectrum over this set
     n_qso = data.shape[0]
@@ -20,6 +28,6 @@ def bootstrapMean(data, iterations=100):
         data_it = data[idcs_it]
         means[iteration] = np.mean(data_it, axis=0)
 
-    sigma_min, sigma_plus = np.percentile(means, [16.,84.], axis=0)
+    sigma_min, sigma_plus = np.percentile(means, [50. - (interval / 2), 50. + (interval / 2)], axis=0)
 
     return sigma_min, sigma_plus

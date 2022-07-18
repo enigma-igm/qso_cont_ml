@@ -33,7 +33,7 @@ class MeanTransmission(ModelResults):
         mean_trans_true: ndarray of shape (n_wav,)
     '''
 
-    def __init__(self, testset, net, scaler_hybrid, n_iterations=100):
+    def __init__(self, testset, net, scaler_hybrid, n_iterations=100, interval=68.):
 
         super(MeanTransmission, self).__init__(testset, net, scaler_hybrid, gridtype="fine")
 
@@ -47,8 +47,8 @@ class MeanTransmission(ModelResults):
         self.mean_trans_true = np.mean(trans_true, axis=0)
 
         #TODO: add non-parametric bootstrap algorithm for error margins?
-        self.sigma_min_pred, self.sigma_plus_pred = bootstrapMean(trans_pred, iterations=n_iterations)
-        self.sigma_min_true, self.sigma_plus_true = bootstrapMean(trans_true, iterations=n_iterations)
+        self.sigma_min_pred, self.sigma_plus_pred = bootstrapMean(trans_pred, n_iterations, interval)
+        self.sigma_min_true, self.sigma_plus_true = bootstrapMean(trans_true, n_iterations, interval)
 
 
 
@@ -57,9 +57,9 @@ class MeanTransmissionPlot(MeanTransmission):
     Class for plotting the mean transmission, given the network predictions.
     '''
 
-    def __init__(self, testset, net, scaler_hybrid):
+    def __init__(self, testset, net, scaler_hybrid, n_iterations=100, interval=68.):
 
-        super(MeanTransmissionPlot, self).__init__(testset, net, scaler_hybrid)
+        super(MeanTransmissionPlot, self).__init__(testset, net, scaler_hybrid, n_iterations, interval)
 
         # initialise a figure placeholder variable and empty axes
         self.fig = None
