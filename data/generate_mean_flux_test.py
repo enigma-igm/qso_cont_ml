@@ -62,7 +62,7 @@ mean_flux_range = np.clip([true_mean_flux-0.0001, true_mean_flux+0.0001], 0.01, 
 print ("Old mean flux range:", mean_flux_range_old)
 print ("New mean flux range:", mean_flux_range)
 
-nskew = 1000
+nskew = 10000
 npca = 10
 
 pcafilename = 'COARSE_PCA_150_1000_2000_forest.pkl' # File holding (the old) PCA vectors
