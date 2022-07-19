@@ -12,6 +12,7 @@ from scipy.interpolate import interp1d
 from qso_fitting.data.utils import rebin_spectra
 import astropy.constants as const
 from data.empirical_noise import rebinNoiseVectors, interpBadPixels
+from simulator.save import constructFile
 
 
 class ProximityWrapper(Proximity):
@@ -144,7 +145,8 @@ class FullSimulator:
         self.Prox = ProximityWrapper(z_qso, mag, npca, nskew, wave_min, wave_max, fwhm, dloglam)
 
         # call the methods of ProximityWrapper and save everything to the object
-        self.mean_trans = self.Prox.meanTransmissionFromSkewers()
+        self.mean_trans1d = self.Prox.meanTransmissionFromSkewers()
+        self.mean_trans = np.full((nsamp, self.Prox.nspec), self.mean_trans1d)
         self.cont, self.flux_noiseless = self.Prox.simulateSpectra(nsamp, stochastic)
         self.ivar, noise_terms = self.Prox.assignNoise(half_dz, nsamp)
         self.flux = self.flux_noiseless + noise_terms
@@ -152,6 +154,8 @@ class FullSimulator:
         self.wave_min = wave_min
         self.wave_max = wave_max
         self.nsamp = nsamp
+        self.wave_fine = self.Prox.wave_rest
+        self.dvpix_red = dvpix_red
 
         self._regrid(dvpix_red)
         self.train_idcs, self.valid_idcs, self.test_idcs = self._split(train_frac)
@@ -181,10 +185,13 @@ class FullSimulator:
         self.ivar_hybrid = interpBadPixels(self.wave_hybrid, ivar_hybrid, gpm_hybrid)
         self.ivar_coarse = interpBadPixels(self.wave_coarse, ivar_coarse, gpm_coarse)
 
-        mean_trans_interpolator = interp1d(self.Prox.wave_rest, self.mean_trans, kind="cubic", bounds_error=False,
+        mean_trans_interpolator = interp1d(self.Prox.wave_rest, self.mean_trans1d, kind="cubic", bounds_error=False,
                                            fill_value="extrapolate")
-        self.mean_trans_hybrid = mean_trans_interpolator(self.wave_hybrid)
-        self.mean_trans_coarse = mean_trans_interpolator(self.wave_coarse)
+        mean_trans_hybrid1d = mean_trans_interpolator(self.wave_hybrid)
+        mean_trans_coarse1d = mean_trans_interpolator(self.wave_coarse)
+
+        self.mean_trans_hybrid = np.full((self.nsamp, self.Prox.nspec), mean_trans_hybrid1d)
+        self.mean_trans_coarse = np.full((self.nsamp, self.Prox.nspec), mean_trans_coarse1d)
 
 
     def _split(self, train_frac=0.9):
@@ -204,9 +211,7 @@ class FullSimulator:
     def saveFile(self, filepath="/net/vdesk/data2/buiten/MRP2/pca-sdss-old/"):
 
         filename = "{}synthspec_BOSSlike_z{}_nsamp{}.hdf5".format(filepath, self.Prox.z_qso, self.nsamp)
-        f = h5py.File(filename, "w")
 
-        # TODO: add call to fuction that saves
+        f = constructFile(self, filename)
 
         f.close()
-
