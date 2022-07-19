@@ -1,15 +1,17 @@
 '''Module for easily generating noiseless synthetic spectra from one Proximity simulator call.'''
 
 import numpy as np
+import h5py
 from dw_inference.sdss.utils import get_wave_grid
 from dw_inference.simulator.lognormal.lognormal_new import F_onorbe
 from dw_inference.simulator.utils import get_blu_red_wave_grid
 from linetools.lists.linelist import LineList
 from dw_inference.simulator.proximity.proximity import Proximity
 from data.load_data import normalise_spectra
-from scipy import interpolate
+from scipy.interpolate import interp1d
 from qso_fitting.data.utils import rebin_spectra
 import astropy.constants as const
+from data.empirical_noise import rebinNoiseVectors, interpBadPixels
 
 
 class ProximityWrapper(Proximity):
@@ -21,22 +23,23 @@ class ProximityWrapper(Proximity):
         strong_lines = LineList("Strong", verbose=False)
         lya_1216 = strong_lines["HI 1215"]
         lyb_1025 = strong_lines["HI 1025"]
-        wave_1216 = lya_1216["wrest"].value
+        self.wave_1216 = lya_1216["wrest"].value
         wave_1025 = lyb_1025["wrest"].value
         c_light = (const.c.to("km/s")).value
 
         # set up the native wavelength grid
-        dvpix = dloglam * c_light * np.log(10)
-        wave_rest = get_wave_grid(wave_min, wave_max, dvpix)
+        self.dvpix = dloglam * c_light * np.log(10)
+        wave_rest = get_wave_grid(wave_min, wave_max, self.dvpix)
 
         # set up Ly-alpha forest and proximity zone details
-        iforest = (wave_rest > wave_1025) & (wave_rest < wave_1216)
-        z_lya = wave_rest[iforest] * (1. + z_qso) / wave_1216 - 1.
+        iforest = (wave_rest > wave_1025) & (wave_rest < self.wave_1216)
+        z_lya = wave_rest[iforest] * (1. + z_qso) / self.wave_1216 - 1.
         mean_flux_z = F_onorbe(z_lya)
         self.true_mean_flux = np.mean(mean_flux_z)
         mean_flux_range = np.clip([self.true_mean_flux - 0.0001, self.true_mean_flux + 0.0001], 0.01, 1.)
 
         mags = np.full(5, mag)
+        self.mag = mag
         self.L_rescale = 1.
         nF = 2
         nlogL = 2
@@ -96,4 +99,114 @@ class ProximityWrapper(Proximity):
         flux_norm, cont_norm = normalise_spectra(self.wave_rest, flux, cont)
 
         return cont_norm, flux_norm
+
+
+    def assignNoise(self, half_dz, nsamp):
+        '''
+        Load empirical noise vectors from BOSS and assign random ones to the simulated spectra.
+        Draw noise terms from the noise vectors.
+
+        @param half_dz: float
+        @param nsamp: int
+        @return:
+            ivar_vectors: ndarray of shape (nsamp, nspec)
+            noise_terms: ndarray of shape (nsamp, nspec)
+        '''
+
+        zmin = self.z_qso - half_dz
+        zmax = self.z_qso + half_dz
+
+        # load the empirical noise vectors
+        _, ivar_boss, gpm_boss = rebinNoiseVectors(zmin, zmax, self.wave_rest)
+
+        # assign random noise vectors to the generated spectra
+        rand_idx = np.random.randint(0, len(ivar_boss), size=nsamp)
+        ivar_vectors = np.zeros((nsamp, self.nspec))
+        for i in range(len(ivar_vectors)):
+            ivar_vectors[i] = ivar_boss[rand_idx[i]]
+
+        sigma_vectors = np.sqrt(1 / ivar_vectors)
+
+        # draw noise terms from the noise vectors
+        noise_terms = np.zeros((nsamp, self.nspec))
+        rng = np.random.default_rng()
+        for i in range(nsamp):
+            noise_terms[i] = rng.normal(0, sigma_vectors[i], size=sigma_vectors.shape[-1])
+
+        return ivar_vectors, noise_terms
+
+
+class FullSimulator:
+    def __init__(self, nsamp, z_qso, mag, npca=10, nskew=1000, wave_min=1000., wave_max=1970., fwhm=131.4,
+                 dloglam=1.0e-4, stochastic=False, half_dz=0.01, dvpix_red=500., train_frac=0.9):
+
+        # initialise the ProximityWrapper
+        self.Prox = ProximityWrapper(z_qso, mag, npca, nskew, wave_min, wave_max, fwhm, dloglam)
+
+        # call the methods of ProximityWrapper and save everything to the object
+        self.mean_trans = self.Prox.meanTransmissionFromSkewers()
+        self.cont, self.flux_noiseless = self.Prox.simulateSpectra(nsamp, stochastic)
+        self.ivar, noise_terms = self.Prox.assignNoise(half_dz, nsamp)
+        self.flux = self.flux_noiseless + noise_terms
+
+        self.wave_min = wave_min
+        self.wave_max = wave_max
+        self.nsamp = nsamp
+
+        self._regrid(dvpix_red)
+        self.train_idcs, self.valid_idcs, self.test_idcs = self._split(train_frac)
+
+        self.redshifts = np.full(self.nsamp, self.Prox.z_qso)
+        self.mags = np.full(self.nsamp, self.Prox.mag)
+
+
+    def _regrid(self, dvpix_red=500.):
+
+        # construct the hybrid grid and the coarse grid
+        self.wave_hybrid, _, _, _ = get_blu_red_wave_grid(self.wave_min, self.wave_max, self.Prox.wave_1216, self.Prox.dvpix,
+                                                     dvpix_red)
+        self.wave_coarse = get_wave_grid(self.wave_min, self.wave_max, dvpix_red)
+
+        # interpolate/rebin everything
+        interpolator_cont = interp1d(self.Prox.wave_rest, self.cont, kind="cubic", bounds_error=False,
+                                     fill_value="extrapolate", axis=-1)
+        self.cont_hybrid = interpolator_cont(self.wave_hybrid)
+        self.cont_coarse = interpolator_cont(self.wave_coarse)
+
+        self.flux_hybrid, ivar_hybrid, gpm_hybrid, _ = rebin_spectra(self.wave_hybrid, self.Prox.wave_rest, self.flux,
+                                                                self.ivar, gpm=None)
+        self.flux_coarse, ivar_coarse, gpm_coarse, _ = rebin_spectra(self.wave_coarse, self.Prox.wave_rest, self.flux,
+                                                                self.ivar, gpm=None)
+
+        self.ivar_hybrid = interpBadPixels(self.wave_hybrid, ivar_hybrid, gpm_hybrid)
+        self.ivar_coarse = interpBadPixels(self.wave_coarse, ivar_coarse, gpm_coarse)
+
+        mean_trans_interpolator = interp1d(self.Prox.wave_rest, self.mean_trans, kind="cubic", bounds_error=False,
+                                           fill_value="extrapolate")
+        self.mean_trans_hybrid = mean_trans_interpolator(self.wave_hybrid)
+        self.mean_trans_coarse = mean_trans_interpolator(self.wave_coarse)
+
+
+    def _split(self, train_frac=0.9):
+
+        valid_frac = 0.5 * (1 - train_frac)
+        test_frac = 1 - train_frac - valid_frac
+
+        rng = np.random.default_rng()
+        all_idcs = np.arange(0, self.nsamp)
+        train_idcs = rng.choice(all_idcs, size=int(train_frac * self.nsamp), replace=False)
+        valid_idcs = rng.choice(np.delete(all_idcs, train_idcs), size=int(valid_frac * self.nsamp), replace=False)
+        test_idcs = np.delete(all_idcs, np.concatenate((train_idcs, valid_idcs)))
+
+        return train_idcs, valid_idcs, test_idcs
+
+
+    def saveFile(self, filepath="/net/vdesk/data2/buiten/MRP2/pca-sdss-old/"):
+
+        filename = "{}synthspec_BOSSlike_z{}_nsamp{}.hdf5".format(filepath, self.Prox.z_qso, self.nsamp)
+        f = h5py.File(filename, "w")
+
+        # TODO: add call to fuction that saves
+
+        f.close()
 
