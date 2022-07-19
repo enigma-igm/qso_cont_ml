@@ -194,8 +194,8 @@ class FullSimulator:
         mean_trans_hybrid1d = mean_trans_interpolator(self.wave_hybrid)
         mean_trans_coarse1d = mean_trans_interpolator(self.wave_coarse)
 
-        self.mean_trans_hybrid = np.full((self.nsamp, self.Prox.nspec), mean_trans_hybrid1d)
-        self.mean_trans_coarse = np.full((self.nsamp, self.Prox.nspec), mean_trans_coarse1d)
+        self.mean_trans_hybrid = np.full((self.nsamp, len(self.wave_hybrid)), mean_trans_hybrid1d)
+        self.mean_trans_coarse = np.full((self.nsamp, len(self.wave_coarse)), mean_trans_coarse1d)
 
 
     def split(self, train_frac=0.9):

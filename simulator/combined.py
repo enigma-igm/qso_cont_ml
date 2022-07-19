@@ -43,7 +43,7 @@ class CombinedSimulations:
         self.ivar_hybrid = np.concatenate([sim.ivar_hybrid for sim in sims_list], axis=0)
         self.ivar_coarse = np.concatenate([sim.ivar_coarse for sim in sims_list], axis=0)
         self.mean_trans_hybrid = np.concatenate([sim.mean_trans_hybrid for sim in sims_list], axis=0)
-        self.mean_trans_coarse = np.concatenate([sim.meant_trans_coarse for sim in sims_list], axis=0)
+        self.mean_trans_coarse = np.concatenate([sim.mean_trans_coarse for sim in sims_list], axis=0)
 
         # derive the number of samples in the combined set
         self.nsamp = len(self.cont)
