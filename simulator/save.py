@@ -54,11 +54,11 @@ def constructFile(simulator, filename, train_frac=0.9):
         grp_hybrid.create_dataset("ivar", data=simulator.ivar_hybrid[idcs])
         grp_hybrid.create_dataset("mean-trans-flux", data=simulator.mean_trans_hybrid[idcs])
 
-    grp_meta.attrs["fwhm"] = simulator.Prox.fwhm
-    grp_meta.attrs["dv-fine"] = simulator.Prox.dvpix
+    grp_meta.attrs["fwhm"] = simulator.fwhm
+    grp_meta.attrs["dv-fine"] = simulator.dvpix
     grp_meta.attrs["dv-coarse"] = simulator.dvpix_red
-    grp_meta.attrs["npca"] = simulator.Prox.npca
-    grp_meta.attrs["nskew"] = simulator.Prox.nskew
+    grp_meta.attrs["npca"] = simulator.npca
+    grp_meta.attrs["nskew"] = simulator.nskew
 
     # add redshifts and magnitudes to the training/validation/test groups
     grp_traindata.create_dataset("redshifts", data=simulator.redshifts[train_idcs])

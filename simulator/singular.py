@@ -154,8 +154,12 @@ class FullSimulator:
         self.wave_min = wave_min
         self.wave_max = wave_max
         self.nsamp = nsamp
-        self.wave_fine = self.Prox.wave_rest
+        self.wave_rest = self.Prox.wave_rest
         self.dvpix_red = dvpix_red
+        self.fwhm = self.Prox.fwhm
+        self.dvpix = self.Prox.dvpix
+        self.npca = self.Prox.npca
+        self.nskew = self.Prox.nskew
 
         self._regrid(dvpix_red)
         #self.train_idcs, self.valid_idcs, self.test_idcs = self._split(train_frac)
@@ -167,7 +171,7 @@ class FullSimulator:
     def _regrid(self, dvpix_red=500.):
 
         # construct the hybrid grid and the coarse grid
-        self.wave_hybrid, _, _, _ = get_blu_red_wave_grid(self.wave_min, self.wave_max, self.Prox.wave_1216, self.Prox.dvpix,
+        self.wave_hybrid, _, _, _ = get_blu_red_wave_grid(self.wave_min, self.wave_max, self.Prox.wave_1216, self.dvpix,
                                                      dvpix_red)
         self.wave_coarse = get_wave_grid(self.wave_min, self.wave_max, dvpix_red)
 
@@ -177,9 +181,9 @@ class FullSimulator:
         self.cont_hybrid = interpolator_cont(self.wave_hybrid)
         self.cont_coarse = interpolator_cont(self.wave_coarse)
 
-        self.flux_hybrid, ivar_hybrid, gpm_hybrid, _ = rebin_spectra(self.wave_hybrid, self.Prox.wave_rest, self.flux,
+        self.flux_hybrid, ivar_hybrid, gpm_hybrid, _ = rebin_spectra(self.wave_hybrid, self.wave_rest, self.flux,
                                                                 self.ivar, gpm=None)
-        self.flux_coarse, ivar_coarse, gpm_coarse, _ = rebin_spectra(self.wave_coarse, self.Prox.wave_rest, self.flux,
+        self.flux_coarse, ivar_coarse, gpm_coarse, _ = rebin_spectra(self.wave_coarse, self.wave_rest, self.flux,
                                                                 self.ivar, gpm=None)
 
         self.ivar_hybrid = interpBadPixels(self.wave_hybrid, ivar_hybrid, gpm_hybrid)
@@ -197,7 +201,6 @@ class FullSimulator:
     def split(self, train_frac=0.9):
 
         valid_frac = 0.5 * (1 - train_frac)
-        test_frac = 1 - train_frac - valid_frac
 
         rng = np.random.default_rng()
         all_idcs = np.arange(0, self.nsamp)
