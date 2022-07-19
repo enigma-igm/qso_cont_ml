@@ -1,4 +1,5 @@
 import h5py
+import numpy as np
 import os
 import torch
 from torch.utils.data import Dataset
@@ -13,7 +14,12 @@ def loadSynthFile(datapath=None, npca=10, z_qso=2.8, test=False):
     else:
         size_descr = "large"
 
-    filename = "{}synthspec_BOSSlike_npca{}_z{}_{}.hdf5".format(datapath, npca, z_qso, size_descr)
+    if isinstance(z_qso, float):
+        filename = "{}synthspec_BOSSlike_npca{}_z{}_{}.hdf5".format(datapath, npca, z_qso, size_descr)
+    elif isinstance(z_qso, list) or isinstance(z_qso, np.ndarray):
+        filename = "{}synthspec_combined_{}sets.hdf5".format(datapath, len(z_qso))
+    else:
+        raise TypeError("Parameter 'z_qso' should be a list or an array.")
 
     f = h5py.File(filename, "r")
 

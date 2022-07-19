@@ -65,7 +65,7 @@ class CombinedSimulations:
 
     def saveFile(self, filepath="/net/vdesk/data2/buiten/MRP2/pca-sdss-old/"):
 
-        filename = "{}synthspec_combined_{}sets_nsamp{}.hdf5".format(filepath, self.nsets, self.nsamp)
+        filename = "{}synthspec_combined_{}sets.hdf5".format(filepath, self.nsets)
 
         f = constructFile(self, filename)
 
