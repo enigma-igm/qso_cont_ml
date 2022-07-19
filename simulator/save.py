@@ -1,6 +1,9 @@
 import h5py
 
-def constructFile(simulator, filename):
+def constructFile(simulator, filename, train_frac=0.9):
+
+    # split the data into training, validation and test data
+    train_idcs, valid_idcs, test_idcs = simulator.split(train_frac)
 
     f = h5py.File(filename, "w")
 
@@ -32,8 +35,7 @@ def constructFile(simulator, filename):
             [grp_fine_valid, grp_coarse_valid, grp_hybrid_valid],
             [grp_fine_test, grp_coarse_test, grp_hybrid_test]]
 
-    for (idcs, [grp_fine, grp_coarse, grp_hybrid]) in zip([simulator.train_idcs, simulator.valid_idcs,
-                                                           simulator.test_idcs], grps):
+    for (idcs, [grp_fine, grp_coarse, grp_hybrid]) in zip([train_idcs, valid_idcs, test_idcs], grps):
 
         grp_fine.create_dataset("cont", data=simulator.cont[idcs])
         grp_fine.create_dataset("flux", data=simulator.flux[idcs])
@@ -59,12 +61,12 @@ def constructFile(simulator, filename):
     grp_meta.attrs["nskew"] = simulator.Prox.nskew
 
     # add redshifts and magnitudes to the training/validation/test groups
-    grp_traindata.create_dataset("redshifts", data=simulator.redshifts[simulator.train_idcs])
-    grp_traindata.create_dataset("mags", data=simulator.mags[simulator.train_idcs])
-    grp_validdata.create_dataset("redshifts", data=simulator.redshifts[simulator.valid_idcs])
-    grp_validdata.create_dataset("mags", data=simulator.mags[simulator.valid_idcs])
-    grp_testdata.create_dataset("redshifts", data=simulator.redshifts[simulator.test_idcs])
-    grp_testdata.create_dataset("mags", data=simulator.mags[simulator.test_idcs])
+    grp_traindata.create_dataset("redshifts", data=simulator.redshifts[train_idcs])
+    grp_traindata.create_dataset("mags", data=simulator.mags[train_idcs])
+    grp_validdata.create_dataset("redshifts", data=simulator.redshifts[valid_idcs])
+    grp_validdata.create_dataset("mags", data=simulator.mags[valid_idcs])
+    grp_testdata.create_dataset("redshifts", data=simulator.redshifts[test_idcs])
+    grp_testdata.create_dataset("mags", data=simulator.mags[test_idcs])
 
     print ("Saved file to {}".format(filename))
 

@@ -158,7 +158,7 @@ class FullSimulator:
         self.dvpix_red = dvpix_red
 
         self._regrid(dvpix_red)
-        self.train_idcs, self.valid_idcs, self.test_idcs = self._split(train_frac)
+        #self.train_idcs, self.valid_idcs, self.test_idcs = self._split(train_frac)
 
         self.redshifts = np.full(self.nsamp, self.Prox.z_qso)
         self.mags = np.full(self.nsamp, self.Prox.mag)
@@ -194,7 +194,7 @@ class FullSimulator:
         self.mean_trans_coarse = np.full((self.nsamp, self.Prox.nspec), mean_trans_coarse1d)
 
 
-    def _split(self, train_frac=0.9):
+    def split(self, train_frac=0.9):
 
         valid_frac = 0.5 * (1 - train_frac)
         test_frac = 1 - train_frac - valid_frac
