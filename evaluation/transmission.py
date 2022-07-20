@@ -16,9 +16,6 @@ class MeanTransmission(ModelResults):
     Currently only supports synthetic test spectra (for which we know the noiseless absorption spectrum).
     Only the fine grid is included.
 
-    TODO:
-        Add redshift selection
-
     Attributes:
         device: torch.device
         input_hybrid: torch tensor of shape (n_qso, 3, n_wav)
@@ -49,8 +46,9 @@ class MeanTransmission(ModelResults):
         trans_true = flux_noiseless / self.cont_true[self.zsel]
 
         # compute the mean over all spectra
-        self.mean_trans_pred = np.mean(trans_pred, axis=0)
-        self.mean_trans_true = np.mean(trans_true, axis=0)
+        # use a mask to filter out nonsense values (i.e. of trans < 0)
+        self.mean_trans_pred = np.ma.array(trans_pred, mask=(trans_pred < 0)).mean(axis=0)
+        self.mean_trans_true = np.ma.array(trans_true, mask=(trans_true < 0)).mean(axis=0)
 
         self.sigma_min_pred, self.sigma_plus_pred = bootstrapMean(trans_pred, n_iterations, interval)
         self.sigma_min_true, self.sigma_plus_true = bootstrapMean(trans_true, n_iterations, interval)
