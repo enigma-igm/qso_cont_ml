@@ -47,8 +47,8 @@ class MeanTransmission(ModelResults):
 
         # compute the mean over all spectra
         # use a mask to filter out nonsense values (i.e. of trans < 0)
-        self.mean_trans_pred = np.ma.array(trans_pred, mask=((trans_pred < 0.) & (trans_pred > 100.))).mean(axis=0)
-        self.mean_trans_true = np.ma.array(trans_true, mask=((trans_true < 0.) & (trans_true > 100.))).mean(axis=0)
+        self.mean_trans_pred = np.ma.array(trans_pred, mask=((trans_pred < 0.) | (trans_pred > 100.))).mean(axis=0)
+        self.mean_trans_true = np.ma.array(trans_true, mask=((trans_true < 0.) | (trans_true > 100.))).mean(axis=0)
 
         self.sigma_min_pred, self.sigma_plus_pred = bootstrapMean(trans_pred, n_iterations, interval)
         self.sigma_min_true, self.sigma_plus_true = bootstrapMean(trans_true, n_iterations, interval)

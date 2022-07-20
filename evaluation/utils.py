@@ -35,7 +35,7 @@ def bootstrapMean(data, iterations=100, interval=68., mask_lims=(0., 100)):
             means[iteration] = np.mean(data_it, axis=0)
         else:
             means[iteration] = np.ma.array(data_it,
-                                           mask=((data_it < mask_lims[0]) & (data_it > mask_lims[1]))).mean(axis=0)
+                                           mask=((data_it < mask_lims[0]) | (data_it > mask_lims[1]))).mean(axis=0)
 
     sigma_min, sigma_plus = np.percentile(means, [50. - (interval / 2), 50. + (interval / 2)], axis=0)
 
