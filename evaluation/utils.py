@@ -5,7 +5,7 @@ import numpy as np
 from IPython import embed
 
 #@jit
-def bootstrapMean(data, iterations=100, interval=68., minval=0.):
+def bootstrapMean(data, iterations=100, interval=68., mask_lims=(0., 100)):
     '''
     Compute confidence intervals on the mean of a given data set, using a non-parametric bootstrap algorithm.
 
@@ -31,10 +31,11 @@ def bootstrapMean(data, iterations=100, interval=68., minval=0.):
         # mask out values < minval if minval is not None
         # otherwise use regular averaging
 
-        if minval is None:
+        if mask_lims is None:
             means[iteration] = np.mean(data_it, axis=0)
         else:
-            means[iteration] = np.ma.array(data_it, mask=(data_it < minval)).mean(axis=0)
+            means[iteration] = np.ma.array(data_it,
+                                           mask=((data_it < mask_lims[0]) & (data_it > mask_lims[1]))).mean(axis=0)
 
     sigma_min, sigma_plus = np.percentile(means, [50. - (interval / 2), 50. + (interval / 2)], axis=0)
 
