@@ -25,7 +25,7 @@ class UNetTrainer:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-    def trainScalers(self, trainset, floorval=0.05):
+    def trainScalers(self, trainset, floorval=0.05, scale_trans=True):
         '''
         Train the MedianScalers based on the true continua. We train both a hybrid-grid scaler and a coarse-grid scaler.
 
@@ -55,13 +55,13 @@ class UNetTrainer:
         '''
 
         # initialise the two scalers
-        scaler_hybrid = MedianScaler(mean_spec_hybrid, floorval)
+        scaler_hybrid = MedianScaler(mean_spec_hybrid, floorval, scale_trans=scale_trans)
         #scaler_coarse = MedianScaler(mean_cont_coarse, floorval)
 
         return scaler_hybrid
 
 
-    def train(self, trainset, validset, savefile, scaler_floorval=0.05):
+    def train(self, trainset, validset, savefile, scaler_floorval=0.05, scale_trans=True):
         '''
         Train the U-Net.
 
@@ -77,7 +77,7 @@ class UNetTrainer:
         assert isinstance(validset, SynthSpectra)
 
         # train the hybrid-grid and coarse-grid scalers
-        self.scaler_hybrid = self.trainScalers(trainset, scaler_floorval)
+        self.scaler_hybrid = self.trainScalers(trainset, scaler_floorval, scale_trans=scale_trans)
 
         # check the dimensions of the scalers
         '''
