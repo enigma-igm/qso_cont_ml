@@ -5,7 +5,7 @@ import numpy as np
 from IPython import embed
 
 #@jit
-def bootstrapMean(data, iterations=100, interval=68., mask_lims=(0., 100)):
+def bootstrapMean(data, iterations=100, interval=68., mask_lims=(0., 10)):
     '''
     Compute confidence intervals on the mean of a given data set, using a non-parametric bootstrap algorithm.
 
