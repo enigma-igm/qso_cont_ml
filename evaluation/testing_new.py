@@ -29,11 +29,20 @@ class ModelResults:
         grid_type: str
     '''
 
-    def __init__(self, testset, net, scaler_hybrid, gridtype="hybrid"):
+    def __init__(self, testset, net, scaler_hybrid, gridtype="hybrid", redshift_lims=(2.0,4.0)):
 
         if not isinstance(testset, SynthSpectra):
             raise TypeError("'testset' must be a SynthSpectra instance.")
-        # TO DO: also incorporate possibility of providing prepped empirical spectra
+        # TODO: also incorporate possibility of providing prepped empirical spectra
+
+        # select the spectra in the desired redshift range
+        self.zmin = redshift_lims[0]
+        self.zmax = redshift_lims[1]
+        assert (self.zmin < self.zmax)
+        redshifts = testset.redshifts
+        self.zsel = (redshifts > self.zmin) & (redshifts < self.zmax)
+
+        # TODO: incorporate redshift selection in ModelResults and all its child classes
 
         # update the device of the scalers if necessary
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

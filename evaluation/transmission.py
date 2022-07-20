@@ -18,7 +18,6 @@ class MeanTransmission(ModelResults):
 
     TODO:
         Add redshift selection
-        Add error margins
 
     Attributes:
         device: torch.device
@@ -33,20 +32,26 @@ class MeanTransmission(ModelResults):
         mean_trans_true: ndarray of shape (n_wav,)
     '''
 
-    def __init__(self, testset, net, scaler_hybrid, n_iterations=100, interval=68.):
+    def __init__(self, testset, net, scaler_hybrid, n_iterations=100, interval=68., redshift_lims=(2.5,3.5)):
 
         super(MeanTransmission, self).__init__(testset, net, scaler_hybrid, gridtype="fine")
 
+        # select the spectra in the desired redshift range
+        self.zmin = redshift_lims[0]
+        self.zmax = redshift_lims[1]
+        assert (self.zmin < self.zmax)
+        redshifts = testset.redshifts
+        self.zsel = (redshifts > self.zmin) & (redshifts < self.zmax)
+
         # load the noiseless absorption spectra and compute the transmission for each QSO
-        flux_noiseless = testset.noiseless_flux_fine.cpu().detach().numpy()
-        trans_pred = flux_noiseless / self.cont_pred
-        trans_true = flux_noiseless / self.cont_true
+        flux_noiseless = testset.noiseless_flux_fine[self.zsel].cpu().detach().numpy()
+        trans_pred = flux_noiseless / self.cont_pred[self.zsel]
+        trans_true = flux_noiseless / self.cont_true[self.zsel]
 
         # compute the mean over all spectra
         self.mean_trans_pred = np.mean(trans_pred, axis=0)
         self.mean_trans_true = np.mean(trans_true, axis=0)
 
-        #TODO: add non-parametric bootstrap algorithm for error margins?
         self.sigma_min_pred, self.sigma_plus_pred = bootstrapMean(trans_pred, n_iterations, interval)
         self.sigma_min_true, self.sigma_plus_true = bootstrapMean(trans_true, n_iterations, interval)
 
@@ -57,9 +62,10 @@ class MeanTransmissionPlot(MeanTransmission):
     Class for plotting the mean transmission, given the network predictions.
     '''
 
-    def __init__(self, testset, net, scaler_hybrid, n_iterations=100, interval=68.):
+    def __init__(self, testset, net, scaler_hybrid, n_iterations=100, interval=68., redshift_lims=(2.5,3.5)):
 
-        super(MeanTransmissionPlot, self).__init__(testset, net, scaler_hybrid, n_iterations, interval)
+        super(MeanTransmissionPlot, self).__init__(testset, net, scaler_hybrid, n_iterations, interval,
+                                                   redshift_lims)
 
         # initialise a figure placeholder variable and empty axes
         self.fig = None
