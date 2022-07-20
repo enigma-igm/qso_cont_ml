@@ -55,8 +55,8 @@ class ProximityWrapper(Proximity):
         pcafile = pcapath + pcafilename
 
         # initialise the Proximity simulator and immediately extract the mean transmission profile
-        super(ProximityWrapper, self).__init__(wave_rest, fwhm, z_qso, mags, nskew, mean_flux_range, nF, npca, pcafile,
-                                               nlogL=nlogL, L_rescale_range=L_rescale_range)
+        super(ProximityWrapper, self).__init__(wave_rest, fwhm, z_qso, nskew, mean_flux_range, nF, npca, pcafile,
+                                               mags=mags, nlogL=nlogL, L_rescale_range=L_rescale_range)
 
 
     def meanTransmissionFromSkewers(self):
