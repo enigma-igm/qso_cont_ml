@@ -3,13 +3,13 @@
 from simulator.singular import FullSimulator
 from simulator.combined import CombinedSimulations
 
-z1 = 2.8
+z1 = 2.5
 z2 = 3.5
 mag = 18.5
-nsamp_each = 1000
+nsamp_each = 12500
 
-sim1 = FullSimulator(nsamp_each, z1, mag)
-sim2 = FullSimulator(nsamp_each, z2, mag)
+sim1 = FullSimulator(nsamp_each, z1, mag, half_dz=0.05)
+sim2 = FullSimulator(nsamp_each, z2, mag, half_dz=0.05)
 sims_list = [sim1, sim2]
 
 combined_sims = CombinedSimulations(sims_list)
