@@ -20,9 +20,11 @@ class MedianScaler:
             Update the device.
     """
 
-    def __init__(self, mean_spectrum, floorval=0.05):
+    def __init__(self, mean_spectrum, floorval=0.05, scale_trans=True):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.mean_spectrum = torch.tensor(mean_spectrum).float().to(self.device)
+
+        self.scale_trans = scale_trans
 
         # deduce the number of channels when constructing the scaler
         # if a noise channel is involved, the number of channels will be 2
@@ -34,12 +36,23 @@ class MedianScaler:
         median = torch.median(self.mean_spectrum, dim=-1)
 
         # have to add the floor value row-wise
+        self.median = torch.unsqueeze(median.values + floorval, dim=-1).expand_as(self.mean_spectrum)
+
+        '''
+        if self.n_channels == 1:
+            self.median = median.values + floorval
+        else:
+            self.median = median.values + torch.full_like(median.values, floorval)
+
+        print ("Median in scaler:", self.median)
+        
         try:
             self.median = torch.zeros_like(self.mean_spectrum)
             for i in range(len(median)):
-                self.median[i,:] = median[0][i] + floorval
+                self.median[i,:] = median.values[i] + floorval
         except:
-            self.median = median[0] + floorval
+            self.median = median.values + floorval
+        '''
 
 
     def forward(self, qso_spectrum):
@@ -54,6 +67,11 @@ class MedianScaler:
 
         else:
             spec_scaled = (qso_spectrum.to(self.device) - self.mean_spectrum) / self.median
+
+            if not self.scale_trans:
+                # don't scale the mean transmission channel if scale_trans == False
+                if self.n_channels == 3:
+                    spec_scaled[:,-1] = qso_spectrum[:,-1].to(self.device)
 
         '''
         except:

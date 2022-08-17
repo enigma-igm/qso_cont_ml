@@ -1,7 +1,4 @@
-'''File for generating a training sample of QSO spectra with empirical noise vectors from BOSS.
-The spectra are saved in an HDF5 file, on three grids: the hybrid grid, a uniform fine grid and a uniform coarse grid.
-The fine pixels have log(wav) spacing 1e-4; the coarse pixels have velocity width 500 km/s.
-No running-median smoothed spectrum is saved.'''
+'''Test script for generating a mean transmission spectrum.'''
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -32,10 +29,6 @@ lyb_1025 = strong_lines["HI 1025"]
 wave_1216 = lya_1216["wrest"].value
 wave_1025 = lyb_1025["wrest"].value
 
-'''
-wave_min = 980.0
-wave_max = 2040.0
-'''
 wave_min = 1000.
 wave_max = 1970.
 fwhm = 131.4   # approximate BOSS FWHM (Smee+ 2013)
@@ -69,7 +62,7 @@ mean_flux_range = np.clip([true_mean_flux-0.0001, true_mean_flux+0.0001], 0.01, 
 print ("Old mean flux range:", mean_flux_range_old)
 print ("New mean flux range:", mean_flux_range)
 
-nskew = 1000
+nskew = 10000
 npca = 10
 
 pcafilename = 'COARSE_PCA_150_1000_2000_forest.pkl' # File holding (the old) PCA vectors
@@ -90,6 +83,26 @@ pcafile = '/net/vdesk/data2/buiten/MRP2/Data/' + pcafilename
 Prox = Proximity(wave_rest, fwhm, z_qso, mags, nskew, mean_flux_range, nF, npca, pcafile, nlogL=nlogL,
                  L_rescale_range=L_rescale_range)
 
+# get the mean transmission BEFORE simulating spectra
+# this is the mean of the skewers
+# note that Prox.mean_t_prox has shape (nF, nlogL, nlya)
+mean_t_prox_out = np.ones(Prox.nspec)
+mean_t_prox_out[Prox.ipix_blu] = Prox.mean_t_prox[0,0]
+
+# plot the mean transmission
+fig, ax = plt.subplots(dpi=320)
+ax.plot(wave_rest, mean_t_prox_out)
+
+ax.xaxis.set_minor_locator(AutoMinorLocator(5))
+ax.yaxis.set_minor_locator(AutoMinorLocator(5))
+ax.grid(which="major", alpha=.3)
+ax.grid(which="minor", alpha=.1)
+ax.set_xlabel(r"Rest-frame wavelength ($\AA$)")
+ax.set_ylabel(r"$\langle F_{abs} / F_{cont} \rangle$")
+fig.suptitle("Theoretical Mean Transmission", size=15)
+fig.show()
+
+'''
 # set the number of spectra to generate
 nsamp = 25000
 
@@ -305,3 +318,4 @@ grp_testdata.create_dataset("mags", data=mags[test_idcs])
 f.close()
 
 print ("Saved file to {}".format(filename))
+'''

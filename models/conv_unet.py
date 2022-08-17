@@ -108,20 +108,6 @@ class Decoder(nn.Module):
         self.dec_blocks = nn.ModuleList([Block(chs[i], chs[i+1], kernel_size[i], \
                                                activfunc, activparam, padding_mode) for i in range(len(chs)-1)])
 
-        #if skip=="concatenation:":
-        #    self.upconvs = nn.ModuleList([nn.ConvTranspose1d(chs[i], chs[i+1],\
-        #                                     upconv_kernel_size[i], (2,)) for i in range(len(chs)-1)])
-        #    print ("Skip connection type: concatenation.")
-        #    print ("self.upconvs:", self.upconvs)
-
-        #else:
-        #    print ("Skip connection type:", skip)
-        #    self.upconvs = nn.ModuleList([nn.ConvTranspose1d(chs[i], chs[i],\
-        #                                                     upconv_kernel_size[i], (2,)) for i in range(len(chs)-1)])
-
-        #self.dec_blocks = nn.ModuleList([Block(chs[i], chs[i+1], kernel_size[i], \
-        #                                       activfunc, activparam) for i in range(len(chs)-1)])
-        #print ("self.dec_blocks:", self.dec_blocks)
         self.skip = SkipOperator(skip)
         self.crop_enc = crop_enc
 
@@ -179,11 +165,11 @@ class Decoder(nn.Module):
 
 
 class UNet(nn.Module):
-    def __init__(self, out_sz, enc_chs=(1,64,128, 256), dec_chs=(256, 128, 64),\
-                 kernel_size_enc=10, kernel_size_dec=10, kernel_size_upconv=10,\
-                 num_class=1, retain_dim=False, pool="avg", pool_kernel_size=10,\
-                 activfunc="relu", activparam=1.0, final_skip=False, skip="concatenation",\
-                 padding_mode="zeros", crop_enc=True):
+    def __init__(self, out_sz, enc_chs=(1,64,128, 256), dec_chs=(256, 128, 64),
+                 kernel_size_enc=10, kernel_size_dec=10, kernel_size_upconv=10,
+                 num_class=1, retain_dim=False, pool="avg", pool_kernel_size=10,
+                 activfunc="relu", activparam=1.0, final_skip=False, skip="concatenation",
+                 padding_mode="zeros", crop_enc=True, interpmode="nearest"):
         super().__init__()
         self.encoder = Encoder(enc_chs, kernel_size_enc, pool, pool_kernel_size,\
                                activfunc, activparam, padding_mode=padding_mode)
@@ -191,7 +177,9 @@ class UNet(nn.Module):
                                activfunc, activparam, padding_mode=padding_mode,\
                                crop_enc=True)
         self.retain_dim = retain_dim
-        self.out_sz = out_sz
+        self.n_wav_hybrid = out_sz
+        self.interpmode = interpmode
+
         self.final_skip = final_skip
         if final_skip:
             self.head = nn.Conv1d(dec_chs[-1]+enc_chs[0], num_class, (1,), padding_mode=padding_mode)
@@ -230,16 +218,13 @@ class UNet(nn.Module):
                 x_interp = F.interpolate(x, n_wav)
                 out = torch.cat([out, x_interp], dim=1)
 
-        try:
-            out = self.head(out)
-        except:
-            embed()
+        out = self.head(out)
 
         if self.retain_dim:
-            out = F.interpolate(out, self.out_sz)
+            out = F.interpolate(out, self.n_wav_hybrid, mode=self.interpmode)
 
-        #print ("Shape of final output:", out.shape)
         return out
+
 
     def load(self, savefile):
         '''Load a previously trained model saved under <<savefile>>'''
@@ -248,6 +233,7 @@ class UNet(nn.Module):
 
         self.load_state_dict(checkpoint["model_state_dict"])
 
-        print ("Loaded previously trained model + QuasarScalers.")
+        print ("Loaded previously trained model + MedianScaler.")
 
-        return checkpoint["scaler_flux"], checkpoint["scaler_cont"]
+        #return checkpoint["scaler_flux"], checkpoint["scaler_cont"]
+        return checkpoint["scaler_hybrid"]

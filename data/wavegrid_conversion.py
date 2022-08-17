@@ -1,7 +1,13 @@
 import numpy as np
 from qso_fitting.data.utils import rebin_spectra, get_wave_grid
 from linetools.lists.linelist import LineList
-from dw_inference.simulator.utils import get_blu_red_wave_grid
+
+# import get_blu_red_wave_grid from copied file if dw_inference is inaccessible
+try:
+    from dw_inference.simulator.utils import get_blu_red_wave_grid
+except:
+    from utils.grids import get_blu_red_wave_grid
+
 import torch
 from data.load_datasets import Spectra
 from data.load_data import normalise_spectra, normalise_ivar
