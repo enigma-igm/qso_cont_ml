@@ -130,7 +130,7 @@ def saveMeta(redshifts, logLv, savepath=None):
     elif ~isinstance(savepath, str):
         raise TypeError("Argument 'savepath' must be a string or None.")
 
-    f = h5py.File(savepath+"luminosity-redshift-metadata.hdf5", "w")
+    f = h5py.File(savepath+"/luminosity-redshift-metadata.hdf5", "w")
 
     redshift_dset = f.create_dataset("redshifts", data=redshifts)
     logLv_dset = f.create_dataset("logLv", data=logLv)
