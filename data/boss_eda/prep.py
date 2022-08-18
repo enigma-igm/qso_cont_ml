@@ -22,6 +22,7 @@ def deredden(psfmags, extinction):
     assert psfmags.shape[-1] == 5
 
     mags = psfmags - extinction
+    print ("Dereddened the magnitudes.")
 
     return mags
 
@@ -41,6 +42,7 @@ def getlogLv(mags, redshifts, cosmo=False, ALPHA_EUV=1.7):
     assert len(redshifts) == mags.shape[0]
 
     _, logLv = m912_mags(redshifts, mags, cosmo=cosmo, ALPHA_EUV=ALPHA_EUV)
+    print ("Computed the log-luminosities at the Lyman limit.")
 
     return logLv
 
@@ -105,6 +107,44 @@ def loadBOSSmeta(wave_min, wave_max, SN_min, dloglam=1e-4, z_min=None, z_max=Non
     # also return the corresponding redshifts
     redshifts = np.array(db_file["BOSS_DR14/meta"][grab]["Z"])
 
+    print ("Extracted the redshifts, PSF-magnitudes and extinction.")
+
     db_file.close()
 
     return redshifts, psfmags, extinction
+
+
+def saveMeta(redshifts, logLv, savepath=None):
+    '''
+    Write the extracted redshifts and log-luminosities to an hdf5 file.
+
+    @param redshifts: ndarray of shape (n_qso,)
+    @param logLv: ndarray of shape (n_qso, 5)
+    @param savepath: str or NoneType
+    @return:
+    '''
+
+    if savepath is None:
+        savepath = os.getenv("SPECDB")
+    elif ~isinstance(savepath, str):
+        raise TypeError("Argument 'savepath' must be a string or None.")
+
+    f = h5py.File(savepath+"luminosity-redshift-metadata.hdf5", "w")
+
+    redshift_dset = f.create_dataset("redshifts", data=redshifts)
+    logLv_dset = f.create_dataset("logLv", data=logLv)
+
+    f.close()
+
+    print ("File created.")
+
+
+def prepRedshiftLuminosityFile(wave_min, wave_max, SN_min, dloglam=1e-4, z_min=None, z_max=None, cosmo=False,
+                               ALPHA_EUV=1.7, savepath=None):
+
+    redshifts, psfmags, extinction = loadBOSSmeta(wave_min, wave_max, SN_min, dloglam, z_min, z_max)
+    mags = deredden(psfmags, extinction)
+    logLv = getlogLv(mags, redshifts, cosmo, ALPHA_EUV)
+    saveMeta(redshifts, logLv, savepath)
+
+    print ("Finished creating the redshift-luminosity file.")
