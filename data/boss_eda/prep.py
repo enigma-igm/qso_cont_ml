@@ -141,6 +141,21 @@ def saveMeta(redshifts, logLv, savepath=None):
 
 def prepRedshiftLuminosityFile(wave_min, wave_max, SN_min, dloglam=1e-4, z_min=None, z_max=None, cosmo=False,
                                ALPHA_EUV=1.7, savepath=None):
+    '''
+    Combined the functions in this module to run the entire routine for creating a file containing redshifts and
+    log-luminosities for BOSS DR14 quasars.
+
+    @param wave_min: float
+    @param wave_max: float
+    @param SN_min: float
+    @param dloglam: float
+    @param z_min: float or NoneType
+    @param z_max: float or NoneType
+    @param cosmo: astropy FLRW instance
+    @param ALPHA_EUV: float
+    @param savepath: str or NoneType
+    @return:
+    '''
 
     redshifts, psfmags, extinction = loadBOSSmeta(wave_min, wave_max, SN_min, dloglam, z_min, z_max)
     mags = deredden(psfmags, extinction)
