@@ -77,7 +77,7 @@ def loadBOSSmeta(wave_min, wave_max, SN_min, dloglam=1e-4, z_min=None, z_max=Non
     z_max_use = BOSS_max / (wave_cut_max + 10.) - 1. if z_max is None else z_max
 
     # load in the data file and the SNR file
-    db_filename = os.getenv("SPECDB") + "/IGMspec_DB_v03.1hdf5"
+    db_filename = os.getenv("SPECDB") + "/IGMspec_DB_v03.1.hdf5"
     db_file = h5py.File(db_filename, "r")
 
     try:
