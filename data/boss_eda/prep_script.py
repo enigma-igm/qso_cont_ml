@@ -4,6 +4,6 @@ from prep import prepRedshiftLuminosityFile
 
 wave_min = 1000.
 wave_max = 1970.
-SN_min = 30.
+SN_min = 10.
 
 prepRedshiftLuminosityFile(wave_min, wave_max, SN_min)
