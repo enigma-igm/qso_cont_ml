@@ -99,6 +99,7 @@ def loadBOSSmeta(wave_min, wave_max, SN_min, dloglam=1e-4, z_min=None, z_max=Non
 
     # also filter out low-SNR spectra
     grab = not_bal & (median_snr > SN_min * .5)
+    print ("Number of QSOs selected: {}".format(np.sum(grab)))
 
     # extract the ugriz PSF magnitudes and the corresponding extinction
     psfmags = np.array(db_file["BOSS_DR14/meta"][grab]["PSFMAG"])
