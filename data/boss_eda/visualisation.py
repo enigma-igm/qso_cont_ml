@@ -177,3 +177,127 @@ class RedshiftHistogram(HistogramBase):
         fig, ax = self.plotInFigure(fig)
 
         return fig, ax
+
+
+class LuminosityHistogram(HistogramBase):
+    '''
+    Class for plotting histograms of logLv.
+    '''
+
+    def __init__(self, logLv, redshifts, redshift_lims=None, range=None):
+
+        assert redshifts.shape == logLv.shape
+
+        if redshift_lims is None:
+            logLv_use = logLv
+            self.redshift_min = redshifts.min()
+            self.redshift_max = redshifts.max()
+
+        elif len(redshift_lims) == 2:
+            self.redshift_min = redshift_lims[0]
+            self.redshift_max = redshift_lims[1]
+
+            sel = (redshifts > self.redshift_min) & (redshifts < self.redshift_max)
+            logLv_use = logLv[sel]
+
+        else:
+            raise TypeError("redshift_lims must indicate the minimum and maximum redshift to select.")
+
+        self.label = r"{} < $z$ < {}".format(np.around(self.redshift_min, 2), np.around(self.redshift_max, 2))
+
+        super(LuminosityHistogram, self).__init__(logLv_use, range)
+
+
+    def createFigure(self, figsize=(6,4), dpi=320):
+        '''
+        Create a figure. Wrapper for plt.figure.
+
+        @param figsize:
+        @param dpi:
+        @return:
+        '''
+
+        fig = plt.figure(figsize=figsize, dpi=dpi)
+
+        return fig
+
+
+    def plotInFigure(self, fig, subplotloc=111):
+        '''
+        Add this object's histogram to a figure in a subplot.
+
+        @param fig:
+        @param subplotloc:
+        @return:
+        '''
+
+        ax = fig.add_subplot(subplotloc)
+        ax = self.plotOnAxis(ax, label=self.label)
+        ax.set_xlabel(r"$\log L_\nu$")
+
+        return fig, ax
+
+
+    def quickPlot(self, figsize=(6,4), dpi=320):
+        '''
+        Convenience method for making a simple plot containing a single histogram.
+
+        @param figsize:
+        @param dpi:
+        @return:
+        '''
+
+        fig = self.createFigure(figsize, dpi)
+        fig, ax = self.plotInFigure(fig)
+
+        return fig, ax
+
+
+class RedshiftLuminosityHexbin:
+
+    def __init__(self, redshifts, logLv, redshift_lims=None, logLv_lims=None):
+
+        if redshift_lims is None:
+            z_sel = np.ones_like(redshifts, dtype=bool)
+            self.redshift_min = redshifts.min()
+            self.redshift_max = redshifts.max()
+
+        else:
+            self.redshift_min, self.redshift_max = redshift_lims
+            z_sel = (redshifts > self.redshift_min) & (redshifts < self.redshift_max)
+
+        if logLv_lims is None:
+            logLv_sel = np.ones_like(logLv, dtype=bool)
+            self.logLv_min = logLv.min()
+            self.logLv_max = logLv.max()
+
+        else:
+            self.logLv_min, self.logLv_max = logLv_lims
+            logLv_sel = (logLv > self.logLv_min) & (logLv < self.logLv_max)
+
+        self.redshifts = redshifts[z_sel & logLv_sel]
+        self.logLv = logLv[z_sel & logLv_sel]
+
+
+    def createFigure(self, figsize=(6,4), dpi=320):
+
+        fig = plt.figure(figsize=figsize, dpi=dpi)
+
+        return fig
+
+
+    def plotHexbin(self, ax, fig, gridsize=50):
+
+        hb = ax.hexbin(self.redshifts, self.logLv, cmap="turbo", gridsize=gridsize)
+
+        ax.set_xlabel("Redshift")
+        ax.set_ylabel(r"$\log L_\nu$")
+
+        cbar = fig.colorbar(hb, ax=ax, label="Occurrences")
+
+        return hb, cbar
+
+
+    def plotScatter(self, ax):
+
+        ax.plot(self.redshifts, self.logLv, ls="", marker="o", color="black", alpha=.8)
