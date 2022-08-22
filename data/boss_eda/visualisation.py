@@ -159,7 +159,7 @@ class RedshiftHistogram(HistogramBase):
 
         ax = fig.add_subplot(subplotloc)
         ax = self.plotOnAxis(ax, label=self.label)
-        ax.set_xlabel("Redshifts")
+        ax.set_xlabel("Redshift")
 
         return fig, ax
 
@@ -288,10 +288,16 @@ class RedshiftLuminosityHexbin:
 
     def plotHexbin(self, ax, fig, gridsize=50):
 
-        hb = ax.hexbin(self.redshifts, self.logLv, cmap="turbo", gridsize=gridsize)
+        if gridsize is None:
+            gridsize = 2 * int(np.ceil(np.sqrt(RiceRule(self.redshifts.size))))
+
+        hb = ax.hexbin(self.redshifts, self.logLv, cmap="turbo", gridsize=gridsize, edgecolors="none")
 
         ax.set_xlabel("Redshift")
         ax.set_ylabel(r"$\log L_\nu$")
+
+        ax.set_xlim(self.redshifts.min(), self.redshifts.max())
+        ax.set_ylim(self.logLv.min(), self.logLv.max())
 
         ax.xaxis.set_minor_locator(AutoMinorLocator(5))
         ax.yaxis.set_minor_locator(AutoMinorLocator(5))
@@ -303,4 +309,4 @@ class RedshiftLuminosityHexbin:
 
     def plotScatter(self, ax):
 
-        ax.plot(self.redshifts, self.logLv, ls="", marker="o", color="black", alpha=.4, markersize=5)
+        ax.plot(self.redshifts, self.logLv, ls="", marker="o", color="black", alpha=.2, markersize=1)

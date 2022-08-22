@@ -3,7 +3,10 @@ from visualisation import RedshiftHistogram, LuminosityHistogram, RedshiftLumino
 import matplotlib.pyplot as plt
 import numpy as np
 
+plt.rcParams["font.family"] = "serif"
+
 savepath = "/net/vdesk/data2/buiten/MRP2/misc-figures/BOSS_DR14_EDA/"
+SN_min = 10
 
 # load the data
 redshifts, logLv = loadRedshiftLuminosityFile()
@@ -14,9 +17,10 @@ fig_zhist = plt.figure(dpi=320)
 fig_lumhist = plt.figure(dpi=320)
 
 # create the objects
-hexbin = RedshiftLuminosityHexbin(redshifts, logLv)
-zhist = RedshiftHistogram(redshifts, logLv)
-lumhist = LuminosityHistogram(logLv, redshifts)
+hexbin = RedshiftLuminosityHexbin(redshifts, logLv, logLv_lims=np.percentile(logLv, [.1,99.9]))
+#hexbin = RedshiftLuminosityHexbin(redshifts, logLv)
+zhist = RedshiftHistogram(redshifts, logLv, logLv_lims=np.percentile(logLv, [.1, 99.9]))
+lumhist = LuminosityHistogram(logLv, redshifts, range=np.percentile(logLv, [.1, 99.9]))
 
 # make the plots
 
@@ -24,8 +28,17 @@ fig_zhist, ax_zhist = zhist.plotInFigure(fig_zhist)
 fig_lumhist, ax_lumhist = lumhist.plotInFigure(fig_lumhist)
 
 ax_hb = fig_hb.add_subplot(111)
-hb, cbar = hexbin.plotHexbin(ax_hb, fig_hb)
-hexbin.plotScatter(ax_hb)
+hb, cbar = hexbin.plotHexbin(ax_hb, fig_hb, gridsize=30)
+#hexbin.plotScatter(ax_hb)
+
+fig_zhist.suptitle("Distribution of Redshifts for BOSS DR14 QSOs", size=15)
+ax_zhist.set_title("SN_min > {}".format(SN_min))
+
+fig_lumhist.suptitle("Distribution of Lyman-Limit Luminosities", size=15)
+ax_lumhist.set_title("SN_min > {}".format(SN_min))
+
+fig_hb.suptitle("Redshifts vs. Lyman-Limit Luminosities", size=15)
+ax_hb.set_title("SN_min > {}".format(SN_min))
 
 fig_hb.show()
 fig_hb.savefig(savepath + "redshift-lum-hexbin.png")
