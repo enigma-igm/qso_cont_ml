@@ -303,4 +303,4 @@ class RedshiftLuminosityHexbin:
 
     def plotScatter(self, ax):
 
-        ax.plot(self.redshifts, self.logLv, ls="", marker="o", color="black", alpha=.8)
+        ax.plot(self.redshifts, self.logLv, ls="", marker="o", color="black", alpha=.4, markersize=5)
