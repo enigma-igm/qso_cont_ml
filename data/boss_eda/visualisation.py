@@ -20,6 +20,50 @@ def RiceRule(n_samples):
     return n_bins
 
 
+def uniformBinEdges(data, width):
+    '''
+    Determine edges of bins for histograms or binned data in the case of uniform bin width.
+
+    @param data: ndarray of shape (n_samples,)
+    @param width: float or int
+    @return:
+        edges: ndarray of shape (n_bins + 1,)
+    '''
+
+    data_min = data.min()
+    data_max = data.max()
+
+    n_bins = int(np.ceil((data_max - data_min) / width))
+
+    edges = np.array([data_min + i * width for i in range(n_bins)])
+
+    return edges
+
+
+def binEdges(data, widths):
+    '''
+    Determine edges of bins for histograms or binned data.
+
+    @param data: ndarray of shape (n_samples,)
+    @param widths: ndarray of shape (n_bins,) or float or int
+    @return:
+        edges: ndarray of shape (n_bins + 1,)
+    '''
+
+    if isinstance(widths, np.ndarray) or isinstance(widths, tuple) or isinstance(widths, list):
+        if len(widths) > 1:
+            edges = data.min() + widths
+        elif len(widths) == 1:
+            edges = uniformBinEdges(data, widths[0])
+        else:
+            raise TypeError("Widths must be either a single positive number or an array of edges.")
+
+    elif isinstance(widths, int) or isinstance(widths, float):
+        edges = uniformBinEdges(data, widths)
+
+    return edges
+
+
 class HistogramBase:
     '''
     Base class for constructing a histogram of any 1D set of data points.
@@ -37,19 +81,29 @@ class HistogramBase:
         plotOnAxis
     '''
 
-    def __init__(self, data, range=None):
+    def __init__(self, data, range=None, bins=None):
         '''
         @param data: ndarray of shape (n_samples,)
         @param range: (float, float) or NoneType
+        @param bins: NoneType or int or ndarray of shape (n_samples + 1) or str
+            If NoneType, the Rice Rule is used to determine the number of bins. Otherwise, 'bins' is passed directly
+            onto numpy.histogram.
         '''
 
         assert isinstance(data, np.ndarray)
         assert data.ndim == 1
         self.data = data
         self.n_samples = data.size
-        self.n_bins = RiceRule(self.n_samples)
 
-        self.counts, self.edges = np.histogram(self.data, bins=self.n_bins, range=range)
+        # if bins is None, use the Rice Rule to determine the number of bins
+        if bins is None:
+            self.n_bins = RiceRule(self.n_samples)
+            self.counts, self.edges = np.histogram(self.data, bins=self.n_bins, range=range)
+
+        # otherwise pass bins directly
+        else:
+            self.counts, self.edges = np.histogram(self.data, bins=bins, range=range)
+            self.n_bins = self.counts.size
 
         self.widths = self.edges[1:] - self.edges[:-1]
         self.mids = self.edges[:-1] + 0.5 * self.widths
@@ -102,12 +156,13 @@ class RedshiftHistogram(HistogramBase):
         plotInFigure:
     '''
 
-    def __init__(self, redshifts, logLv, logLv_lims=None, range=None):
+    def __init__(self, redshifts, logLv, logLv_lims=None, range=None, bins=None):
         '''
         @param redshifts:
         @param logLv:
         @param logLv_lims:
         @param range:
+        @param bins:
         '''
 
         assert redshifts.shape == logLv.shape
@@ -131,7 +186,7 @@ class RedshiftHistogram(HistogramBase):
 
         self.label = r"{} < $\log L_\nu$ < {}".format(np.around(self.logLv_min, 2), np.around(self.logLv_max, 2))
 
-        super(RedshiftHistogram, self).__init__(redshifts_use, range)
+        super(RedshiftHistogram, self).__init__(redshifts_use, range, bins)
 
 
     def createFigure(self, figsize=(6,4), dpi=320):
