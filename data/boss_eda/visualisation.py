@@ -239,7 +239,7 @@ class LuminosityHistogram(HistogramBase):
     Class for plotting histograms of logLv.
     '''
 
-    def __init__(self, logLv, redshifts, redshift_lims=None, range=None):
+    def __init__(self, logLv, redshifts, redshift_lims=None, range=None, bins=None):
 
         assert redshifts.shape == logLv.shape
 
@@ -260,7 +260,7 @@ class LuminosityHistogram(HistogramBase):
 
         self.label = r"{} < $z$ < {}".format(np.around(self.redshift_min, 2), np.around(self.redshift_max, 2))
 
-        super(LuminosityHistogram, self).__init__(logLv_use, range)
+        super(LuminosityHistogram, self).__init__(logLv_use, range, bins)
 
 
     def createFigure(self, figsize=(6,4), dpi=320):
