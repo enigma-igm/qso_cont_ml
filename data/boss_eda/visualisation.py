@@ -1,7 +1,7 @@
 '''Module for making the plots of redshift and logLv in the BOSS DR14 data.'''
 
 import numpy as np
-from data.boss_eda.load import loadRedshiftLuminosityFile
+#from data.boss_eda.load import loadRedshiftLuminosityFile
 import matplotlib.pyplot as plt
 from matplotlib.ticker import AutoMinorLocator
 
@@ -55,7 +55,7 @@ class HistogramBase:
         self.mids = self.edges[:-1] + 0.5 * self.widths
 
 
-    def plotOnAxis(self, ax, alpha=.7, label=""):
+    def plotOnAxis(self, ax, alpha=.7, label="", orientation="vertical"):
         '''
         Plot the histogram on a provided axis.
 
@@ -66,7 +66,7 @@ class HistogramBase:
             ax: matplotlib Axes instance
         '''
 
-        ax.bar(self.mids, self.counts, self.widths, alpha=alpha, label=label)
+        ax.bar(self.mids, self.counts, self.widths, alpha=alpha, label=label, orientation=orientation)
 
         # might want to put the layout somewhere else?
         ax.xaxis.set_minor_locator(AutoMinorLocator(5))
@@ -292,6 +292,9 @@ class RedshiftLuminosityHexbin:
 
         ax.set_xlabel("Redshift")
         ax.set_ylabel(r"$\log L_\nu$")
+
+        ax.xaxis.set_minor_locator(AutoMinorLocator(5))
+        ax.yaxis.set_minor_locator(AutoMinorLocator(5))
 
         cbar = fig.colorbar(hb, ax=ax, label="Occurrences")
 
