@@ -106,7 +106,7 @@ def loadBOSSmeta(wave_min, wave_max, SN_min, dloglam=1e-4, z_min=None, z_max=Non
     extinction = np.array(db_file["BOSS_DR14/meta"][grab]["GAL_EXT"])
 
     # also return the corresponding redshifts
-    redshifts = np.array(db_file["BOSS_DR14/meta"][grab]["Z"])
+    redshifts = np.array(db_file["BOSS_DR14/meta"][grab]["Z_PIPE"])
 
     print ("Extracted the redshifts, PSF-magnitudes and extinction.")
 
