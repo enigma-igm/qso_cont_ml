@@ -25,3 +25,19 @@ def loadRedshiftLuminosityFile(savepath=None):
     f.close()
 
     return redshifts, logLv
+
+
+class HistogramImporter:
+    '''
+    Class for importing previously created histograms of redshift and luminosity.
+    '''
+
+    def __init__(self, datafile=None):
+
+        if datafile is None:
+            folder = "/net/vdesk/data2/buiten/MRP2/Data/"
+            datafile = folder + "BOSS-luminosity-redshift-histograms.hdf5"
+
+        f = h5py.File(datafile, "r")
+
+        f.close()
