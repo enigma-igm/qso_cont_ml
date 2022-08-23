@@ -20,7 +20,7 @@ def RiceRule(n_samples):
     return n_bins
 
 
-def uniformBinEdges(data, width):
+def uniformBinEdges(data, width, data_range=None):
     '''
     Determine edges of bins for histograms or binned data in the case of uniform bin width.
 
@@ -30,8 +30,16 @@ def uniformBinEdges(data, width):
         edges: ndarray of shape (n_bins + 1,)
     '''
 
-    data_min = data.min()
-    data_max = data.max()
+    if data_range is None:
+        sel = np.ones_like(data, dtype=bool)
+
+    else:
+        sel = (data > data_range[0]) & (data < data_range[1])
+
+    data_use = data[sel]
+
+    data_min = data_use.min()
+    data_max = data_use.max()
 
     n_bins = int(np.ceil((data_max - data_min) / width))
 
@@ -40,7 +48,7 @@ def uniformBinEdges(data, width):
     return edges
 
 
-def binEdges(data, widths):
+def binEdges(data, widths, data_range=None):
     '''
     Determine edges of bins for histograms or binned data.
 
@@ -54,12 +62,12 @@ def binEdges(data, widths):
         if len(widths) > 1:
             edges = data.min() + widths
         elif len(widths) == 1:
-            edges = uniformBinEdges(data, widths[0])
+            edges = uniformBinEdges(data, widths[0], data_range)
         else:
             raise TypeError("Widths must be either a single positive number or an array of edges.")
 
     elif isinstance(widths, int) or isinstance(widths, float):
-        edges = uniformBinEdges(data, widths)
+        edges = uniformBinEdges(data, widths, data_range)
 
     return edges
 
