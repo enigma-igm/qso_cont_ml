@@ -65,7 +65,7 @@ class HistogramExporter:
         if savepath is None:
             savepath = "/net/vdesk/data2/buiten/MRP2/Data/"
 
-        filename = "BOSS-luminosity-redshift-histograms.h5py"
+        filename = "BOSS-luminosity-redshift-histograms.hdf5"
 
         f = h5py.File(savepath + filename, "w")
 
@@ -78,14 +78,17 @@ class HistogramExporter:
 
         for i in range(self.n_z_bins):
 
-            grp_lum.create_dataset()
             lum_hist_i = self.lum_hists[i]
             lum_hist_data = np.rec.array([lum_hist_i.mids, lum_hist_i.counts],
                                          dtype=[("mids", "<f8"), ("counts", "<i8")])
-            lum_hist_dset = f.create_dataset("logLv-hist-conditional", data=lum_hist_data)
+            lum_hist_dset = grp_lum.create_dataset("logLv-hist-conditional-z{}".format(self.z_hist.mids[i]),
+                                                   data=lum_hist_data)
             lum_hist_dset.attrs["redshift"] = self.z_hist.mids[i]
             lum_hist_dset.attrs["redshift-width"] = self.dz
             lum_hist_dset.attrs["logL-width"] = self.dlogLv
 
         f.close()
-        print ("File created to {}".format(savepath))
+        print ("File created at {}".format(savepath))
+
+
+    # TODO: write functions for plotting the histograms
