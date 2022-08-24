@@ -70,6 +70,8 @@ class HistogramImporter:
             self.lum_hists[i,:,0] = lum_mids
             self.lum_hists[i,:,1] = lum_counts
 
+        self.logLv_mids = lum_mids
+
         print ("Loaded histogram data.")
 
         f.close()
