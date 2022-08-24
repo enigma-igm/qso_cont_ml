@@ -75,6 +75,8 @@ class HistogramExporter:
         z_hist_dset.attrs["SN_min"] = self.SN_min
 
         grp_lum = f.create_group("luminosity")
+        grp_lum.attrs["logL-width"] = self.dlogLv
+        grp_lum.attrs["n-lum-bins"] = self.n_lum_bins
 
         for i in range(self.n_z_bins):
 
