@@ -43,6 +43,8 @@ class HistogramImporter:
         lum_hists: ndarray of shape (n_z_bins, n_lum_bins, 2)
             3D array containing the log-luminosity midpoints (final index 0) and corresponding counts (final index 1)
             for each redshift bin.
+        lum_ranges: ndarray of shape (n_z_bins, 2)
+            2D array containing the minimum and maximum value of logLv found in each redshift bin.
     '''
 
     def __init__(self, datafile=None):
@@ -61,6 +63,7 @@ class HistogramImporter:
         self.n_lum_bins = f["luminosity"].attrs["n-lum-bins"]
 
         self.lum_hists = np.zeros((self.n_z_bins, self.n_lum_bins, 2))
+        self.lum_ranges = np.zeros((self.n_z_bins, 2))
 
         for i in range(self.n_z_bins):
 
@@ -69,6 +72,9 @@ class HistogramImporter:
 
             self.lum_hists[i,:,0] = lum_mids
             self.lum_hists[i,:,1] = lum_counts
+
+            self.lum_ranges[i,0] = f["luminosity/logLv-hist-conditional-z{}".format(self.z_mids[i])].attrs["logLv-min"]
+            self.lum_ranges[i,1] = f["luminosity/logLv-hist-conditional-z{}".format(self.z_mids[i])].attrs["logLv-max"]
 
         self.logLv_mids = lum_mids
 

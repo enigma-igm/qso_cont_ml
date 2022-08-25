@@ -45,14 +45,20 @@ class HistogramExporter:
         # create a marginal histogram of redshifts
         self.z_hist = RedshiftHistogram(redshifts, logLv, logLv_lims=logLv_lims, bins=self.z_bin_edges)
 
-        # create conditional histograms of log-luminosity
+        # create conditional histograms of log-luminosity and store the minimum and maximum of logLv in each z bin
         self.lum_hists = []
+        self.lum_minima = []
+        self.lum_maxima = []
 
         for i in range(self.n_z_bins):
 
             lum_hist_i = LuminosityHistogram(logLv, redshifts, redshift_lims=self.z_bin_edges[i:i+2],
                                              range=logLv_lims, bins=self.logLv_edges)
             self.lum_hists.append(lum_hist_i)
+
+            in_zbin = (redshifts > self.z_bin_edges[i]) & (redshifts < self.z_bin_edges[i+1])
+            self.lum_minima.append(logLv[in_zbin].min())
+            self.lum_maxima.append(logLv[in_zbin].max())
 
 
     def saveToFile(self, savepath=None):
@@ -81,6 +87,7 @@ class HistogramExporter:
 
         for i in range(self.n_z_bins):
 
+            # store the conditional histogram to approximate P(logLv | z)
             lum_hist_i = self.lum_hists[i]
             lum_hist_data = np.rec.array([lum_hist_i.mids, lum_hist_i.counts],
                                          dtype=[("mids", "<f8"), ("counts", "<i8")])
@@ -89,6 +96,10 @@ class HistogramExporter:
             lum_hist_dset.attrs["redshift"] = self.z_hist.mids[i]
             lum_hist_dset.attrs["redshift-width"] = self.dz
             lum_hist_dset.attrs["logL-width"] = self.dlogLv
+
+            # also store the minimum and maximum value of logLv found in this redshift bin
+            lum_hist_dset.attrs["logLv-min"] = self.lum_minima[i]
+            lum_hist_dset.attrs["logLv-max"]  = self.lum_maxima[i]
 
         f.close()
         print ("File created at {}".format(savepath))
