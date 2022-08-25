@@ -7,6 +7,7 @@ import astropy.constants as const
 import os
 import pkg_resources
 import pickle
+from astropy.io import fits
 
 def deredden(psfmags, extinction):
     '''
@@ -47,8 +48,42 @@ def getlogLv(mags, redshifts, cosmo=False, ALPHA_EUV=1.7):
     return logLv
 
 
-def loadBOSSmeta(wave_min, wave_max, SN_min, dloglam=1e-4, z_min=None, z_max=None):
+def loadBOSSmeta(datafile=None):
     '''
+    Extract the redshifts ugriz PSF magnitudes and corresponding extinction of QSOs from BOSS DR14.
+    Selects only QSOs which meet certain quality criteria based on autofitter and qsmooth continuum fits.
+    See dw_inference manuscript for details.
+
+    @param datafile: str or NoneType
+    @return:
+        redshifts: ndarray of shape (n_qso,)
+        psfmags: ndarray of shape (n_qso, 5)
+        extinction: ndarray of shape (n_qso, 5)
+    '''
+
+    if datafile is None:
+        datapath = os.getenv("SPECDB") + "/autofit/"
+        datafile = datapath + "sdss_autofit_lam_min_980_lam_max_2040_test.fits"
+
+    hdulist = fits.open(datafile)
+    meta = hdulist["META"]
+
+    redshifts = meta.data["Z_PIPE"]
+    psfmags = meta.data["PSFMAG"]
+    extinction = meta.data["GAL_EXT"]
+
+    hdulist.close()
+
+    print ("Extracted the redshifts, magnitudes and extinction.")
+
+    return redshifts, psfmags, extinction
+
+
+
+def loadBOSSmetaOld(wave_min, wave_max, SN_min, dloglam=1e-4, z_min=None, z_max=None):
+    '''
+    DEPRECATED: does not apply any autofitter/qsmooth-based quality selection.
+
     Extract the redshifts, ugriz PSF magnitudes and corresponding extinction of BOSS DR14 QSOs.
     Modeled after sdss_data() from qso_fitting.data.sdss.sdss.
 
@@ -158,7 +193,13 @@ def prepRedshiftLuminosityFile(wave_min, wave_max, SN_min, dloglam=1e-4, z_min=N
     @return:
     '''
 
-    redshifts, psfmags, extinction = loadBOSSmeta(wave_min, wave_max, SN_min, dloglam, z_min, z_max)
+    #redshifts, psfmags, extinction = loadBOSSmeta(wave_min, wave_max, SN_min, dloglam, z_min, z_max)
+    if savepath is None:
+        datafile = None
+    else:
+        datafile = savepath + "sdss_autofit_lam_min_980_lam_max_2040_train.fits"
+
+    redshifts, psfmags, extinction = loadBOSSmeta(datafile)
     mags = deredden(psfmags, extinction)
     logLv = getlogLv(mags, redshifts, cosmo, ALPHA_EUV)
     saveMeta(redshifts, logLv, savepath)
