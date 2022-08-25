@@ -19,10 +19,10 @@ fig_lumhist = plt.figure(dpi=320)
 logLv_lims = np.percentile(logLv, [.1,99.9])
 
 # create the objects
-hexbin = RedshiftLuminosityHexbin(redshifts, logLv, logLv_lims=logLv_lims)
+hexbin = RedshiftLuminosityHexbin(redshifts, logLv, logLv_lims=None)
 #hexbin = RedshiftLuminosityHexbin(redshifts, logLv)
-zhist = RedshiftHistogram(redshifts, logLv, logLv_lims=logLv_lims)
-lumhist = LuminosityHistogram(logLv, redshifts, range=logLv_lims)
+zhist = RedshiftHistogram(redshifts, logLv, logLv_lims=None)
+lumhist = LuminosityHistogram(logLv, redshifts, range=None)
 
 # make the plots
 
@@ -43,13 +43,13 @@ fig_hb.suptitle("Redshifts vs. Lyman-Limit Luminosities", size=15)
 ax_hb.set_title("SN_min > {}".format(SN_min))
 
 fig_hb.show()
-fig_hb.savefig(savepath + "redshift-lum-hexbin.png")
+fig_hb.savefig(savepath + "redshift-lum-hexbin-full-new.png")
 plt.close()
 
 fig_zhist.show()
-fig_zhist.savefig(savepath + "redshift-hist.png")
+fig_zhist.savefig(savepath + "redshift-hist-full-new.png")
 plt.close()
 
 fig_lumhist.show()
-fig_lumhist.savefig(savepath + "lum-hist.png")
+fig_lumhist.savefig(savepath + "lum-hist-full-new.png")
 plt.close()

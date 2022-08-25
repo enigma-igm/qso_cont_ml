@@ -69,14 +69,18 @@ def loadBOSSmeta(datafile=None):
     meta = hdulist["META"]
 
     redshifts = meta.data["Z_PIPE"]
+    psfflux = meta.data["PSFFLUX"]
     psfmags = meta.data["PSFMAG"]
     extinction = meta.data["GAL_EXT"]
+
+    # mask out sources where one of the ugriz fluxes is listed as zero to remove non-detections
+    goodflux = np.any(psfflux > 0, axis=1)
 
     hdulist.close()
 
     print ("Extracted the redshifts, magnitudes and extinction.")
 
-    return redshifts, psfmags, extinction
+    return redshifts[goodflux], psfmags[goodflux], extinction[goodflux]
 
 
 
