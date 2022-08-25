@@ -5,7 +5,7 @@ import numpy as np
 
 plt.rcParams["font.family"] = "serif"
 
-savepath = "/net/vdesk/data2/buiten/MRP2/misc-figures/BOSS_DR14_EDA/"
+savepath = "/net/vdesk/data2/buiten/MRP2/misc-figures/BOSS_DR14_EDA/filtered/"
 SN_min = 10
 
 # load the data
@@ -16,11 +16,13 @@ fig_hb = plt.figure(dpi=320)
 fig_zhist = plt.figure(dpi=320)
 fig_lumhist = plt.figure(dpi=320)
 
+logLv_lims = np.percentile(logLv, [.1,99.9])
+
 # create the objects
-hexbin = RedshiftLuminosityHexbin(redshifts, logLv, logLv_lims=np.percentile(logLv, [.1,99.9]))
+hexbin = RedshiftLuminosityHexbin(redshifts, logLv, logLv_lims=logLv_lims)
 #hexbin = RedshiftLuminosityHexbin(redshifts, logLv)
-zhist = RedshiftHistogram(redshifts, logLv, logLv_lims=np.percentile(logLv, [.1, 99.9]))
-lumhist = LuminosityHistogram(logLv, redshifts, range=np.percentile(logLv, [.1, 99.9]))
+zhist = RedshiftHistogram(redshifts, logLv, logLv_lims=logLv_lims)
+lumhist = LuminosityHistogram(logLv, redshifts, range=logLv_lims)
 
 # make the plots
 

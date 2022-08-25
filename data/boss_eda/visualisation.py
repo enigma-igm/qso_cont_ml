@@ -359,8 +359,8 @@ class RedshiftLuminosityHexbin:
         ax.set_xlabel("Redshift")
         ax.set_ylabel(r"$\log L_\nu$")
 
-        ax.set_xlim(self.redshifts.min(), self.redshifts.max())
-        ax.set_ylim(self.logLv.min(), self.logLv.max())
+        ax.set_xlim(self.redshifts.min() - 0.02, self.redshifts.max() + 0.02)
+        ax.set_ylim(self.logLv.min() - 0.1, self.logLv.max() + 0.1)
 
         ax.xaxis.set_minor_locator(AutoMinorLocator(5))
         ax.yaxis.set_minor_locator(AutoMinorLocator(5))
