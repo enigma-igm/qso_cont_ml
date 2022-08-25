@@ -35,8 +35,9 @@ class HistogramExporter:
 
         # set the bin edges and limits on logLv (due to outliers)
         self.z_bin_edges = binEdges(redshifts, dz)
-        self.logLv_edges = binEdges(logLv, dlogLv, data_range=np.percentile(logLv, [0.1, 99.9]))
-        logLv_lims = np.percentile(logLv, [0.1, 99.9])
+        self.logLv_edges = binEdges(logLv, dlogLv, data_range=None)
+        logLv_lims = None
+        #logLv_lims = np.percentile(logLv, [0.1, 99.9])
 
         self.n_z_bins = self.z_bin_edges.size - 1
         self.n_lum_bins = self.logLv_edges.size - 1
