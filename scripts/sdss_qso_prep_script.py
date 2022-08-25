@@ -19,7 +19,11 @@ dv = dloglam * c_light * np.log(10)
 outpath = os.getenv("SPECDB") + "/autofit/"
 n_NN = None
 NN = False
+
+test_frac = 0.05
+
 qsofile = "sdss_autofit_lam_min_{:d}_lam_max_{:d}.fits".format(int(np.round(lam_min)), int(np.round(lam_max)))
 outfile = os.path.join(outpath, qsofile)
 
-sdss_qso_prep(lam_min, lam_max, dv, SN_min, outfile, z_min=z_min, z_max=z_max, debug=True, NN=NN, n_NN=n_NN)
+sdss_qso_prep(lam_min, lam_max, dv, SN_min, outfile, z_min=z_min, z_max=z_max, debug=True, NN=NN, n_NN=n_NN,
+              test_fraction=test_frac)

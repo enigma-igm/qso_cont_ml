@@ -63,7 +63,7 @@ def loadBOSSmeta(datafile=None):
 
     if datafile is None:
         datapath = os.getenv("SPECDB") + "/autofit/"
-        datafile = datapath + "sdss_autofit_lam_min_980_lam_max_2040_test.fits"
+        datafile = datapath + "sdss_autofit_lam_min_980_lam_max_2040_train.fits"
 
     hdulist = fits.open(datafile)
     meta = hdulist["META"]
