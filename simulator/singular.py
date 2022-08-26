@@ -79,6 +79,7 @@ class ProximityWrapper(Proximity):
         '''
 
         # TODO: improve the indexing in mean_t_prox
+        # TODO: make mean_t_prox luminosity-dependent
         mean_trans_skewers = np.ones(self.nspec)
         mean_trans_skewers[self.ipix_blu] = self.mean_t_prox[0,0]
 
@@ -101,9 +102,8 @@ class ProximityWrapper(Proximity):
         theta = self.sample_theta(nsamp)
 
         if not stochastic:
-            # manually set the mean flux and luminosity rescale values to the single value we want
+            # manually set the mean flux values to the single value we want
             theta[:,0] = self.true_mean_flux
-            theta[:,1] = self.L_rescale
 
         # simulate the noiseless continua and absorption spectra
         cont, flux = self.simulator(theta, replace=(nsamp > self.nskew), ivar=None)
@@ -150,11 +150,11 @@ class ProximityWrapper(Proximity):
 
 
 class FullSimulator:
-    def __init__(self, nsamp, z_qso, mag, npca=10, nskew=1000, wave_min=1000., wave_max=1970., fwhm=131.4,
-                 dloglam=1.0e-4, stochastic=False, half_dz=0.01, dvpix_red=500., train_frac=0.9):
+    def __init__(self, nsamp, z_qso, logLv_range, nlogL=10, npca=10, nskew=1000, wave_min=1000., wave_max=1970.,
+                 fwhm=131.4, dloglam=1.0e-4, stochastic=False, half_dz=0.01, dvpix_red=500., train_frac=0.9):
 
         # initialise the ProximityWrapper
-        self.Prox = ProximityWrapper(z_qso, mag, npca, nskew, wave_min, wave_max, fwhm, dloglam)
+        self.Prox = ProximityWrapper(z_qso, logLv_range, nlogL, npca, nskew, wave_min, wave_max, fwhm, dloglam)
 
         # call the methods of ProximityWrapper and save everything to the object
         self.mean_trans1d = self.Prox.meanTransmissionFromSkewers()
@@ -171,13 +171,14 @@ class FullSimulator:
         self.fwhm = self.Prox.fwhm
         self.dvpix = self.Prox.dvpix
         self.npca = self.Prox.npca
+        self.nlogL = self.Prox.nlogL
         self.nskew = self.Prox.nskew
 
         self._regrid(dvpix_red)
         #self.train_idcs, self.valid_idcs, self.test_idcs = self._split(train_frac)
 
         self.redshifts = np.full(self.nsamp, self.Prox.z_qso)
-        self.mags = np.full(self.nsamp, self.Prox.mag)
+        #self.mags = np.full(self.nsamp, self.Prox.mag)
 
 
     def _regrid(self, dvpix_red=500.):
