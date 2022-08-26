@@ -34,7 +34,7 @@ class CombinedSimulations:
         self.flux_noiseless = np.concatenate([sim.flux_noiseless for sim in sims_list], axis=0)
 
         self.redshifts = np.concatenate([sim.redshifts for sim in sims_list], axis=0)
-        self.mags = np.concatenate([sim.mags for sim in sims_list], axis=0)
+        #self.mags = np.concatenate([sim.mags for sim in sims_list], axis=0)
 
         self.cont_hybrid = np.concatenate([sim.cont_hybrid for sim in sims_list], axis=0)
         self.cont_coarse = np.concatenate([sim.cont_coarse for sim in sims_list], axis=0)
