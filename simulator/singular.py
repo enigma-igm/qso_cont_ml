@@ -74,6 +74,7 @@ class ProximityWrapper(Proximity):
 
     def meanTransmissionFromSkewers(self):
         '''
+        DEPRECATED; use meanTransmissionFromTheta instead!
         Extract the mean transmission profile from the model skewers. Currently (iF, iL) = (0,0) is chosen.
 
         @return:
