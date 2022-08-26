@@ -17,8 +17,8 @@ from simulator.save import constructFile
 
 class ProximityWrapper(Proximity):
 
-    def __init__(self, z_qso, mag, npca=10, nskew=1000, wave_min=1000., wave_max=1970., fwhm=131.4,
-                 dloglam=1.0e-4):
+    def __init__(self, z_qso, logLv_range, nlogL=10, npca=10, nskew=1000, wave_min=1000., wave_max=1970.,
+                 fwhm=131.4, dloglam=1.0e-4):
 
         # extract necessary line information and natural constants
         strong_lines = LineList("Strong", verbose=False)
@@ -39,12 +39,24 @@ class ProximityWrapper(Proximity):
         self.true_mean_flux = np.mean(mean_flux_z)
         mean_flux_range = np.clip([self.true_mean_flux - 0.0001, self.true_mean_flux + 0.0001], 0.01, 1.)
 
-        mags = np.full(5, mag)
-        self.mag = mag
-        self.L_rescale = 1.
+        #mags = np.full(5, mag)
+        #self.mag = mag
+
+        # compute the central log-luminosity (corresponding to 1 in L_rescale_range)
+        L_min = 10 ** logLv_range[0]
+        L_max = 10 ** logLv_range[1]
+        L_mid = (L_max - L_min) / 2
+        logLv_mid = np.log10(L_mid)
+
+        # compute the fractions of Lv_mid corresponding to logLv_range
+        frac_L_min = L_min / L_mid
+        frac_L_max = L_max / L_mid
+        L_rescale_range = [frac_L_min, frac_L_max]
+
+        print ("Central logLv: {}".format(logLv_mid))
+        print ("L_rescale_range: {}".format(L_rescale_range))
+
         nF = 2
-        nlogL = 2
-        L_rescale_range = (self.L_rescale - 1e-4, self.L_rescale+1e-4)
 
         #mean_flux_vec = mean_flux_range[0] + (mean_flux_range[1] - mean_flux_range[0]) * np.arange(nF) / (nF - 1)
         #L_rescale_vec = L_rescale_range[0] + (L_rescale_range[1] - L_rescale_range[1]) * np.arange(nlogL) / (nlogL - 1)
@@ -56,7 +68,7 @@ class ProximityWrapper(Proximity):
 
         # initialise the Proximity simulator and immediately extract the mean transmission profile
         super(ProximityWrapper, self).__init__(wave_rest, fwhm, z_qso, nskew, mean_flux_range, nF, npca, pcafile,
-                                               mags=mags, nlogL=nlogL, L_rescale_range=L_rescale_range)
+                                               mags=None, logLv=logLv_mid, nlogL=nlogL, L_rescale_range=L_rescale_range)
 
 
     def meanTransmissionFromSkewers(self):
