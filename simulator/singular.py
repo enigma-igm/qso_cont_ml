@@ -4,7 +4,7 @@ import numpy as np
 import h5py
 from dw_inference.sdss.utils import get_wave_grid
 from dw_inference.simulator.lognormal.lognormal_new import F_onorbe
-from dw_inference.simulator.utils import get_blu_red_wave_grid
+from dw_inference.simulator.utils import get_blu_red_wave_grid, find_closest
 from linetools.lists.linelist import LineList
 from dw_inference.simulator.proximity.proximity import Proximity
 from data.load_data import normalise_spectra
@@ -37,7 +37,8 @@ class ProximityWrapper(Proximity):
         z_lya = wave_rest[iforest] * (1. + z_qso) / self.wave_1216 - 1.
         mean_flux_z = F_onorbe(z_lya)
         self.true_mean_flux = np.mean(mean_flux_z)
-        mean_flux_range = np.clip([self.true_mean_flux - 0.0001, self.true_mean_flux + 0.0001], 0.01, 1.)
+        #mean_flux_range = np.clip([self.true_mean_flux - 0.0001, self.true_mean_flux + 0.0001], 0.01, 1.)
+        mean_flux_range = np.clip([self.true_mean_flux, self.true_mean_flux + 0.0001], 0.01, 1.)
 
         #mags = np.full(5, mag)
         #self.mag = mag
@@ -79,11 +80,33 @@ class ProximityWrapper(Proximity):
         '''
 
         # TODO: improve the indexing in mean_t_prox
-        # TODO: make mean_t_prox luminosity-dependent
+        # TODO: make mean_t_prox luminosity-dependent by using indexing (iF, iL) using find_closest
         mean_trans_skewers = np.ones(self.nspec)
         mean_trans_skewers[self.ipix_blu] = self.mean_t_prox[0,0]
 
         return mean_trans_skewers
+
+
+    def meanTransmissioFromTheta(self, theta):
+        '''
+        Extract the mean transmission profile for each simulated spectrum from the nearest mean flux and logLv value.
+
+        @param theta: ndarray of shape (nsamp, npca + 4)
+            Sampled model parameters. The order is: [mean_flux_samp, L_rescale_samp, dv_z_samp, coeffs_samp].
+        @return: mean_trans: ndarray of shape (nsamp, nspec)
+            Mean transmission curve for each sampled theta.
+        '''
+
+        _theta = np.atleast_2d(theta)
+        nsamp = len(theta)
+        mean_trans = np.ones((nsamp, self.nspec))
+
+        for isamp, theta_now in enumerate(_theta):
+            iF = find_closest(self.mean_flux_vec, theta_now[0])
+            iL = find_closest(self.L_rescale_vec, theta_now[1])
+            mean_trans[isamp, self.ipix_blu] = self.mean_t_prox[iF, iL]
+
+        return mean_trans
 
 
     def simulateSpectra(self, nsamp=25000, stochastic=False):
@@ -96,6 +119,7 @@ class ProximityWrapper(Proximity):
         @return:
             cont_norm: ndarray of shape (nsamp, nspec)
             flux_norm: ndarray of shape (nsamp, nspec)
+            theta: ndarray of shape (nsamp, npca + 4)
         '''
 
         # sample theta
@@ -111,7 +135,7 @@ class ProximityWrapper(Proximity):
         # normalise the spectra to one at 1280 \AA
         flux_norm, cont_norm = normalise_spectra(self.wave_rest, flux, cont)
 
-        return cont_norm, flux_norm
+        return cont_norm, flux_norm, theta
 
 
     def assignNoise(self, half_dz, nsamp):
@@ -157,9 +181,10 @@ class FullSimulator:
         self.Prox = ProximityWrapper(z_qso, logLv_range, nlogL, npca, nskew, wave_min, wave_max, fwhm, dloglam)
 
         # call the methods of ProximityWrapper and save everything to the object
-        self.mean_trans1d = self.Prox.meanTransmissionFromSkewers()
-        self.mean_trans = np.full((nsamp, self.Prox.nspec), self.mean_trans1d)
-        self.cont, self.flux_noiseless = self.Prox.simulateSpectra(nsamp, stochastic)
+        #self.mean_trans1d = self.Prox.meanTransmissionFromSkewers()
+        #self.mean_trans = np.full((nsamp, self.Prox.nspec), self.mean_trans1d)
+        self.cont, self.flux_noiseless, self.theta = self.Prox.simulateSpectra(nsamp, stochastic)
+        self.mean_trans = self.Prox.meanTransmissioFromTheta(self.theta)
         self.ivar, noise_terms = self.Prox.assignNoise(half_dz, nsamp)
         self.flux = self.flux_noiseless + noise_terms
 
@@ -202,13 +227,18 @@ class FullSimulator:
         self.ivar_hybrid = interpBadPixels(self.wave_hybrid, ivar_hybrid, gpm_hybrid)
         self.ivar_coarse = interpBadPixels(self.wave_coarse, ivar_coarse, gpm_coarse)
 
-        mean_trans_interpolator = interp1d(self.Prox.wave_rest, self.mean_trans1d, kind="cubic", bounds_error=False,
-                                           fill_value="extrapolate")
-        mean_trans_hybrid1d = mean_trans_interpolator(self.wave_hybrid)
-        mean_trans_coarse1d = mean_trans_interpolator(self.wave_coarse)
+        #mean_trans_interpolator = interp1d(self.Prox.wave_rest, self.mean_trans1d, kind="cubic", bounds_error=False,
+        #                                   fill_value="extrapolate")
+        #mean_trans_hybrid1d = mean_trans_interpolator(self.wave_hybrid)
+        #mean_trans_coarse1d = mean_trans_interpolator(self.wave_coarse)
 
-        self.mean_trans_hybrid = np.full((self.nsamp, len(self.wave_hybrid)), mean_trans_hybrid1d)
-        self.mean_trans_coarse = np.full((self.nsamp, len(self.wave_coarse)), mean_trans_coarse1d)
+        #self.mean_trans_hybrid = np.full((self.nsamp, len(self.wave_hybrid)), mean_trans_hybrid1d)
+        #self.mean_trans_coarse = np.full((self.nsamp, len(self.wave_coarse)), mean_trans_coarse1d)
+
+        mean_trans_interpolator = interp1d(self.Prox.wave_rest, self.mean_trans, kind="cubic", bounds_error=False,
+                                           fill_value="extrapolate", axis=-1)
+        self.mean_trans_hybrid = mean_trans_interpolator(self.wave_hybrid)
+        self.mean_trans_coarse = mean_trans_interpolator(self.wave_coarse)
 
 
     def split(self, train_frac=0.9):
