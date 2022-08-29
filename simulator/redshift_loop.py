@@ -11,6 +11,23 @@ from IPython import embed
 
 
 def simulateInRedshiftLoop(nsamp, dz, datapath=None, savepath=None, copy_factor=10):
+    '''
+    Generate mock spectra in a loop over redshift. The number of spectra to generate and the log-luminosity range to
+    use in each redshift bin are based on the BOSS DR14 data.
+
+    @param nsamp: int
+        Number of spectra to generate in total.
+    @param dz: float
+        Redshift bin width for discretising redshift space.
+    @param datapath: str or NoneType
+        Path where the (z, logLv) data is stored.
+    @param savepath: str or NoneType
+        Path where the mock spectra are to be stored.
+    @param copy_factor: int
+        Number of copies to make of each quasar to draw from.
+    @return:
+        combined_sims: CombinedSimulations instance
+    '''
 
     z_data, logLv_data = loadRedshiftLuminosityFile(datapath)
     z_copies, logLv_copies = createCopyQSOs(z_data, logLv_data, copy_factor)
@@ -47,6 +64,8 @@ def simulateInRedshiftLoop(nsamp, dz, datapath=None, savepath=None, copy_factor=
     combined_sims.saveFile(savepath)
 
     print ("Saved the combined file.")
+
+    return combined_sims
 
 
 
