@@ -72,6 +72,21 @@ def binEdges(data, widths, data_range=None):
     return edges
 
 
+def edgesToMidpoints(edges):
+    '''
+    Determine the bin midpoints given a set of bin edges.
+
+    @param edges: ndarray of shape (n_bins + 1,)
+    @return:
+        mids: ndarray of shape (n_bins,)
+    '''
+
+    widths = edges[1:] - edges[:-1]
+    mids = edges[:-1] + 0.5 * widths
+
+    return mids
+
+
 class HistogramBase:
     '''
     Base class for constructing a histogram of any 1D set of data points.
