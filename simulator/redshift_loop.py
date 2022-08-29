@@ -53,7 +53,8 @@ def simulateInRedshiftLoop(nsamp, dz, datapath=None, savepath=None, copy_factor=
 
         print ("Number of samples for z = {}: {}".format(np.around(z,2), nsamp_i))
 
-        if nsamp_i > 0:
+        # the code fails in various places if nsamp < 2
+        if nsamp_i > 1:
             logLv_range_i = [logLv_draw[inbin].min(), logLv_draw[inbin].max()]
 
             sim = FullSimulator(nsamp_i, z, logLv_range_i, half_dz=0.05)
@@ -114,7 +115,15 @@ def drawFromCopies(z_copies, logLv_copies, nsamp):
     rng = np.random.default_rng()
 
     n_choice = len(z_copies)
-    idcs = rng.integers(0, n_choice, size=nsamp)
+
+    if nsamp < n_choice:
+
+        #idcs = rng.integers(0, n_choice, size=nsamp)
+        idcs = rng.choice(n_choice, size=nsamp, replace=False)
+
+    else:
+        print ("Warning: number of samples to draw exceeds number of copies to draw from; replacement is used.")
+        idcs = rng.choice(n_choice, size=nsamp, replace=True)
 
     z_draw = z_copies[idcs]
     logLv_draw = logLv_copies[idcs]
