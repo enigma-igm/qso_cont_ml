@@ -35,6 +35,7 @@ class CombinedSimulations:
 
         self.redshifts = np.concatenate([sim.redshifts for sim in sims_list], axis=0)
         #self.mags = np.concatenate([sim.mags for sim in sims_list], axis=0)
+        self.logLv_samp = np.concatenate([sim.logLv_samp for sim in sims_list], axis=0)
 
         self.cont_hybrid = np.concatenate([sim.cont_hybrid for sim in sims_list], axis=0)
         self.cont_coarse = np.concatenate([sim.cont_coarse for sim in sims_list], axis=0)
@@ -63,9 +64,12 @@ class CombinedSimulations:
         return train_idcs, valid_idcs, test_idcs
 
 
-    def saveFile(self, filepath="/net/vdesk/data2/buiten/MRP2/pca-sdss-old/"):
+    def saveFile(self, filepath="/net/vdesk/data2/buiten/MRP2/pca-sdss-old/", dz=None):
 
-        filename = "{}synthspec_combined_{}sets.hdf5".format(filepath, self.nsets)
+        if dz is None:
+            filename = "{}synthspec_combined_{}sets.hdf5".format(filepath, self.nsets)
+        else:
+            filename = "{}synthspec_combined_dz{}.hdf5".format(filepath, dz)
 
         f = constructFile(self, filename)
 

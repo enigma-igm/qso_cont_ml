@@ -46,12 +46,12 @@ class ProximityWrapper(Proximity):
         # compute the central log-luminosity (corresponding to 1 in L_rescale_range)
         L_min = 10 ** logLv_range[0]
         L_max = 10 ** logLv_range[1]
-        L_mid = (L_max - L_min) / 2
-        logLv_mid = np.log10(L_mid)
+        self.L_mid = (L_max - L_min) / 2
+        logLv_mid = np.log10(self.L_mid)
 
         # compute the fractions of Lv_mid corresponding to logLv_range
-        frac_L_min = L_min / L_mid
-        frac_L_max = L_max / L_mid
+        frac_L_min = L_min / self.L_mid
+        frac_L_max = L_max / self.L_mid
         L_rescale_range = [frac_L_min, frac_L_max]
 
         print ("Central logLv: {}".format(logLv_mid))
@@ -199,12 +199,18 @@ class FullSimulator:
         self.npca = self.Prox.npca
         self.nlogL = self.Prox.nlogL
         self.nskew = self.Prox.nskew
+        self.L_mid = self.Prox.L_mid
 
         self._regrid(dvpix_red)
         #self.train_idcs, self.valid_idcs, self.test_idcs = self._split(train_frac)
 
         self.redshifts = np.full(self.nsamp, self.Prox.z_qso)
         #self.mags = np.full(self.nsamp, self.Prox.mag)
+
+        # extract the L_rescale values from theta and use it to determine each QSOs logLv value
+        _theta = np.atleast_2d(self.theta)
+        L_rescale_samp = _theta[:,1]
+        self.logLv_samp = np.log10(L_rescale_samp * self.L_mid)
 
 
     def _regrid(self, dvpix_red=500.):
