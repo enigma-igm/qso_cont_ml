@@ -62,11 +62,14 @@ def constructFile(simulator, filename, train_frac=0.9):
 
     # add redshifts and magnitudes to the training/validation/test groups
     grp_traindata.create_dataset("redshifts", data=simulator.redshifts[train_idcs])
-    grp_traindata.create_dataset("mags", data=simulator.mags[train_idcs])
+    grp_traindata.create_dataset("logLv", data=simulator.logLv_samp[train_idcs])
+    #grp_traindata.create_dataset("mags", data=simulator.mags[train_idcs])
     grp_validdata.create_dataset("redshifts", data=simulator.redshifts[valid_idcs])
-    grp_validdata.create_dataset("mags", data=simulator.mags[valid_idcs])
+    grp_validdata.create_dataset("logLv", data=simulator.logLv_samp[valid_idcs])
+    #grp_validdata.create_dataset("mags", data=simulator.mags[valid_idcs])
     grp_testdata.create_dataset("redshifts", data=simulator.redshifts[test_idcs])
-    grp_testdata.create_dataset("mags", data=simulator.mags[test_idcs])
+    grp_testdata.create_dataset("logLv", data=simulator.logLv_samp[test_idcs])
+    #grp_testdata.create_dataset("mags", data=simulator.mags[test_idcs])
 
     print ("Saved file to {}".format(filename))
 

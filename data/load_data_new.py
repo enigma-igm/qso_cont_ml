@@ -4,7 +4,28 @@ import os
 import torch
 from torch.utils.data import Dataset
 
-def loadSynthFile(datapath=None, npca=10, z_qso=2.8, test=False):
+def loadSynthFile(datapath=None, npca=10, z_qso=None, z_bin_width=0.08, test=False):
+    '''
+    Find and load the file containing the mock spectra.
+
+    @param datapath: str or NoneType
+        Path of the file's folder.
+    @param npca: int
+        Number of PCA vectors used in the simulation.
+    @param z_qso: float or ndarray or NoneType
+        Redshifts used for the mock spectra. If None, z_bin_width is used instead to locate the desired file.
+        Default is None.
+    @param z_bin_width: float or NoneType
+        Redshift bin width used for discretising redshift space while generating the mock spectra. Only functional if
+        z_qso is None. Default is float.
+    @param test: bool
+        If True, uses a smaller test file. Mostly deprecated.
+
+    @return: f: h5py File instance
+        The file containing the mock spectra.
+    @return filename: str
+        The name of the file containing the mock spectra.
+    '''
 
     if datapath is None:
         datapath = "/net/vdesk/data2/buiten/MRP2/pca-sdss-old/"
@@ -18,8 +39,10 @@ def loadSynthFile(datapath=None, npca=10, z_qso=2.8, test=False):
         filename = "{}synthspec_BOSSlike_npca{}_z{}_{}.hdf5".format(datapath, npca, z_qso, size_descr)
     elif isinstance(z_qso, list) or isinstance(z_qso, np.ndarray):
         filename = "{}synthspec_combined_{}sets.hdf5".format(datapath, len(z_qso))
+    elif (z_qso is None) and isinstance(z_bin_width, float):
+        filename = "{}synthspec_combined_dz{}.hdf5".format(datapath, z_bin_width)
     else:
-        raise TypeError("Parameter 'z_qso' should be a list or an array.")
+        raise TypeError("Parameter 'z_qso' should be a list, an array, or None (if z_bin_width is given).")
 
     f = h5py.File(filename, "r")
 
@@ -33,15 +56,17 @@ class SynthSpectra(Dataset):
     Returns the coarse-grid continua as "labels".
     '''
 
-    def __init__(self, datapath=None, npca=10, z_qso=2.8, test=False, set="train"):
+    def __init__(self, datapath=None, npca=10, z_qso=None, z_bin_width=0.08, test=False, set="train"):
         '''
 
         @param datapath: str
             Path where the file is stored. If None, uses a default path.
         @param npca: int
             Number of PCA components. Default is 10.
-        @param z_qso: float
-            Redshift of the quasars. Default is 2.8.
+        @param z_qso: float or NoneType
+            Redshift of the quasars. Default is None. If None, z_bin_width must be a float.
+        @param z_bin_width: float or NoneType
+            Redshift bin width used to bin the redshifts to simulate. Default is 0.08.
         @param test: bool
             If True, loads in a smaller testing-only set. Default is False.
         @param set: str
@@ -55,7 +80,7 @@ class SynthSpectra(Dataset):
             self.set = set
             self.grp_name = "/{}-data".format(set)
 
-        self.file, self.filename = loadSynthFile(datapath, npca, z_qso, test)
+        self.file, self.filename = loadSynthFile(datapath, npca, z_qso, z_bin_width, test)
 
         # load only the hybrid and coarse wavelength grid, the hybrid input and the hybrid true continua
         self.wave_fine = torch.FloatTensor(self.file["/meta/wave-fine"])
@@ -178,9 +203,26 @@ class SynthSpectra(Dataset):
 
     @property
     def magnitudes(self):
+        '''@deprecated'''
+
+        print ("Warning: magnitudes property is deprecated; use logLv property for the Lyman-limit log-luminosity.")
 
         f = h5py.File(self.filename, "r")
         mags = torch.FloatTensor(f["{}/mags".format(self.grp_name)])
         f.close()
 
         return mags
+
+
+    @property
+    def logLv(self):
+        '''
+        Load the log-luminsosity at the Lyman limit of all generated QSOs.
+
+        @return: logLv
+        '''
+
+        f = h5py.File(self.filename, "r")
+        logLv = torch.FloatTensor(f["{}/logLv".format(self.grp_name)])
+
+        return logLv
