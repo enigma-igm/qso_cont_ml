@@ -42,15 +42,20 @@ def modelRedshiftUncertainty(wave_rest, true_redshifts, dv_sigma=700):
     Incorporate modelled redshift uncertainty in the rest-frame wavelengths of a set of spectra.
 
     @param wave_rest: ndarray of shape (n_qso, n_spec) or (n_spec,)
-    @param true_redshifts: ndarray of shape (n_qso,)
+    @param true_redshifts: ndarray of shape (n_qso,) or float
     @param dv_sigma: float
     @return: wave_rest_new: ndarray of shape (n_qso, n_spec)
+    @return: measured redshifts: ndarray of shape (n_qso,)
     '''
 
     _wave_rest = np.atleast_2d(wave_rest)
+    _true_redshifts = np.atleast_1d(true_redshifts)
 
-    measured_redshifts = perturbRedshifts(true_redshifts, dv_sigma)
-    wave_obs = _wave_rest * (1 + true_redshifts)
-    wave_rest_new = wave_obs / (1 + measured_redshifts)
+    measured_redshifts = perturbRedshifts(_true_redshifts, dv_sigma)
+    wave_rest_new = np.zeros((len(_true_redshifts), _wave_rest.shape[-1]))
 
-    return wave_rest_new
+    for i in range(len(_true_redshifts)):
+        wave_obs = _wave_rest * (1 + _true_redshifts[i])
+        wave_rest_new[i] = wave_obs / (1 + measured_redshifts[i])
+
+    return wave_rest_new, measured_redshifts

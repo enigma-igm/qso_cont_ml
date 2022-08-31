@@ -13,6 +13,8 @@ from qso_fitting.data.utils import rebin_spectra
 import astropy.constants as const
 from data.empirical_noise import rebinNoiseVectors, interpBadPixels
 from simulator.save import constructFile
+from simulator.redshift_error import modelRedshiftUncertainty
+from IPython import embed
 
 
 class ProximityWrapper(Proximity):
@@ -100,13 +102,23 @@ class ProximityWrapper(Proximity):
 
         _theta = np.atleast_2d(theta)
         nsamp = len(theta)
+        redshifts = np.full(nsamp, self.z_qso)
+
+        # compute mean transmission WITH redshift uncertainty incorporated
+        #wave_rest_new, perturbed_redshifts = modelRedshiftUncertainty(self.wave_rest, redshifts)
+        #embed()
+        # self.t_prox has shape (nF, nlogL, nskew, nspec)
+        #t_prox_perturbed, _, _, _ = rebin_spectra(self.wave_rest, wave_rest_new, self.t_prox, np.ones_like(self.t_prox))
+        #mean_t_prox_perturbed = np.mean(t_prox_perturbed, axis=2)
         mean_trans = np.ones((nsamp, self.nspec))
 
         for isamp, theta_now in enumerate(_theta):
             iF = find_closest(self.mean_flux_vec, theta_now[0])
             iL = find_closest(self.L_rescale_vec, theta_now[1])
             mean_trans[isamp, self.ipix_blu] = self.mean_t_prox[iF, iL]
+            #mean_trans[isamp, self.ipix_blu] = mean_t_prox_perturbed[iF, iL]
 
+        embed()
         return mean_trans
 
 
@@ -135,6 +147,12 @@ class ProximityWrapper(Proximity):
 
         # normalise the spectra to one at 1280 \AA
         flux_norm, cont_norm = normalise_spectra(self.wave_rest, flux, cont)
+
+        # perturb the redshifts with gaussian noise of sigma = 700 km/s
+        redshifts = np.full(nsamp, self.z_qso)
+        wave_rest_new, perturbed_redshifts = modelRedshiftUncertainty(self.wave_rest, redshifts)
+        flux_norm, _, _, _ = rebin_spectra(self.wave_rest, wave_rest_new, flux_norm, np.ones_like(flux_norm))
+        cont_norm, _, _, _ = rebin_spectra(self.wave_rest, wave_rest_new, cont_norm, np.ones_like(flux_norm))
 
         return cont_norm, flux_norm, theta
 
