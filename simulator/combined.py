@@ -20,6 +20,7 @@ class CombinedSimulations:
         self.dvpix_red = sims_list[0].dvpix_red
         self.npca = sims_list[0].npca
         self.nskew = sims_list[0].nskew
+        self.wave_split = sims_list[0].wave_split
 
         self.wave_rest = sims_list[0].wave_rest
         self.wave_coarse = sims_list[0].wave_coarse

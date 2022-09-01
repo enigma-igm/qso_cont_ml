@@ -1,7 +1,7 @@
 from simulator.redshift_loop import simulateInRedshiftLoop
 
 nsamp = 25000
-dz = 0.08
+dz = 0.5
 copy_factor = 50
 
 savepath = "/net/vdesk/data2/buiten/MRP2/pca-sdss-old/"

@@ -13,12 +13,37 @@ from qso_fitting.data.utils import rebin_spectra
 import astropy.constants as const
 from data.empirical_noise import rebinNoiseVectors, interpBadPixels
 from simulator.save import constructFile
+from simulator.redshift_error import modelRedshiftUncertainty
+from IPython import embed
+#import matplotlib.pyplot as plt
 
 
 class ProximityWrapper(Proximity):
 
     def __init__(self, z_qso, logLv_range, nlogL=10, npca=10, nskew=1000, wave_min=1000., wave_max=1970.,
                  fwhm=131.4, dloglam=1.0e-4):
+        '''
+        Wrapper class for the Proximity simulator from dw_inference.simulator.proximity.proximity.
+
+        @param z_qso: float
+            Redshift of the quasars to simulate. Note that the simulator operates at a single redshift only.
+        @param logLv_range: array-like of shape (2,)
+            Range of log-luminosity at the Lyman limit.
+        @param nlogL: int
+            Number of luminosity bins.
+        @param npca: int
+            Number of PCA components to use for the continuum model.
+        @param nskew: int
+            Number of skewers.
+        @param wave_min: float
+            Minimum rest-frame wavelength (Angstrom) of the grid.
+        @param wave_max: float
+            Maximum rest-frame wavelength (Angstrom) of the grid.
+        @param fwhm: float
+            FWHM of the spectrograph we wish to mimic.
+        @param dloglam: float
+            Resolution of the spectrograph in units of log-wavelength (Angstrom)
+        '''
 
         # extract necessary line information and natural constants
         strong_lines = LineList("Strong", verbose=False)
@@ -100,12 +125,37 @@ class ProximityWrapper(Proximity):
 
         _theta = np.atleast_2d(theta)
         nsamp = len(theta)
+        redshifts = np.full(self.nskew, self.z_qso)
+
+        # compute mean transmission WITH redshift uncertainty incorporated
+        wave_rest_new, perturbed_redshifts = modelRedshiftUncertainty(self.wave_rest, redshifts)
+
+        # self.t_prox has shape (nF, nlogL, nskew, nspec_blue)
+
+        t_prox_perturbed = np.ones((self.nF, self.nlogL, self.nskew, np.sum(self.ipix_blu)))
+        gpm_t_prox = np.ones_like(t_prox_perturbed, dtype=bool)
+
+        # rebin the spectra onto the original rest-frame wavelength grid
+        # note that self.t_prox only covers the blue side of the spectrum
+        for iF in range(self.nF):
+            for iL in range(self.nlogL):
+                t_prox_perturbed[iF, iL], _, gpm_t_prox[iF, iL], _ = rebin_spectra(self.wave_rest[self.ipix_blu],
+                                                                                   wave_rest_new[:, self.ipix_blu],
+                                                                                   self.t_prox[iF, iL],
+                                                                                   np.ones((self.nskew,
+                                                                                            np.sum(self.ipix_blu))))
+
+        # rebinning causes some bad pixels to appear
+        # average over only the good pixels
+        t_prox_pert_masked = np.ma.array(t_prox_perturbed, mask=~gpm_t_prox)
+        mean_t_prox_perturbed = t_prox_pert_masked.mean(axis=2)
         mean_trans = np.ones((nsamp, self.nspec))
 
         for isamp, theta_now in enumerate(_theta):
             iF = find_closest(self.mean_flux_vec, theta_now[0])
             iL = find_closest(self.L_rescale_vec, theta_now[1])
-            mean_trans[isamp, self.ipix_blu] = self.mean_t_prox[iF, iL]
+            #mean_trans[isamp, self.ipix_blu] = self.mean_t_prox[iF, iL]
+            mean_trans[isamp, self.ipix_blu] = mean_t_prox_perturbed[iF, iL]
 
         return mean_trans
 
@@ -135,6 +185,23 @@ class ProximityWrapper(Proximity):
 
         # normalise the spectra to one at 1280 \AA
         flux_norm, cont_norm = normalise_spectra(self.wave_rest, flux, cont)
+
+        # perturb the redshifts with gaussian noise of sigma = 700 km/s
+        redshifts = np.full(nsamp, self.z_qso)
+        wave_rest_new, perturbed_redshifts = modelRedshiftUncertainty(self.wave_rest, redshifts)
+        _flux_norm, _, gpm_flux, _ = rebin_spectra(self.wave_rest, wave_rest_new, flux_norm, np.ones_like(flux_norm))
+        _cont_norm, _, gpm_cont, _ = rebin_spectra(self.wave_rest, wave_rest_new, cont_norm, np.ones_like(flux_norm))
+
+        # interpolate over the bad pixels to ensure that the spectra are good everywhere after the perturbation
+        flux_norm = np.copy(_flux_norm)
+        cont_norm = np.copy(_cont_norm)
+        for i in range(len(_flux_norm)):
+            flux_norm[i][~gpm_cont[i]] = interp1d(self.wave_rest[gpm_flux[i]], _flux_norm[i][gpm_flux[i]], kind="cubic",
+                                                  bounds_error=False,
+                                                  fill_value="extrapolate")(self.wave_rest[~gpm_flux[i]])
+            cont_norm[i][~gpm_cont[i]] = interp1d(self.wave_rest[gpm_cont[i]], _cont_norm[i][gpm_cont[i]], kind="cubic",
+                                                  bounds_error=False,
+                                                  fill_value="extrapolate")(self.wave_rest[~gpm_cont[i]])
 
         return cont_norm, flux_norm, theta
 
@@ -176,7 +243,8 @@ class ProximityWrapper(Proximity):
 
 class FullSimulator:
     def __init__(self, nsamp, z_qso, logLv_range, nlogL=10, npca=10, nskew=1000, wave_min=1000., wave_max=1970.,
-                 fwhm=131.4, dloglam=1.0e-4, stochastic=False, half_dz=0.01, dvpix_red=500., train_frac=0.9):
+                 fwhm=131.4, dloglam=1.0e-4, stochastic=False, half_dz=0.01, dvpix_red=500., train_frac=0.9,
+                 wave_split=None):
 
         # initialise the ProximityWrapper
         self.Prox = ProximityWrapper(z_qso, logLv_range, nlogL, npca, nskew, wave_min, wave_max, fwhm, dloglam)
@@ -201,6 +269,11 @@ class FullSimulator:
         self.nskew = self.Prox.nskew
         self.L_mid = self.Prox.L_mid
 
+        if wave_split is None:
+            self.wave_split = self.Prox.wave_1216
+        else:
+            self.wave_split = wave_split
+
         self._regrid(dvpix_red)
         #self.train_idcs, self.valid_idcs, self.test_idcs = self._split(train_frac)
 
@@ -216,7 +289,7 @@ class FullSimulator:
     def _regrid(self, dvpix_red=500.):
 
         # construct the hybrid grid and the coarse grid
-        self.wave_hybrid, _, _, _ = get_blu_red_wave_grid(self.wave_min, self.wave_max, self.Prox.wave_1216, self.dvpix,
+        self.wave_hybrid, _, _, _ = get_blu_red_wave_grid(self.wave_min, self.wave_max, self.wave_split, self.dvpix,
                                                      dvpix_red)
         self.wave_coarse = get_wave_grid(self.wave_min, self.wave_max, dvpix_red)
 
