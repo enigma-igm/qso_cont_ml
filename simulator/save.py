@@ -59,6 +59,7 @@ def constructFile(simulator, filename, train_frac=0.9):
     grp_meta.attrs["dv-coarse"] = simulator.dvpix_red
     grp_meta.attrs["npca"] = simulator.npca
     grp_meta.attrs["nskew"] = simulator.nskew
+    grp_meta.attrs["wave-split"] = simulator.wave_split
 
     # add redshifts and magnitudes to the training/validation/test groups
     grp_traindata.create_dataset("redshifts", data=simulator.redshifts[train_idcs])
