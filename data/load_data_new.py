@@ -71,6 +71,8 @@ class SynthSpectra(Dataset):
             If True, loads in a smaller testing-only set. Default is False.
         @param set: str
             Must be one of ["train", "valid", "test"]. Indicates which set to load. Default is "train".
+
+        TODO: remove set parameter as it is deprecated; we don't need the separate small set anymore
         '''
 
         if not ((set == "train") | (set == "valid") | (set == "test")):
@@ -86,6 +88,7 @@ class SynthSpectra(Dataset):
         self.wave_fine = torch.FloatTensor(self.file["/meta/wave-fine"])
         self.wave_hybrid = torch.FloatTensor(self.file["/meta/wave-hybrid"])
         self.wave_coarse = torch.FloatTensor(self.file["/meta/wave-coarse"])
+        self.wave_split = torch.clone(self.file["/meta"].attrs["wave-split"])
 
         self.flux_hybrid = torch.FloatTensor(self.file["{}/hybrid-grid/flux".format(self.grp_name)])
         self.ivar_hybrid = torch.FloatTensor(self.file["{}/hybrid-grid/ivar".format(self.grp_name)])

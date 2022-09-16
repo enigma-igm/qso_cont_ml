@@ -65,7 +65,7 @@ class ModelResults:
         # also load the true continua on the same grid
         # as well as the absorption spectra and noise
 
-        # TO DO: enable NoneType true continuum for real test spectra
+        # TODO: enable NoneType true continuum for real test spectra
         if gridtype == "coarse":
             self.cont_pred = interp1d(testset.wave_hybrid, res_hybrid_np, kind="cubic", axis=-1, bounds_error=False,
                                       fill_value="extrapolate")(testset.wave_coarse)
@@ -93,6 +93,7 @@ class ModelResults:
             raise ValueError("Parameter 'gridtype' must be 'coarse', 'fine' or 'hybrid'.")
 
         self.grid_type = gridtype
+        self.wave_split = testset.wave_split
 
 
 class ModelResultsSpectra(ModelResults):
@@ -163,7 +164,7 @@ class ModelResultsSpectra(ModelResults):
         ax.plot(self.wave_grid, np.squeeze(self.cont_pred[index]), alpha=alpha_pred, lw=1.5, ls="--", c=contpredcolor,
                 label="Predicted continuum")
 
-        ax.axvline(1216., alpha=0.7, lw=1., ls="dashdot", color="black", label="Blue-red split")
+        ax.axvline(self.wave_split, alpha=0.7, lw=1., ls="dashdot", color="black", label="Blue-red split")
 
         ax.set_xlabel(r"Rest-frame wavelength ($\AA$)")
         ax.set_ylabel(r"$F / F_{1280 \AA}$")
@@ -239,6 +240,7 @@ class ResidualPlots(RelResids):
         ax.plot(self.wave_grid, self.perc_median, label="Median", color="black")
         ax.fill_between(self.wave_grid, self.sigma_min, self.sigma_plus, alpha=0.3, label=r"68\% interval",
                         color="tab:orange")
+        ax.axvline(self.wave_split, alpha=0.7, lw=1., ls="dashdot", color="black", label="Blue-red split")
 
         ax.legend()
         ax.xaxis.set_minor_locator(AutoMinorLocator(5))

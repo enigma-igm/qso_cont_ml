@@ -112,7 +112,7 @@ class MeanTransmissionPlot(MeanTransmission):
         ax.fill_between(self.wave_grid, self.sigma_min_pred, self.sigma_plus_pred, alpha=.3, facecolor=contpredcolor,
                         edgecolor="none")
 
-        ax.axvline(1216., alpha=0.7, lw=1., ls="dashdot", color="black", label="Blue-red split")
+        ax.axvline(self.wave_split, alpha=0.7, lw=1., ls="dashdot", color="black", label="Blue-red split")
 
         ax.set_xlabel(r"Rest-frame wavelength ($\AA$)")
         ax.set_ylabel(r"$F_{abs} / F_{cont}$")
