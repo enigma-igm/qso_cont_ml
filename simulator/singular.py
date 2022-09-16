@@ -260,6 +260,7 @@ class FullSimulator:
         #self.mean_trans = np.full((nsamp, self.Prox.nspec), self.mean_trans1d)
         self.cont, self.flux_noiseless, self.theta = self.Prox.simulateSpectra(nsamp, stochastic)
         self.mean_trans = self.Prox.meanTransmissioFromTheta(self.theta)
+        self.mean_t_prox0 = self.Prox.mean_t_prox0
         self.ivar, noise_terms = self.Prox.assignNoise(half_dz, nsamp)
         self.flux = self.flux_noiseless + noise_terms
 

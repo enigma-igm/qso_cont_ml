@@ -97,7 +97,7 @@ class CombinedSimulations:
         if dz is None:
             filename = "{}transmission_templates_{}sets.hdf5".format(filepath, self.nsets)
         else:
-            filename = "{}transmission_templates_dz{}".format(filepath, dz)
+            filename = "{}transmission_templates_dz{}.hdf5".format(filepath, dz)
 
         f = constructTransmissionTemplates(self, filename)
 
