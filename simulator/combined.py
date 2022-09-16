@@ -2,7 +2,8 @@
 
 import numpy as np
 from simulator.singular import FullSimulator
-from simulator.save import constructFile
+from simulator.save import constructFile, constructTransmissionTemplates
+from scipy.interpolate import interp1d
 
 class CombinedSimulations:
     '''
@@ -51,6 +52,20 @@ class CombinedSimulations:
         self.nsamp = len(self.cont)
         self.nsets = len(sims_list)
 
+        # extract the mean transmission templates and 3D grid midpoints (z, logLv, wav)
+        self.trans_templates = np.array([sim.mean_t_prox0 for sim in sims_list])
+        print ("Shape of trans_templates:", self.trans_templates.shape)
+        self.z_mids = np.array([sim.Prox.z_qso for sim in sims_list])
+        Lv_mids = np.array([sim.L_mid for sim in sims_list])
+        self.logLv_mids = np.log10(Lv_mids)
+        # wavelength grids are already extracted above
+
+        # interpolate the transmission templates onto the hybrid grid as well
+        interpolator = interp1d(self.wave_rest, self.trans_templates, kind="cubic", bounds_error=False,
+                                fill_value="extrapolate", axis=-1)
+        self.trans_templates_hybrid = interpolator(self.wave_hybrid)
+
+
 
     def split(self, train_frac=0.9):
 
@@ -73,5 +88,17 @@ class CombinedSimulations:
             filename = "{}synthspec_combined_dz{}.hdf5".format(filepath, dz)
 
         f = constructFile(self, filename)
+
+        f.close()
+
+
+    def saveTransmissionTemplates(self, filepath="/net/vdesk/data2/buiten/MRP2/Data/", dz=None):
+
+        if dz is None:
+            filename = "{}transmission_templates_{}sets.hdf5".format(filepath, self.nsets)
+        else:
+            filename = "{}transmission_templates_dz{}".format(filepath, dz)
+
+        f = constructTransmissionTemplates(self, filename)
 
         f.close()

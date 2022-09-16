@@ -66,6 +66,7 @@ def simulateInRedshiftLoop(nsamp, dz, datapath=None, savepath=None, copy_factor=
     # combine the simulations and save the mock spectra to an HDF5 file
     combined_sims = CombinedSimulations(sims_list)
     combined_sims.saveFile(savepath, dz=dz)
+    combined_sims.saveTransmissionTemplates(savepath, dz=dz)
 
     print ("Saved the combined file.")
 

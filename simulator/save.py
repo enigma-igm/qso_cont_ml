@@ -72,6 +72,36 @@ def constructFile(simulator, filename, train_frac=0.9):
     grp_testdata.create_dataset("logLv", data=simulator.logLv_samp[test_idcs])
     #grp_testdata.create_dataset("mags", data=simulator.mags[test_idcs])
 
-    print ("Saved file to {}".format(filename))
+    print ("Created file at {}".format(filename))
+
+    return f
+
+
+def constructTransmissionTemplates(simulator, filename):
+    '''
+    Construct an HDF5 file containing the mean transmission curves on a (z, logLv) grid.
+
+    @param simulator: CombinedSimulations instance
+    @param filename: str
+    @return:
+    '''
+
+    f = h5py.File(filename, "w")
+
+    # create groups for fine and hybrid grid
+    grp_fine = f.create_group("fine-grid")
+    grp_hybrid = f.create_group("hybrid-grid")
+
+    grp_fine.create_dataset("mean-trans", data=simulator.trans_templates)
+    grp_fine.create_dataset("wave-fine", data=simulator.wave_rest)
+
+    grp_hybrid.create_dataset("mean-trans", data=simulator.trans_templates_hybrid)
+    grp_hybrid.create_dataset("wave-hybrid", data=simulator.wave_hyrbid)
+
+    # also store the redshift midpoints and logLv midpoints
+    f.create_dataset("z-mids", simulator.z_mids)
+    f.create_dataset("logLv-mids", simulator.logLv_mids)
+
+    print ("Created file at {}".format(filename))
 
     return f

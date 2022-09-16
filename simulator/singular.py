@@ -8,7 +8,7 @@ from dw_inference.simulator.utils import get_blu_red_wave_grid, find_closest
 from linetools.lists.linelist import LineList
 from dw_inference.simulator.proximity.proximity import Proximity
 from data.load_data import normalise_spectra
-from scipy.interpolate import interp1d
+from scipy.interpolate import interp1d, RegularGridInterpolator
 from qso_fitting.data.utils import rebin_spectra
 import astropy.constants as const
 from data.empirical_noise import rebinNoiseVectors, interpBadPixels
@@ -147,8 +147,14 @@ class ProximityWrapper(Proximity):
 
         # rebinning causes some bad pixels to appear
         # average over only the good pixels
+        # TODO: store mean_t_prox_perturbed for the mean transmission templates
         t_prox_pert_masked = np.ma.array(t_prox_perturbed, mask=~gpm_t_prox)
         mean_t_prox_perturbed = t_prox_pert_masked.mean(axis=2)
+
+        # mean_t_prox_perturbed has shape (nF, nlogL, nwav)
+        # take iF = 0 for simplicity
+        self.mean_t_prox0 = mean_t_prox_perturbed[0]
+
         mean_trans = np.ones((nsamp, self.nspec))
 
         for isamp, theta_now in enumerate(_theta):
@@ -319,6 +325,14 @@ class FullSimulator:
                                            fill_value="extrapolate", axis=-1)
         self.mean_trans_hybrid = mean_trans_interpolator(self.wave_hybrid)
         self.mean_trans_coarse = mean_trans_interpolator(self.wave_coarse)
+
+        '''
+        # also regrid the mean transmission curves for the template bank
+        mean_trans_templ_interpolator = interp1d(self.Prox.wave_rest, self.Prox.mean_t_prox0, kind="cubic",
+                                                 bounds_error=False, fill_value="extrapolate", axis=-1)
+        self.mean_t_prox0 = self.Prox.mean_t_prox0
+        self.mean_t_prox0_hybrid = mean_trans_templ_interpolator(self.wave_hybrid)
+        '''
 
 
     def split(self, train_frac=0.9):
