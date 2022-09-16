@@ -151,9 +151,11 @@ class ProximityWrapper(Proximity):
         t_prox_pert_masked = np.ma.array(t_prox_perturbed, mask=~gpm_t_prox)
         mean_t_prox_perturbed = t_prox_pert_masked.mean(axis=2)
 
-        # mean_t_prox_perturbed has shape (nF, nlogL, nwav)
+        # mean_t_prox_perturbed has shape (nF, nlogL, nspec)
         # take iF = 0 for simplicity
-        self.mean_t_prox0 = mean_t_prox_perturbed[0]
+        # don't forget to extend the spectrum to the red side
+        self.mean_t_prox0 = np.ones((self.nlogL, self.nspec))
+        self.mean_t_prox0[:, self.ipix_blu] = mean_t_prox_perturbed[0]
 
         mean_trans = np.ones((nsamp, self.nspec))
 
@@ -322,7 +324,7 @@ class FullSimulator:
         #self.mean_trans_hybrid = np.full((self.nsamp, len(self.wave_hybrid)), mean_trans_hybrid1d)
         #self.mean_trans_coarse = np.full((self.nsamp, len(self.wave_coarse)), mean_trans_coarse1d)
 
-        mean_trans_interpolator = interp1d(self.Prox.wave_rest, self.mean_trans, kind="cubic", bounds_error=False,
+        mean_trans_interpolator = interp1d(self.Prox.wave_rest, self.mean_t_prox0, kind="cubic", bounds_error=False,
                                            fill_value="extrapolate", axis=-1)
         self.mean_trans_hybrid = mean_trans_interpolator(self.wave_hybrid)
         self.mean_trans_coarse = mean_trans_interpolator(self.wave_coarse)
