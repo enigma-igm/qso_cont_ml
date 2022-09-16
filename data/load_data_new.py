@@ -88,7 +88,7 @@ class SynthSpectra(Dataset):
         self.wave_fine = torch.FloatTensor(self.file["/meta/wave-fine"])
         self.wave_hybrid = torch.FloatTensor(self.file["/meta/wave-hybrid"])
         self.wave_coarse = torch.FloatTensor(self.file["/meta/wave-coarse"])
-        self.wave_split = torch.clone(self.file["/meta"].attrs["wave-split"])
+        self.wave_split = self.file["/meta"].attrs["wave-split"]
 
         self.flux_hybrid = torch.FloatTensor(self.file["{}/hybrid-grid/flux".format(self.grp_name)])
         self.ivar_hybrid = torch.FloatTensor(self.file["{}/hybrid-grid/ivar".format(self.grp_name)])
