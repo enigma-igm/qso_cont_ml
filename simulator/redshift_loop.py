@@ -55,7 +55,10 @@ def simulateInRedshiftLoop(nsamp, dz, datapath=None, savepath=None, copy_factor=
 
         # the code fails in various places if nsamp < 2
         if nsamp_i > 1:
-            logLv_range_i = [logLv_draw[inbin].min(), logLv_draw[inbin].max()]
+            #logLv_range_i = [logLv_draw[inbin].min(), logLv_draw[inbin].max()]
+
+            # use a single, fixed logLv range to create a "rectangular" (z, logLv) grid with full coverage
+            logLv_range_i = [logLv_draw.min(), logLv_draw.max()]
 
             sim = FullSimulator(nsamp_i, z, logLv_range_i, half_dz=0.05, wave_split=wave_split)
             sims_list.append(sim)
