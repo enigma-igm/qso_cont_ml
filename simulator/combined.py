@@ -4,6 +4,7 @@ import numpy as np
 from simulator.singular import FullSimulator
 from simulator.save import constructFile, constructTransmissionTemplates
 from scipy.interpolate import interp1d
+from IPython import embed
 
 class CombinedSimulations:
     '''
@@ -54,14 +55,12 @@ class CombinedSimulations:
 
         # extract the mean transmission templates and 3D grid midpoints (z, logLv, wav)
         self.trans_templates = np.array([sim.mean_t_prox0 for sim in sims_list])
-        print ("Shape of trans_templates:", self.trans_templates.shape)
 
-        # TODO: fix bugs in self.z_mids and self.logLv_mids
-        # sim.L_mid is NOT a list of midpoints, but the central luminosity corresponding to L_rescale = 1
-        # all z_mids and logLv_mids values are stored as zeroes?
         self.z_mids = np.array([sim.Prox.z_qso for sim in sims_list])
-        Lv_mids = np.array([sim.L_mid for sim in sims_list])
-        self.logLv_mids = np.log10(Lv_mids)
+        #self.logLv_mids = np.log10( np.array( [sim.Prox.L_rescale_vec * sim.Prox.L_mid for sim in sims_list] ) )
+
+        # take only the first sims_list entry for the logLv axis on the grid, since we fixed the logLv range
+        self.logLv_mids = np.log10( np.array( sims_list[0].Prox.L_rescale_vec * sims_list[0].Prox.L_mid ) )
         # wavelength grids are already extracted above
 
         # interpolate the transmission templates onto the hybrid grid as well

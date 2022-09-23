@@ -103,8 +103,11 @@ def constructTransmissionTemplates(simulator, filename):
     grp_hybrid.create_dataset("wave-hybrid", data=simulator.wave_hybrid)
 
     # also store the redshift midpoints and logLv midpoints
-    f.create_dataset("z-mids", simulator.z_mids)
-    f.create_dataset("logLv-mids", simulator.logLv_mids)
+    f.create_dataset("z-mids", data=simulator.z_mids)
+    try:
+        f.create_dataset("logLv-mids", data=simulator.logLv_mids)
+    except:
+        embed()
 
     print ("Created file at {}".format(filename))
 

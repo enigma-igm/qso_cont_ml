@@ -161,8 +161,6 @@ class ProximityWrapper(Proximity):
         self.mean_t_prox0[:, self.ipix_blu] = mean_t_prox_perturbed[0]
         '''
 
-        # TODO: create self.mean_t_prox0 with gaussian smoothing for redshift error model
-
         # self.t_prox has shape (nF, nlogL, nskew, nspec_blue)
         #mean_t_prox_blu = np.mean(self.t_prox, axis=2)
 
