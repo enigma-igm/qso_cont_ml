@@ -22,12 +22,12 @@ class TransmissionTemplates:
         assert isinstance(filepath, str)
         assert isinstance(dz, float)
 
-        filename = "{}transmission_templated_dz[}.hdf5".format(filepath, dz)
+        filename = "{}transmission_templates_dz{}.hdf5".format(filepath, dz)
 
         f = h5py.File(filename, "r")
 
-        self.wave_fine = FloatTensor(f["wave-fine"])
-        self.wave_hybrid = FloatTensor(f["wave-hybrid"])
+        self.wave_fine = FloatTensor(f["/fine-grid/wave-fine"])
+        self.wave_hybrid = FloatTensor(f["/hybrid-grid/wave-hybrid"])
 
         self.mean_trans_fine = FloatTensor(f["/fine-grid/mean-trans"])
         self.mean_trans_hybrid = FloatTensor(f["/hybrid-grid/mean-trans"])
