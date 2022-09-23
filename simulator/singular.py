@@ -13,7 +13,7 @@ from qso_fitting.data.utils import rebin_spectra
 import astropy.constants as const
 from data.empirical_noise import rebinNoiseVectors, interpBadPixels
 from simulator.save import constructFile
-from simulator.redshift_error import modelRedshiftUncertainty
+from simulator.redshift_error import modelRedshiftUncertainty, smoothTransmission
 from IPython import embed
 #import matplotlib.pyplot as plt
 
@@ -127,6 +127,9 @@ class ProximityWrapper(Proximity):
         nsamp = len(theta)
         redshifts = np.full(self.nskew, self.z_qso)
 
+        # TODO: switch to redshift uncertainty modelling through gaussian smoothing of the final transmission curves
+
+        '''
         # compute mean transmission WITH redshift uncertainty incorporated
         wave_rest_new, perturbed_redshifts = modelRedshiftUncertainty(self.wave_rest, redshifts)
 
@@ -156,14 +159,41 @@ class ProximityWrapper(Proximity):
         # don't forget to extend the spectrum to the red side
         self.mean_t_prox0 = np.ones((self.nlogL, self.nspec))
         self.mean_t_prox0[:, self.ipix_blu] = mean_t_prox_perturbed[0]
+        '''
 
-        mean_trans = np.ones((nsamp, self.nspec))
+        # TODO: create self.mean_t_prox0 with gaussian smoothing for redshift error model
+
+        # self.t_prox has shape (nF, nlogL, nskew, nspec_blue)
+        #mean_t_prox_blu = np.mean(self.t_prox, axis=2)
+
+        # tack on ones redwards of Ly-alpha
+        _mean_trans = np.ones((nsamp, self.nspec))
 
         for isamp, theta_now in enumerate(_theta):
             iF = find_closest(self.mean_flux_vec, theta_now[0])
             iL = find_closest(self.L_rescale_vec, theta_now[1])
-            #mean_trans[isamp, self.ipix_blu] = self.mean_t_prox[iF, iL]
+            _mean_trans[isamp, self.ipix_blu] = self.mean_t_prox[iF, iL]
+            '''
             mean_trans[isamp, self.ipix_blu] = mean_t_prox_perturbed[iF, iL]
+            '''
+
+        # now apply gaussian smoothing in velocity space of the entire spectrum
+        mean_trans = smoothTransmission(self.wave_rest, _mean_trans)
+
+        # store self.mean_t_prox0 for the templates
+        # take iF = 0 for simplicity
+        # t_prox[0] has shape (nlogL, nskew, nspec)
+        _t_prox = np.ones((self.nF, self.nlogL, self.nskew, self.nspec))
+        for iF in range(self.nF):
+            for iL in range(self.nlogL):
+                try:
+                    # need to transpose because self.ipix_blu is a mask rather than a set of indices
+                    _t_prox[iF, iL, :, self.ipix_blu] = self.t_prox[iF, iL].T
+                except:
+                    embed()
+        t_prox = smoothTransmission(self.wave_rest, _t_prox)
+        self.mean_t_prox0 = np.mean(t_prox[0], axis=1)
+
 
         return mean_trans
 

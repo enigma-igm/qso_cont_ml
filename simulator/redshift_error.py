@@ -2,6 +2,7 @@
 
 import numpy as np
 import astropy.constants as const
+from scipy.ndimage import gaussian_filter1d
 
 
 def velShiftToRedshiftPerturbation(dv):
@@ -59,3 +60,26 @@ def modelRedshiftUncertainty(wave_rest, true_redshifts, dv_sigma=700):
         wave_rest_new[i] = wave_obs / (1 + measured_redshifts[i])
 
     return wave_rest_new, measured_redshifts
+
+
+def smoothTransmission(wave_rest, mean_trans, dv_sigma=700):
+    '''
+
+    @param wave_rest:
+    @param mean_trans: ndarray of shape (nsamp, nspec)
+    @param dv_sigma: float
+        Standard deviation in velocity space (km/s) for the Gaussian kernel used for smoothing.
+    @return:
+    '''
+
+    c_light = const.c.to("km/s").value
+
+    #loglam = np.log10(wave_rest)
+    #dloglam = loglam[1:] - loglam[:-1]
+
+    dloglam_sigma = dv_sigma / (c_light * np.log(10))
+
+    mean_trans_smoothed = gaussian_filter1d(mean_trans, dloglam_sigma, axis=-1)
+
+    return mean_trans_smoothed
+
