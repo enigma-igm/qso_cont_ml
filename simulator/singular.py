@@ -177,7 +177,7 @@ class ProximityWrapper(Proximity):
             mean_trans[isamp, self.ipix_blu] = mean_t_prox_perturbed[iF, iL]
             '''
 
-        # now apply gaussian smoothing in velocity space of the entire spectrum
+        # now apply gaussian smoothing in velocity space on the entire spectrum
         mean_trans = smoothTransmission(self.wave_rest, _mean_trans)
 
         # store self.mean_t_prox0 for the templates
@@ -186,11 +186,9 @@ class ProximityWrapper(Proximity):
         _t_prox = np.ones((self.nF, self.nlogL, self.nskew, self.nspec))
         for iF in range(self.nF):
             for iL in range(self.nlogL):
-                try:
-                    # need to transpose because self.ipix_blu is a mask rather than a set of indices
-                    _t_prox[iF, iL, :, self.ipix_blu] = self.t_prox[iF, iL].T
-                except:
-                    embed()
+                # need to transpose because self.ipix_blu is a mask rather than a set of indices
+                _t_prox[iF, iL, :, self.ipix_blu] = self.t_prox[iF, iL].T
+
         t_prox = smoothTransmission(self.wave_rest, _t_prox)
         self.mean_t_prox0 = np.mean(t_prox[0], axis=1)
 
@@ -354,7 +352,7 @@ class FullSimulator:
         #self.mean_trans_hybrid = np.full((self.nsamp, len(self.wave_hybrid)), mean_trans_hybrid1d)
         #self.mean_trans_coarse = np.full((self.nsamp, len(self.wave_coarse)), mean_trans_coarse1d)
 
-        mean_trans_interpolator = interp1d(self.Prox.wave_rest, self.mean_t_prox0, kind="cubic", bounds_error=False,
+        mean_trans_interpolator = interp1d(self.Prox.wave_rest, self.mean_trans, kind="cubic", bounds_error=False,
                                            fill_value="extrapolate", axis=-1)
         self.mean_trans_hybrid = mean_trans_interpolator(self.wave_hybrid)
         self.mean_trans_coarse = mean_trans_interpolator(self.wave_coarse)
