@@ -4,6 +4,7 @@ import torch
 from torch import FloatTensor
 import matplotlib.pyplot as plt
 from matplotlib.ticker import AutoMinorLocator
+from scipy.interpolate import RegularGridInterpolator
 
 class TransmissionTemplates:
     '''
@@ -17,10 +18,15 @@ class TransmissionTemplates:
         z_mids:
         logLv_mids:
 
-    TODO: write plotting method for visualisation?
+    Methods:
+        _chooseGrid(grid="fine")
+        interpolateTransmission(redshifts, logLs, grid="fine")
+        plotSingle
+        plotAllRedshifts
+        plotAllLuminosities
     '''
 
-    def __init__(self, filepath, dz):
+    def __init__(self, filepath, dz, interpmethod="linear"):
 
         assert isinstance(filepath, str)
         assert isinstance(dz, float)
@@ -35,8 +41,6 @@ class TransmissionTemplates:
         self.mean_trans_fine = FloatTensor(f["/fine-grid/mean-trans"])
         self.mean_trans_hybrid = FloatTensor(f["/hybrid-grid/mean-trans"])
 
-        #self.z_mids = FloatTensor(f["z-mids"])
-        #self.logLv_mids = FloatTensor(f["logLv-mids"])
         self.z_mids = np.array(f["z-mids"])
         self.logLv_mids = np.array(f["logLv-mids"])
 
@@ -44,6 +48,15 @@ class TransmissionTemplates:
         self.n_logLbins = len(self.logLv_mids)
 
         f.close()
+
+        # initialise RegularGridInterpolator instances for each grid
+        self.interpolator_fine = RegularGridInterpolator((self.z_mids, self.logLv_mids),
+                                                         self.mean_trans_fine.cpu().detach().numpy(),
+                                                         method=interpmethod, bounds_error=False, fill_value=None)
+        self.interpolator_hybrid = RegularGridInterpolator((self.z_mids, self.logLv_mids),
+                                                           self.mean_trans_hybrid.cpu().detach().numpy(),
+                                                           method=interpmethod, bounds_error=False, fill_value=None)
+        print ("Created interpolators with mode: {}".format(interpmethod))
 
 
     def _chooseGrid(self, grid="fine"):
@@ -62,6 +75,37 @@ class TransmissionTemplates:
         return wave, trans
 
 
+    def interpolateTransmission(self, redshifts, logLs, grid="fine"):
+        '''
+        Interpolate the mean transmission profiles from the templates onto the given redshifts and log-luminosities.
+
+        @param redshifts: float or ndarray of shape (nsamp,)
+        @param logLs: float or ndarray of shape (nsamp,)
+        @param grid: str
+        @return: interp_trans: ndarray of shape (nsamp, nspec)
+        '''
+
+        if grid == "fine":
+            interpolator = self.interpolator_fine
+            nspec = len(self.wave_fine)
+
+        elif grid == "hybrid":
+            interpolator = self.interpolator_hybrid
+            nspec = len(self.wave_hybrid)
+
+        else:
+            raise ValueError("Value for 'grid' not recognised. Use 'fine' or 'hybrid' instead.")
+
+        _redshifts = np.atleast_1d(redshifts)
+        _logLs = np.atleast_1d(logLs)
+        interp_trans = np.zeros((len(_redshifts), nspec))
+
+        for i, (z, logLv) in enumerate(zip(_redshifts, _logLs)):
+            interp_trans[i] = interpolator((z, logLv))
+
+        return interp_trans
+
+
     def plotSingle(self, ax, idx_z, idx_logL, grid="fine", alpha=.7):
 
         wave, _trans = self._chooseGrid(grid)
@@ -69,7 +113,7 @@ class TransmissionTemplates:
 
         ax.plot(wave, trans, label=r"z = {}; logL = {}".format(np.round(self.z_mids[idx_z], 1),
                                                                np.round(self.logLv_mids[idx_logL], 1)),
-                lw=1.5, alpha=.8)
+                lw=1.5, alpha=alpha)
 
         ax.legend()
         ax.set_xlabel(r"Rest-frame wavelength ($\AA$)")
