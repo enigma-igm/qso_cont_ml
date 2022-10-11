@@ -62,6 +62,8 @@ class ProximityWrapper(Proximity):
         z_lya = wave_rest[iforest] * (1. + z_qso) / self.wave_1216 - 1.
         mean_flux_z = F_onorbe(z_lya)
         self.true_mean_flux = np.mean(mean_flux_z)
+
+        # TODO: check with Joe if we should use this small mean flux range
         #mean_flux_range = np.clip([self.true_mean_flux - 0.0001, self.true_mean_flux + 0.0001], 0.01, 1.)
         mean_flux_range = np.clip([self.true_mean_flux, self.true_mean_flux + 0.0001], 0.01, 1.)
 
@@ -127,7 +129,11 @@ class ProximityWrapper(Proximity):
         nsamp = len(theta)
         redshifts = np.full(self.nskew, self.z_qso)
 
-        # TODO: switch to redshift uncertainty modelling through gaussian smoothing of the final transmission curves
+        # get the Onorbe mean transmission and tack it onto the Ly-beta side of the spectrum
+        trans_onorbe = F_onorbe(self.z_qso)
+        ipix_bluest = ~self.ipix_blu & ~self.ipix_red
+
+        # TODO: tack on Onorbe mean flux bluewards of simulated forest
 
         '''
         # compute mean transmission WITH redshift uncertainty incorporated
@@ -186,6 +192,7 @@ class ProximityWrapper(Proximity):
             for iL in range(self.nlogL):
                 # need to transpose because self.ipix_blu is a mask rather than a set of indices
                 _t_prox[iF, iL, :, self.ipix_blu] = self.t_prox[iF, iL].T
+                _t_prox[iF, iL, :, ipix_bluest] = self.true_mean_flux
 
         t_prox = smoothTransmission(self.wave_rest, _t_prox)
         self.mean_t_prox0 = np.mean(t_prox[0], axis=1)
