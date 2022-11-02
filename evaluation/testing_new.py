@@ -67,6 +67,7 @@ class ModelResults:
 
         # TODO: enable NoneType true continuum for real test spectra
         if gridtype == "coarse":
+            # currently only works for SynthSpectra input
             self.cont_pred = interp1d(testset.wave_hybrid, res_hybrid_np, kind="cubic", axis=-1, bounds_error=False,
                                       fill_value="extrapolate")(testset.wave_coarse)
             self.cont_true = testset.cont_coarse.cpu().detach().numpy()
@@ -77,14 +78,33 @@ class ModelResults:
         elif gridtype == "fine":
             self.cont_pred = interp1d(testset.wave_hybrid, res_hybrid_np, kind="cubic", axis=-1, bounds_error=False,
                                       fill_value="extrapolate")(testset.wave_fine)
-            self.cont_true = testset.cont_fine.cpu().detach().numpy()
+
+            if testset.cont_fine is not None:
+                if isinstance(testset.cont_fine, torch.FloatTensor):
+                    self.cont_true = testset.cont_fine.cpu().detach().numpy()
+                else:
+                    self.cont_true = testset.cont_fine
+            else:
+                self.cont_true = None
+                print ("No true continuum found.")
+
             self.flux = testset.flux_fine.cpu().detach().numpy()
-            self.noise = testset.noise_fine.cpu().detach().numpy()
+            #self.noise = testset.noise_fine.cpu().detach().numpy()
+            self.noise = 1 / np.sqrt(testset.ivar_fine.cpu().detach().numpy())
             self.wave_grid = testset.wave_fine
 
         elif gridtype == "hybrid":
             self.cont_pred = res_hybrid_np
-            self.cont_pred = testset.cont_hybrid.cpu().detach().numpy()
+
+            if testset.cont_hybrid is not None:
+                if isinstance(testset.cont_hybrid, torch.FloatTensor):
+                    self.cont_true = testset.cont_hybrid.cpu().detach().numpy()
+                else:
+                    self.cont_true = testset.cont_hybrid
+            else:
+                self.cont_true = None
+                print ("No true continuum found.")
+
             self.flux = testset.flux_hybrid.cpu().detach().numpy()
             self.noise = 1 / np.sqrt(testset.ivar_hybrid.cpu().detach().numpy())
             self.wave_grid = testset.wave_hybrid

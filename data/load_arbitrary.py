@@ -94,6 +94,7 @@ class InputSpectra(Dataset):
         # keep the original flux and ivar noise vectors as attributes
         self.flux_orig = flux
         self.ivar_orig = ivar
+        self.wave_split = wave_split
 
         # convert to rest-frame wavelengths if necessary
         _wave_grid = np.atleast_2d(wave_grid)
