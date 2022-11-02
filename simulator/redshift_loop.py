@@ -10,7 +10,8 @@ from dw_inference.simulator.utils import find_closest
 from IPython import embed
 
 
-def simulateInRedshiftLoop(nsamp, dz, datapath=None, savepath=None, copy_factor=10, wave_split=1260.):
+def simulateInRedshiftLoop(nsamp, dz, datapath=None, savepath=None, copy_factor=10, wave_split=1260.,
+                           train_frac=0.9):
     '''
     Generate mock spectra in a loop over redshift. The number of spectra to generate and the log-luminosity range to
     use in each redshift bin are based on the BOSS DR14 data.
@@ -65,7 +66,7 @@ def simulateInRedshiftLoop(nsamp, dz, datapath=None, savepath=None, copy_factor=
 
     # combine the simulations and save the mock spectra to an HDF5 file
     combined_sims = CombinedSimulations(sims_list)
-    combined_sims.saveFile(savepath, dz=dz)
+    combined_sims.saveFile(savepath, dz=dz, train_frac=train_frac)
     combined_sims.saveTransmissionTemplates(savepath, dz=dz)
 
     print ("Saved the combined file.")

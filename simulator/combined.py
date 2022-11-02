@@ -83,14 +83,14 @@ class CombinedSimulations:
         return train_idcs, valid_idcs, test_idcs
 
 
-    def saveFile(self, filepath="/net/vdesk/data2/buiten/MRP2/pca-sdss-old/", dz=None):
+    def saveFile(self, filepath="/net/vdesk/data2/buiten/MRP2/pca-sdss-old/", dz=None, train_frac=0.9):
 
         if dz is None:
             filename = "{}synthspec_combined_{}sets.hdf5".format(filepath, self.nsets)
         else:
             filename = "{}synthspec_combined_dz{}.hdf5".format(filepath, dz)
 
-        f = constructFile(self, filename)
+        f = constructFile(self, filename, train_frac)
 
         f.close()
 
