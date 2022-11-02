@@ -164,6 +164,16 @@ class SynthSpectra(Dataset):
 
 
     @property
+    def ivar_fine(self):
+
+        f = h5py.File(self.filename, "r")
+        ivar_fine = torch.FloatTensor(f["{}/fine-grid/ivar".format(self.grp_name)])
+        f.close()
+
+        return ivar_fine
+
+
+    @property
     def noise_fine(self):
 
         f = h5py.File(self.filename, "r")

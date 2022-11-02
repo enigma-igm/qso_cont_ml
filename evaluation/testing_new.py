@@ -5,6 +5,7 @@ from matplotlib.ticker import AutoMinorLocator
 from scipy.stats import norm
 from scipy.interpolate import interp1d   # necessary?
 from data.load_data_new import SynthSpectra
+from data.load_arbitrary import InputSpectra
 #from data.wavegrid_conversion import InputSpectra
 #from qso_fitting.data.sdss.sdss import autofit_continua, qsmooth_continua
 
@@ -31,9 +32,8 @@ class ModelResults:
 
     def __init__(self, testset, net, scaler_hybrid, gridtype="hybrid", redshift_lims=(2.0,4.0)):
 
-        if not isinstance(testset, SynthSpectra):
-            raise TypeError("'testset' must be a SynthSpectra instance.")
-        # TODO: also incorporate possibility of providing prepped empirical spectra
+        if not (isinstance(testset, SynthSpectra) or isinstance(testset, InputSpectra)):
+            raise TypeError("'testset' must be a SynthSpectra instance OR an InputSpectra instance.")
 
         # select the spectra in the desired redshift range
         self.zmin = redshift_lims[0]
