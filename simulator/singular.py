@@ -21,7 +21,7 @@ from IPython import embed
 class ProximityWrapper(Proximity):
 
     def __init__(self, z_qso, logLv_range, nlogL=10, npca=10, nskew=1000, wave_min=1000., wave_max=1970.,
-                 fwhm=131.4, dloglam=1.0e-4):
+                 fwhm=131.4, dloglam=1.0e-4, extend_lya=True):
         '''
         Wrapper class for the Proximity simulator from dw_inference.simulator.proximity.proximity.
 
@@ -43,6 +43,8 @@ class ProximityWrapper(Proximity):
             FWHM of the spectrograph we wish to mimic.
         @param dloglam: float
             Resolution of the spectrograph in units of log-wavelength (Angstrom)
+        @param extend_lya: bool
+            If True, treats the region bluewards of Ly-beta as part of the Ly-alpha forest.
         '''
 
         # extract necessary line information and natural constants
@@ -96,7 +98,8 @@ class ProximityWrapper(Proximity):
 
         # initialise the Proximity simulator and immediately extract the mean transmission profile
         super(ProximityWrapper, self).__init__(wave_rest, fwhm, z_qso, nskew, mean_flux_range, nF, npca, pcafile,
-                                               mags=None, logLv=logLv_mid, nlogL=nlogL, L_rescale_range=L_rescale_range)
+                                               mags=None, logLv=logLv_mid, nlogL=nlogL, L_rescale_range=L_rescale_range,
+                                               extend_lya=extend_lya)
 
 
     def meanTransmissionFromSkewers(self):
@@ -285,10 +288,11 @@ class ProximityWrapper(Proximity):
 class FullSimulator:
     def __init__(self, nsamp, z_qso, logLv_range, nlogL=10, npca=10, nskew=1000, wave_min=1000., wave_max=1970.,
                  fwhm=131.4, dloglam=1.0e-4, stochastic=False, half_dz=0.01, dvpix_red=500., train_frac=0.9,
-                 wave_split=None):
+                 wave_split=None, extend_lya=True):
 
         # initialise the ProximityWrapper
-        self.Prox = ProximityWrapper(z_qso, logLv_range, nlogL, npca, nskew, wave_min, wave_max, fwhm, dloglam)
+        self.Prox = ProximityWrapper(z_qso, logLv_range, nlogL, npca, nskew, wave_min, wave_max, fwhm, dloglam,
+                                     extend_lya)
 
         # call the methods of ProximityWrapper and save everything to the object
         #self.mean_trans1d = self.Prox.meanTransmissionFromSkewers()

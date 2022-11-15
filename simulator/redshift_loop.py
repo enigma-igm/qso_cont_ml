@@ -46,6 +46,7 @@ def simulateInRedshiftLoop(nsamp, dz, datapath=None, savepath=None, copy_factor=
 
     # run the simulation for each discrete redshift
     sims_list = []
+    logLv_ranges = []
 
     for i, z in enumerate(z_mids):
 
@@ -60,6 +61,7 @@ def simulateInRedshiftLoop(nsamp, dz, datapath=None, savepath=None, copy_factor=
 
             # use a single, fixed logLv range to create a "rectangular" (z, logLv) grid with full coverage
             logLv_range_i = [logLv_draw.min(), logLv_draw.max()]
+            logLv_ranges.append(logLv_range_i)
 
             sim = FullSimulator(nsamp_i, z, logLv_range_i, half_dz=0.05, wave_split=wave_split)
             sims_list.append(sim)
@@ -70,6 +72,10 @@ def simulateInRedshiftLoop(nsamp, dz, datapath=None, savepath=None, copy_factor=
     combined_sims.saveTransmissionTemplates(savepath, dz=dz)
 
     print ("Saved the combined file.")
+
+    print ("logLv ranges used:")
+    for logLrange in logLv_ranges:
+        print (logLrange)
 
     return combined_sims
 
