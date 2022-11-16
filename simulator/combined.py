@@ -1,6 +1,7 @@
 '''Module for combining spectra generated from several simulators.'''
 
 import numpy as np
+import matplotlib.pyplot as plt
 from simulator.singular import FullSimulator
 from simulator.save import constructFile, constructTransmissionTemplates
 from scipy.interpolate import interp1d
@@ -105,3 +106,28 @@ class CombinedSimulations:
         f = constructTransmissionTemplates(self, filename)
 
         f.close()
+
+
+    def plotExample(self):
+        '''
+        Plot the continuum, absorption spectrum and mean transmission profile for a single random example.
+
+        @return:
+        '''
+
+        rand_idx = np.random.randint(0, self.nsamp)
+
+        fig, ax = plt.subplots()
+
+        ax.plot(self.wave_rest, self.cont[rand_idx], lw=1.5, c="tab:orange", alpha=.7, label="Continuum")
+        ax.plot(self.wave_rest, self.flux[rand_idx], lw=1., c="tab:blue", alpha=.7, label="Absorption spectrum")
+        ax.plot(self.wave_rest, self.mean_trans[rand_idx], lw=1., c="tab:red", alpha=.6, label="Mean transmission")
+
+        ax.set_xlabel(r"Rest-frame wavelength ($\AA$)")
+        ax.set_ylabel(r"$F / F_{1280 \AA}$")
+
+        ax.legend()
+        ax.grid(which="major", alpha=.3)
+        ax.grid(which="minor", alpha=.1)
+
+        plt.show()

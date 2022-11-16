@@ -14,4 +14,6 @@ dz = 0.5   # large redshift bins for test runs
 copy_factor = 50
 
 savepath = "/net/vdesk/data2/buiten/MRP2/pca-sdss-old/"
-combined_sims = simulateInRedshiftLoop(nsamp, dz, copy_factor=copy_factor, savepath=savepath, train_frac=train_frac)
+combined_sims = simulateInRedshiftLoop(nsamp, dz, copy_factor=copy_factor, savepath=savepath, train_frac=train_frac,
+                                       extend_lya=True)
+combined_sims.plotExample()

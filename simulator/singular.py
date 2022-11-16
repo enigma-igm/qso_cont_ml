@@ -135,6 +135,8 @@ class ProximityWrapper(Proximity):
         # get the Onorbe mean transmission and tack it onto the Ly-beta side of the spectrum
         trans_onorbe = F_onorbe(self.z_qso)
         ipix_bluest = ~self.ipix_blu & ~self.ipix_red
+        print ("Mask for ipix_bluest:", ipix_bluest)
+        print ("Number of 'bluest' pixels:", np.sum(ipix_bluest))
 
         # TODO: tack on Onorbe mean flux bluewards of simulated forest
 
@@ -193,11 +195,31 @@ class ProximityWrapper(Proximity):
         _t_prox = np.ones((self.nF, self.nlogL, self.nskew, self.nspec))
         for iF in range(self.nF):
             for iL in range(self.nlogL):
+
+                '''
+                # interpolate to get rid of -1e10 values arising from rebinning from high resolution to low resolution
+                _gpm = self.t_prox[iF, iL].T != -1e10
+                t_prox_interpolator = interp1d(self.wave_rest[_gpm], self.t_prox[iF, iL].T[_gpm], kind="cubic",
+                                               bounds_error=False, fill_value="extrapolate")
+                _t_prox_use = np.copy(self.t_prox[iF, iL].T)
+                _t_prox_use[~_gpm] = t_prox_interpolator(self.wave_rest[~_gpm])
+                '''
+
+                # replace < -1e9 values by self.true_mean_flux
+                _t_prox_use = np.copy(self.t_prox[iF, iL].T)
+                badpix = _t_prox_use < -1e9
+                _t_prox_use[badpix] = self.true_mean_flux
+
                 # need to transpose because self.ipix_blu is a mask rather than a set of indices
-                _t_prox[iF, iL, :, self.ipix_blu] = self.t_prox[iF, iL].T
+                _t_prox[iF, iL, :, self.ipix_blu] = _t_prox_use
+                #_t_prox[iF, iL, :, self.ipix_blu] = self.t_prox[iF, iL].T
                 _t_prox[iF, iL, :, ipix_bluest] = self.true_mean_flux
 
+                #TODO: fix bug that causes t_prox profiles to go down rapidly bluewards of 1025 A
+
         t_prox = smoothTransmission(self.wave_rest, _t_prox)
+        embed()
+
         self.mean_t_prox0 = np.mean(t_prox[0], axis=1)
 
 
@@ -225,6 +247,7 @@ class ProximityWrapper(Proximity):
             theta[:,0] = self.true_mean_flux
 
         # simulate the noiseless continua and absorption spectra
+        #TODO: simulate noise by setting ivar parameter ?
         cont, flux = self.simulator(theta, replace=(nsamp > self.nskew), ivar=None)
 
         # normalise the spectra to one at 1280 \AA
@@ -277,10 +300,13 @@ class ProximityWrapper(Proximity):
         sigma_vectors = np.sqrt(1 / ivar_vectors)
 
         # draw noise terms from the noise vectors
+        #TODO: use ivar parameter in Proximity.simulator() ?
+        #TODO: check if standard_normal method works better
         noise_terms = np.zeros((nsamp, self.nspec))
         rng = np.random.default_rng()
         for i in range(nsamp):
             noise_terms[i] = rng.normal(0, sigma_vectors[i], size=sigma_vectors.shape[-1])
+            #noise_terms[i] = sigma_vectors[i] * rng.standard_normal(sigma_vectors.shape[-1])
 
         return ivar_vectors, noise_terms
 

@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/qso_cont_ml.iml" filepath="$PROJECT_DIR$/.idea/qso_cont_ml.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../qso_fitting/.idea/qso_fitting.iml" filepath="$PROJECT_DIR$/../qso_fitting/.idea/qso_fitting.iml" />
     </modules>
   </component>
 </project>
