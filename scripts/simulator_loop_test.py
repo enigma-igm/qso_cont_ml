@@ -15,5 +15,5 @@ copy_factor = 50
 
 savepath = "/net/vdesk/data2/buiten/MRP2/pca-sdss-old/"
 combined_sims = simulateInRedshiftLoop(nsamp, dz, copy_factor=copy_factor, savepath=savepath, train_frac=train_frac,
-                                       extend_lya=False, sampleLv=False)
+                                       extend_lya=True, sampleLv=False)
 combined_sims.plotExample()

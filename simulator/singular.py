@@ -98,7 +98,8 @@ class ProximityWrapper(Proximity):
 
         # initialise the Proximity simulator and immediately extract the mean transmission profile
         super(ProximityWrapper, self).__init__(wave_rest, fwhm, z_qso, nskew, mean_flux_range, nF, npca, pcafile,
-                                               mags=None, logLv=logLv_mid, nlogL=nlogL, L_rescale_range=L_rescale_range,
+                                               mags=None, logLv=logLv_mid, nlogL=nlogL, wave_min=wave_min,
+                                               wave_max=wave_max, L_rescale_range=L_rescale_range,
                                                extend_lya=extend_lya)
 
 
