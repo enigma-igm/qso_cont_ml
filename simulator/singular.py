@@ -207,8 +207,8 @@ class ProximityWrapper(Proximity):
 
                 # replace < -1e9 values by self.true_mean_flux
                 _t_prox_use = np.copy(self.t_prox[iF, iL].T)
-                badpix = _t_prox_use < -1e9
-                _t_prox_use[badpix] = self.true_mean_flux
+                #badpix = _t_prox_use < -1e9
+                #_t_prox_use[badpix] = self.true_mean_flux
 
                 # need to transpose because self.ipix_blu is a mask rather than a set of indices
                 _t_prox[iF, iL, :, self.ipix_blu] = _t_prox_use
@@ -218,7 +218,7 @@ class ProximityWrapper(Proximity):
                 #TODO: fix bug that causes t_prox profiles to go down rapidly bluewards of 1025 A
 
         t_prox = smoothTransmission(self.wave_rest, _t_prox)
-        embed()
+        #embed()
 
         self.mean_t_prox0 = np.mean(t_prox[0], axis=1)
 
@@ -226,13 +226,15 @@ class ProximityWrapper(Proximity):
         return mean_trans
 
 
-    def simulateSpectra(self, nsamp=25000, stochastic=False):
+    def simulateSpectra(self, nsamp=25000, stochastic=False, logLv_use=None):
         '''
         Simulate noiseless continua and absorption spectra. The absorption spectra contain the Ly-alpha forest and the
         proximity effect (approximately). The spectra are normalised to one at 1280 \AA..
 
         @param nsamp: int
         @param stochastic: bool
+        @param logLv_use: NoneType or ndarray of shape (n_qso,)
+
         @return:
             cont_norm: ndarray of shape (nsamp, nspec)
             flux_norm: ndarray of shape (nsamp, nspec)
@@ -245,6 +247,13 @@ class ProximityWrapper(Proximity):
         if not stochastic:
             # manually set the mean flux values to the single value we want
             theta[:,0] = self.true_mean_flux
+
+        # if logLv_use is an array of log-luminosities, replace the sampled luminosities by these
+        if logLv_use is not None:
+            Lv_use = 10 ** logLv_use
+            Lv_rescale_use = Lv_use / self.L_mid
+            theta[:,1] = Lv_rescale_use
+            print ("Sampled luminosities replaced by given ones.")
 
         # simulate the noiseless continua and absorption spectra
         #TODO: simulate noise by setting ivar parameter ?
@@ -314,16 +323,44 @@ class ProximityWrapper(Proximity):
 class FullSimulator:
     def __init__(self, nsamp, z_qso, logLv_range, nlogL=10, npca=10, nskew=1000, wave_min=1000., wave_max=1970.,
                  fwhm=131.4, dloglam=1.0e-4, stochastic=False, half_dz=0.01, dvpix_red=500., train_frac=0.9,
-                 wave_split=None, extend_lya=True):
+                 wave_split=None, extend_lya=True, logLv_use=None):
+
+        '''
+
+        @param nsamp:
+        @param z_qso:
+        @param logLv_range:
+        @param nlogL:
+        @param npca:
+        @param nskew:
+        @param wave_min:
+        @param wave_max:
+        @param fwhm:
+        @param dloglam:
+        @param stochastic:
+        @param half_dz:
+        @param dvpix_red:
+        @param train_frac:
+        @param wave_split:
+        @param extend_lya:
+        @param logLv_use: NoneType or ndarray of shape (n_qso,)
+            If None, the Lyman limit luminosities are sampled. If an array is given, these log-luminosities are used.
+        '''
 
         # initialise the ProximityWrapper
         self.Prox = ProximityWrapper(z_qso, logLv_range, nlogL, npca, nskew, wave_min, wave_max, fwhm, dloglam,
                                      extend_lya)
 
+        # if luminosities are given, replace the sampled luminosities by given ones
+        # this must be done before computing spectra
+        # theta has values [mean_flux, L_rescale, dv_z, coeffs]
+        # this is implemented in ProximityWrapper.simulateSpectra
+
         # call the methods of ProximityWrapper and save everything to the object
         #self.mean_trans1d = self.Prox.meanTransmissionFromSkewers()
         #self.mean_trans = np.full((nsamp, self.Prox.nspec), self.mean_trans1d)
-        self.cont, self.flux_noiseless, self.theta = self.Prox.simulateSpectra(nsamp, stochastic)
+        self.cont, self.flux_noiseless, self.theta = self.Prox.simulateSpectra(nsamp, stochastic, logLv_use=logLv_use)
+
         self.mean_trans = self.Prox.meanTransmissioFromTheta(self.theta)
         self.mean_t_prox0 = self.Prox.mean_t_prox0
         self.ivar, noise_terms = self.Prox.assignNoise(half_dz, nsamp)

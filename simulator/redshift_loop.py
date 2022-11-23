@@ -11,7 +11,7 @@ from IPython import embed
 
 
 def simulateInRedshiftLoop(nsamp, dz, datapath=None, savepath=None, copy_factor=10, wave_split=1260.,
-                           train_frac=0.9, extend_lya=True):
+                           train_frac=0.9, extend_lya=True, sampleLv=True):
     '''
     Generate mock spectra in a loop over redshift. The number of spectra to generate and the log-luminosity range to
     use in each redshift bin are based on the BOSS DR14 data.
@@ -28,11 +28,15 @@ def simulateInRedshiftLoop(nsamp, dz, datapath=None, savepath=None, copy_factor=
         Number of copies to make of each quasar to draw from.
     @param extend_lya: bool
         If True, treats the wavelengths bluewards of Ly-beta as Ly-alpha forest as well.
+    @param sampleLv: bool
+        If True, samples the Lyman limit luminosities from a uniform prior. If False, the sampled luminosities are
+        replaced by luminosities from the data.
 
     @return:
         combined_sims: CombinedSimulations instance
     '''
 
+    # TODO: implement inverse transform sampling
     z_data, logLv_data = loadRedshiftLuminosityFile(datapath)
     z_copies, logLv_copies = createCopyQSOs(z_data, logLv_data, copy_factor)
     z_draw, logLv_draw = drawFromCopies(z_copies, logLv_copies, nsamp)
@@ -66,7 +70,15 @@ def simulateInRedshiftLoop(nsamp, dz, datapath=None, savepath=None, copy_factor=
             logLv_range_i = [logLv_draw.min(), logLv_draw.max()]
             logLv_ranges.append(logLv_range_i)
 
-            sim = FullSimulator(nsamp_i, z, logLv_range_i, half_dz=0.05, wave_split=wave_split, extend_lya=extend_lya)
+            # if sampleLv is set to False, use the drawn luminosities to replace the sampled ones in the simulator
+            # this is implemented in ProximityWrapper.simulateSpectra
+            if sampleLv:
+                logLv_use = None
+            else:
+                logLv_use = logLv_draw[inbin]
+
+            sim = FullSimulator(nsamp_i, z, logLv_range_i, half_dz=0.05, wave_split=wave_split, extend_lya=extend_lya,
+                                logLv_use=logLv_use)
             sims_list.append(sim)
 
     # combine the simulations and save the mock spectra to an HDF5 file
