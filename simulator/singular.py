@@ -21,7 +21,7 @@ from IPython import embed
 class ProximityWrapper(Proximity):
 
     def __init__(self, z_qso, logLv_range, nlogL=10, npca=10, nskew=1000, wave_min=1000., wave_max=1970.,
-                 fwhm=131.4, dloglam=1.0e-4, extend_lya=True):
+                 fwhm=131.4, dloglam=1.0e-4):
         '''
         Wrapper class for the Proximity simulator from dw_inference.simulator.proximity.proximity.
 
@@ -43,8 +43,6 @@ class ProximityWrapper(Proximity):
             FWHM of the spectrograph we wish to mimic.
         @param dloglam: float
             Resolution of the spectrograph in units of log-wavelength (Angstrom)
-        @param extend_lya: bool
-            If True, treats the region bluewards of Ly-beta as part of the Ly-alpha forest.
         '''
 
         # extract necessary line information and natural constants
@@ -99,8 +97,7 @@ class ProximityWrapper(Proximity):
         # initialise the Proximity simulator and immediately extract the mean transmission profile
         super(ProximityWrapper, self).__init__(wave_rest, fwhm, z_qso, nskew, mean_flux_range, nF, npca, pcafile,
                                                mags=None, logLv=logLv_mid, nlogL=nlogL, wave_min=wave_min,
-                                               wave_max=wave_max, L_rescale_range=L_rescale_range,
-                                               extend_lya=extend_lya)
+                                               wave_max=wave_max, L_rescale_range=L_rescale_range)
 
 
     def meanTransmissionFromSkewers(self):
@@ -324,7 +321,7 @@ class ProximityWrapper(Proximity):
 class FullSimulator:
     def __init__(self, nsamp, z_qso, logLv_range, nlogL=10, npca=10, nskew=1000, wave_min=1000., wave_max=1970.,
                  fwhm=131.4, dloglam=1.0e-4, stochastic=False, half_dz=0.01, dvpix_red=500., train_frac=0.9,
-                 wave_split=None, extend_lya=True, logLv_use=None):
+                 wave_split=None, logLv_use=None):
 
         '''
 
@@ -343,14 +340,12 @@ class FullSimulator:
         @param dvpix_red:
         @param train_frac:
         @param wave_split:
-        @param extend_lya:
         @param logLv_use: NoneType or ndarray of shape (n_qso,)
             If None, the Lyman limit luminosities are sampled. If an array is given, these log-luminosities are used.
         '''
 
         # initialise the ProximityWrapper
-        self.Prox = ProximityWrapper(z_qso, logLv_range, nlogL, npca, nskew, wave_min, wave_max, fwhm, dloglam,
-                                     extend_lya)
+        self.Prox = ProximityWrapper(z_qso, logLv_range, nlogL, npca, nskew, wave_min, wave_max, fwhm, dloglam)
 
         # if luminosities are given, replace the sampled luminosities by given ones
         # this must be done before computing spectra

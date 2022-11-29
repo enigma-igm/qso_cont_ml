@@ -11,7 +11,7 @@ from IPython import embed
 
 
 def simulateInRedshiftLoop(nsamp, dz, datapath=None, savepath=None, copy_factor=10, wave_split=1260.,
-                           train_frac=0.9, extend_lya=True, sampleLv=True):
+                           train_frac=0.9, sampleLv=True):
     '''
     Generate mock spectra in a loop over redshift. The number of spectra to generate and the log-luminosity range to
     use in each redshift bin are based on the BOSS DR14 data.
@@ -26,8 +26,6 @@ def simulateInRedshiftLoop(nsamp, dz, datapath=None, savepath=None, copy_factor=
         Path where the mock spectra are to be stored.
     @param copy_factor: int
         Number of copies to make of each quasar to draw from.
-    @param extend_lya: bool
-        If True, treats the wavelengths bluewards of Ly-beta as Ly-alpha forest as well.
     @param sampleLv: bool
         If True, samples the Lyman limit luminosities from a uniform prior. If False, the sampled luminosities are
         replaced by luminosities from the data.
@@ -77,8 +75,7 @@ def simulateInRedshiftLoop(nsamp, dz, datapath=None, savepath=None, copy_factor=
             else:
                 logLv_use = logLv_draw[inbin]
 
-            sim = FullSimulator(nsamp_i, z, logLv_range_i, half_dz=0.05, wave_split=wave_split, extend_lya=extend_lya,
-                                logLv_use=logLv_use)
+            sim = FullSimulator(nsamp_i, z, logLv_range_i, half_dz=0.05, wave_split=wave_split, logLv_use=logLv_use)
             sims_list.append(sim)
 
     # combine the simulations and save the mock spectra to an HDF5 file
