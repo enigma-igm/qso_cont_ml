@@ -89,7 +89,10 @@ class CombinedSimulations:
         if dz is None:
             filename = "{}synthspec_combined_{}sets.hdf5".format(filepath, self.nsets)
         else:
-            filename = "{}synthspec_combined_dz{}.hdf5".format(filepath, dz)
+            if self.nsamp == 25000:
+                filename = "{}synthspec_combined_dz{}.hdf5".format(filepath, dz)
+            else:
+                filename = "{}synthspec_combined_dz{}_nsamp{}.hdf5".format(filepath, dz, self.nsamp)
 
         f = constructFile(self, filename, train_frac)
 

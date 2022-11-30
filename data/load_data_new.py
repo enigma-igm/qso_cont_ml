@@ -4,7 +4,7 @@ import os
 import torch
 from torch.utils.data import Dataset
 
-def loadSynthFile(datapath=None, npca=10, z_qso=None, z_bin_width=0.08, test=False):
+def loadSynthFile(datapath=None, npca=10, z_qso=None, z_bin_width=0.08, test=False, nsamp=25000):
     '''
     Find and load the file containing the mock spectra.
 
@@ -20,6 +20,8 @@ def loadSynthFile(datapath=None, npca=10, z_qso=None, z_bin_width=0.08, test=Fal
         z_qso is None. Default is float.
     @param test: bool
         If True, uses a smaller test file. Mostly deprecated.
+    @param nsamp: int
+        Number of spectra in the file to load. Default is 25000.
 
     @return: f: h5py File instance
         The file containing the mock spectra.
@@ -40,7 +42,10 @@ def loadSynthFile(datapath=None, npca=10, z_qso=None, z_bin_width=0.08, test=Fal
     elif isinstance(z_qso, list) or isinstance(z_qso, np.ndarray):
         filename = "{}synthspec_combined_{}sets.hdf5".format(datapath, len(z_qso))
     elif (z_qso is None) and isinstance(z_bin_width, float):
-        filename = "{}synthspec_combined_dz{}.hdf5".format(datapath, z_bin_width)
+        if nsamp == 25000:
+            filename = "{}synthspec_combined_dz{}.hdf5".format(datapath, z_bin_width)
+        else:
+            filename = "{}synthspec_combined_dz{}_nsamp{}.hdf5".format(datapath, z_bin_width, nsamp)
     else:
         raise TypeError("Parameter 'z_qso' should be a list, an array, or None (if z_bin_width is given).")
 
