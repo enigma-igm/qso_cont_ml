@@ -2,6 +2,7 @@
 spectra.'''
 
 import numpy as np
+from scipy.interpolate import interp1d
 from data.boss_eda.load import loadRedshiftLuminosityFile
 from data.boss_eda.visualisation import binEdges, edgesToMidpoints
 from simulator.singular import FullSimulator
@@ -152,3 +153,28 @@ def drawFromCopies(z_copies, logLv_copies, nsamp):
     logLv_draw = logLv_copies[idcs]
 
     return z_draw, logLv_draw
+
+
+def inverse_transform_sample1d(data, nsamp):
+    '''
+    Sample from the distribution of the data using inverse transform sampling.
+
+    @param data (ndarray): 1D array of data to sample from.
+    @param nsamp (int): Number of samples to draw.
+    @return: samples (ndarray): 1D array of samples.
+    '''
+
+    # draw nsamp numbers from a uniform distribution
+    rng = np.random.default_rng()
+    u = rng.uniform(0, 1, size=nsamp)
+
+    # obtain the cumulative distribution function
+    cdf = np.cumsum(data)
+
+    # invert the cdf
+    cdf_inv = interp1d(cdf, data)
+
+    # sample from the inverse cdf
+    samples = cdf_inv(u)
+
+    return samples
