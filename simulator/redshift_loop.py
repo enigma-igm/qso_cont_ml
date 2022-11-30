@@ -173,12 +173,19 @@ def inverse_transform_sample1d(data, nsamp):
     u = rng.uniform(0, 1, size=nsamp)
 
     # obtain the cumulative distribution function
-    cdf = np.cumsum(data)
+    # first sort the data
+    data_sort = np.sort(data)
+    _cdf = np.cumsum(data_sort)
+
+    # normalise the cdf
+    cdf = _cdf / _cdf[-1]
 
     # invert the cdf
     cdf_inv = interp1d(cdf, data, kind="cubic", fill_value="extrapolate", bounds_error=False)
 
     # sample from the inverse cdf
     samples = cdf_inv(u)
+
+    embed()
 
     return samples
