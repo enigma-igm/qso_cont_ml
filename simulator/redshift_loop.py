@@ -186,6 +186,4 @@ def inverse_transform_sample1d(data, nsamp):
     # sample from the inverse cdf
     samples = cdf_inv(u)
 
-    embed()
-
     return samples
