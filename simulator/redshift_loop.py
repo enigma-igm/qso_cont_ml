@@ -37,11 +37,13 @@ def simulateInRedshiftLoop(nsamp, dz, datapath=None, savepath=None, copy_factor=
 
     # TODO: implement inverse transform sampling
     z_data, logLv_data = loadRedshiftLuminosityFile(datapath)
-    z_copies, logLv_copies = createCopyQSOs(z_data, logLv_data, copy_factor)
-    z_draw, logLv_draw = drawFromCopies(z_copies, logLv_copies, nsamp)
+    ndata = len(z_data)
+    #z_copies, logLv_copies = createCopyQSOs(z_data, logLv_data, copy_factor)
+    #z_draw, logLv_draw = drawFromCopies(z_copies, logLv_copies, nsamp)
 
     # divide the redshift space up in bins and identify the midpoints
-    z_edges = binEdges(z_draw, dz)
+    #z_edges = binEdges(z_draw, dz)
+    z_edges = binEdges(z_data, dz)
     z_mids = edgesToMidpoints(z_edges)
 
     print ("z_mids: {}".format(z_mids))
@@ -56,8 +58,10 @@ def simulateInRedshiftLoop(nsamp, dz, datapath=None, savepath=None, copy_factor=
 
     for i, z in enumerate(z_mids):
 
-        inbin = (z_draw > z_edges[i]) & (z_draw < z_edges[i+1])
-        nsamp_i = int(np.sum(inbin))
+        #inbin = (z_draw > z_edges[i]) & (z_draw < z_edges[i+1])
+        inbin = (z_data > z_edges[i]) & (z_data < z_edges[i+1])
+        ndata_i = int(np.sum(inbin))
+        nsamp_i = int((ndata_i / ndata) * nsamp)
 
         print ("Number of samples for z = {}: {}".format(np.around(z,2), nsamp_i))
 
@@ -66,7 +70,7 @@ def simulateInRedshiftLoop(nsamp, dz, datapath=None, savepath=None, copy_factor=
             #logLv_range_i = [logLv_draw[inbin].min(), logLv_draw[inbin].max()]
 
             # use a single, fixed logLv range to create a "rectangular" (z, logLv) grid with full coverage
-            logLv_range_i = [logLv_draw.min(), logLv_draw.max()]
+            logLv_range_i = [logLv_data.min(), logLv_data.max()]
             logLv_ranges.append(logLv_range_i)
 
             # if sampleLv is set to False, use the drawn luminosities to replace the sampled ones in the simulator
@@ -74,7 +78,7 @@ def simulateInRedshiftLoop(nsamp, dz, datapath=None, savepath=None, copy_factor=
             if sampleLv:
                 logLv_use = None
             else:
-                logLv_use = logLv_draw[inbin]
+                logLv_use = inverse_transform_sample1d(logLv_data[inbin], nsamp_i)
 
             sim = FullSimulator(nsamp_i, z, logLv_range_i, half_dz=0.05, wave_split=wave_split, logLv_use=logLv_use)
             sims_list.append(sim)
@@ -172,7 +176,7 @@ def inverse_transform_sample1d(data, nsamp):
     cdf = np.cumsum(data)
 
     # invert the cdf
-    cdf_inv = interp1d(cdf, data)
+    cdf_inv = interp1d(cdf, data, kind="cubic", fill_value="extrapolate", bounds_error=False)
 
     # sample from the inverse cdf
     samples = cdf_inv(u)

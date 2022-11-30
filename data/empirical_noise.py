@@ -28,6 +28,7 @@ def loadSpectraBOSS(zmin, zmax):
     f = h5py.File(datafile, "r")
     dset = f["BOSS_DR14"]
 
+    # TODO: add noise level selection
     # make a mask of which spectra to use
     grab = (dset["meta"]["ZWARNING"] == 0) & (dset["meta"]["Z_PIPE"] > zmin) & (dset["meta"]["Z_PIPE"] < zmax)
 

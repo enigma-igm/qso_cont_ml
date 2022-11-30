@@ -308,7 +308,6 @@ class ProximityWrapper(Proximity):
 
         # draw noise terms from the noise vectors
         #TODO: use ivar parameter in Proximity.simulator() ?
-        #TODO: check if standard_normal method works better
         noise_terms = np.zeros((nsamp, self.nspec))
         rng = np.random.default_rng()
         for i in range(nsamp):
