@@ -15,6 +15,8 @@ class CombinedSimulations:
     # TODO: remove coarse-grid references
     # currently the FullSimulator sets coarse-grid attributes except for the wavelength grid to None
 
+    # TODO: load the data from files instead of a simulator object
+
     def __init__(self, sims_list):
 
         assert isinstance(sims_list, list)

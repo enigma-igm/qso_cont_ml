@@ -1,6 +1,52 @@
 import h5py
 from IPython import embed
 
+
+def construct_simple_file(simulator, filename):
+    '''
+    Creates a simple file without any splitting of the data into training, validation and test data. Saves only the
+    fine-grid and hybrid-grid data.
+
+    @param simulator (FullSimulator instance): the simulator for which the data is to be saved.
+    @param filename (str): the name of the file to be created.
+    @return: f (h5py.File instance): the file that was created. Must be closed by the user.
+    '''
+
+    f = h5py.File(filename, "w")
+
+    grp_meta = f.create_group("meta")
+    grp_fine = f.create_group("fine")
+    grp_hybrid = f.create_group("hybrid")
+
+    # save the metadata
+    grp_meta.attrs["fwhm"] = simulator.fwhm
+    grp_meta.attrs["dv-fine"] = simulator.dvpix
+    grp_meta.attrs["dv-coarse"] = simulator.dvpix_red
+    grp_meta.attrs["npca"] = simulator.npca
+    grp_meta.attrs["nskew"] = simulator.nskew
+    grp_meta.attrs["wave-split"] = simulator.wave_split
+
+    # save the wavelength grids
+    grp_meta.create_dataset("wave-fine", data=simulator.wave_rest)
+    grp_meta.create_dataset("wave-hybrid", data=simulator.wave_hybrid)
+
+    # save the spectra
+    grp_fine.create_dataset("cont", data=simulator.cont)
+    grp_fine.create_dataset("flux", data=simulator.flux)
+    grp_fine.create_dataset("ivar", data=simulator.ivar)
+    grp_fine.create_dataset("mean-trans-flux", data=simulator.mean_trans)
+    grp_fine.create_dataset("flux-noiseless", data=simulator.flux_noiseless)
+
+    grp_hybrid.create_dataset("cont", data=simulator.cont_hybrid)
+    grp_hybrid.create_dataset("flux", data=simulator.flux_hybrid)
+    grp_hybrid.create_dataset("ivar", data=simulator.ivar_hybrid)
+    grp_hybrid.create_dataset("mean-trans-flux", data=simulator.mean_trans_hybrid)
+
+    print ("Created file at {}".format(filename))
+
+    return f
+
+
 def constructFile(simulator, filename, train_frac=0.9):
 
     # split the data into training, validation and test data

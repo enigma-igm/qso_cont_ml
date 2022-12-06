@@ -12,7 +12,7 @@ from scipy.interpolate import interp1d, RegularGridInterpolator
 from qso_fitting.data.utils import rebin_spectra
 import astropy.constants as const
 from data.empirical_noise import rebinNoiseVectors, interpBadPixels
-from simulator.save import constructFile
+from simulator.save import constructFile, construct_simple_file
 from simulator.redshift_error import modelRedshiftUncertainty, smoothTransmission
 from IPython import embed
 #import matplotlib.pyplot as plt
@@ -454,3 +454,21 @@ class FullSimulator:
         f = constructFile(self, filename)
 
         f.close()
+
+
+    def save_simple_file(self, filepath="/net/vdesk/data2/buiten/MRP2/pca-sdss-old/"):
+        '''
+        Save a simple file without any splitting of the data into training, validation, and test sets. Can be used when
+        running a loop of redshifts.
+
+        @param filepath:
+        @return: filename (str): the name of the file that was saved
+        '''
+
+        filename = "{}synthspec_BOSSlike_z{}_nsamp{}.hdf5".format(filepath, self.Prox.z_qso, self.nsamp)
+
+        f = construct_simple_file(self, filename)
+
+        f.close()
+
+        return filename
