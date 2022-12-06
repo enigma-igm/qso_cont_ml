@@ -35,7 +35,6 @@ def simulateInRedshiftLoop(nsamp, dz, datapath=None, savepath=None, copy_factor=
         combined_sims: CombinedSimulations instance
     '''
 
-    # TODO: implement inverse transform sampling
     z_data, logLv_data = loadRedshiftLuminosityFile(datapath)
     ndata = len(z_data)
     #z_copies, logLv_copies = createCopyQSOs(z_data, logLv_data, copy_factor)

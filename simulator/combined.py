@@ -12,6 +12,9 @@ class CombinedSimulations:
     Class for combining the spectra generated from multiple simulators.
     '''
 
+    # TODO: remove coarse-grid references
+    # currently the FullSimulator sets coarse-grid attributes except for the wavelength grid to None
+
     def __init__(self, sims_list):
 
         assert isinstance(sims_list, list)
@@ -41,14 +44,15 @@ class CombinedSimulations:
         #self.mags = np.concatenate([sim.mags for sim in sims_list], axis=0)
         self.logLv_samp = np.concatenate([sim.logLv_samp for sim in sims_list], axis=0)
 
+        # coarse-grid attributes are None so they can't be concatenated
         self.cont_hybrid = np.concatenate([sim.cont_hybrid for sim in sims_list], axis=0)
-        self.cont_coarse = np.concatenate([sim.cont_coarse for sim in sims_list], axis=0)
+        #self.cont_coarse = np.concatenate([sim.cont_coarse for sim in sims_list], axis=0)
         self.flux_hybrid = np.concatenate([sim.flux_hybrid for sim in sims_list], axis=0)
-        self.flux_coarse = np.concatenate([sim.flux_coarse for sim in sims_list], axis=0)
+        #self.flux_coarse = np.concatenate([sim.flux_coarse for sim in sims_list], axis=0)
         self.ivar_hybrid = np.concatenate([sim.ivar_hybrid for sim in sims_list], axis=0)
-        self.ivar_coarse = np.concatenate([sim.ivar_coarse for sim in sims_list], axis=0)
+        #self.ivar_coarse = np.concatenate([sim.ivar_coarse for sim in sims_list], axis=0)
         self.mean_trans_hybrid = np.concatenate([sim.mean_trans_hybrid for sim in sims_list], axis=0)
-        self.mean_trans_coarse = np.concatenate([sim.mean_trans_coarse for sim in sims_list], axis=0)
+        #self.mean_trans_coarse = np.concatenate([sim.mean_trans_coarse for sim in sims_list], axis=0)
 
         # derive the number of samples in the combined set
         self.nsamp = len(self.cont)

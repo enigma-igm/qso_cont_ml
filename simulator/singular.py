@@ -343,6 +343,8 @@ class FullSimulator:
             If None, the Lyman limit luminosities are sampled. If an array is given, these log-luminosities are used.
         '''
 
+        # TODO: remove coarse-grid interpolation as it is obsolete and the code should be more memory-efficient
+
         # initialise the ProximityWrapper
         self.Prox = ProximityWrapper(z_qso, logLv_range, nlogL, npca, nskew, wave_min, wave_max, fwhm, dloglam)
 
@@ -392,6 +394,8 @@ class FullSimulator:
 
     def _regrid(self, dvpix_red=500.):
 
+        # for now, set coarse-grid attributes to None
+
         # construct the hybrid grid and the coarse grid
         self.wave_hybrid, _, _, _ = get_blu_red_wave_grid(self.wave_min, self.wave_max, self.wave_split, self.dvpix,
                                                      dvpix_red)
@@ -401,28 +405,25 @@ class FullSimulator:
         interpolator_cont = interp1d(self.Prox.wave_rest, self.cont, kind="cubic", bounds_error=False,
                                      fill_value="extrapolate", axis=-1)
         self.cont_hybrid = interpolator_cont(self.wave_hybrid)
-        self.cont_coarse = interpolator_cont(self.wave_coarse)
+        #self.cont_coarse = interpolator_cont(self.wave_coarse)
+        self.cont_coarse = None
 
         self.flux_hybrid, ivar_hybrid, gpm_hybrid, _ = rebin_spectra(self.wave_hybrid, self.wave_rest, self.flux,
                                                                 self.ivar, gpm=None)
-        self.flux_coarse, ivar_coarse, gpm_coarse, _ = rebin_spectra(self.wave_coarse, self.wave_rest, self.flux,
-                                                                self.ivar, gpm=None)
+
+        #self.flux_coarse, ivar_coarse, gpm_coarse, _ = rebin_spectra(self.wave_coarse, self.wave_rest, self.flux,
+        #                                                        self.ivar, gpm=None)
+        self.flux_coarse = None
 
         self.ivar_hybrid = interpBadPixels(self.wave_hybrid, ivar_hybrid, gpm_hybrid)
-        self.ivar_coarse = interpBadPixels(self.wave_coarse, ivar_coarse, gpm_coarse)
-
-        #mean_trans_interpolator = interp1d(self.Prox.wave_rest, self.mean_trans1d, kind="cubic", bounds_error=False,
-        #                                   fill_value="extrapolate")
-        #mean_trans_hybrid1d = mean_trans_interpolator(self.wave_hybrid)
-        #mean_trans_coarse1d = mean_trans_interpolator(self.wave_coarse)
-
-        #self.mean_trans_hybrid = np.full((self.nsamp, len(self.wave_hybrid)), mean_trans_hybrid1d)
-        #self.mean_trans_coarse = np.full((self.nsamp, len(self.wave_coarse)), mean_trans_coarse1d)
+        #self.ivar_coarse = interpBadPixels(self.wave_coarse, ivar_coarse, gpm_coarse)
+        self.ivar_coarse = None
 
         mean_trans_interpolator = interp1d(self.Prox.wave_rest, self.mean_trans, kind="cubic", bounds_error=False,
                                            fill_value="extrapolate", axis=-1)
         self.mean_trans_hybrid = mean_trans_interpolator(self.wave_hybrid)
-        self.mean_trans_coarse = mean_trans_interpolator(self.wave_coarse)
+        #self.mean_trans_coarse = mean_trans_interpolator(self.wave_coarse)
+        self.mean_trans_coarse = None
 
         '''
         # also regrid the mean transmission curves for the template bank

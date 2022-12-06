@@ -61,6 +61,8 @@ class SynthSpectra(Dataset):
     Returns the coarse-grid continua as "labels".
     '''
 
+    # TODO: remove references to coarse-grid attributes
+
     def __init__(self, datapath=None, npca=10, z_qso=None, z_bin_width=0.08, test=False, set="train"):
         '''
 
@@ -130,12 +132,14 @@ class SynthSpectra(Dataset):
 
     @property
     def cont_coarse(self):
+        # TODO: possibly incorporate ad hoc interpolation from fine-grid spectra
 
-        f = h5py.File(self.filename, "r")
-        cont_hybrid = torch.FloatTensor(f["{}/coarse-grid/cont".format(self.grp_name)])
-        f.close()
+        #f = h5py.File(self.filename, "r")
+        #cont_hybrid = torch.FloatTensor(f["{}/coarse-grid/cont".format(self.grp_name)])
+        #f.close()
+        cont_coarse = None
 
-        return cont_hybrid
+        return cont_coarse
 
 
     @property
@@ -161,9 +165,12 @@ class SynthSpectra(Dataset):
     @property
     def flux_coarse(self):
 
-        f = h5py.File(self.filename, "r")
-        flux_coarse = torch.FloatTensor(f["{}/coarse-grid/flux".format(self.grp_name)])
-        f.close()
+        # TODO: possibly incorporate ad hoc interpolation from fine-grid spectra
+
+        #f = h5py.File(self.filename, "r")
+        #flux_coarse = torch.FloatTensor(f["{}/coarse-grid/flux".format(self.grp_name)])
+        #f.close()
+        flux_coarse = None
 
         return flux_coarse
 
@@ -191,10 +198,13 @@ class SynthSpectra(Dataset):
     @property
     def noise_coarse(self):
 
-        f = h5py.File(self.filename, "r")
-        ivar_coarse = torch.FloatTensor(f["{}/coarse-grid/ivar".format(self.grp_name)])
-        noise_coarse = 1 / torch.sqrt(ivar_coarse)
-        f.close()
+        # TODO: possibly incorporate ad hoc interpolation from fine-grid spectra
+
+        #f = h5py.File(self.filename, "r")
+        #ivar_coarse = torch.FloatTensor(f["{}/coarse-grid/ivar".format(self.grp_name)])
+        #noise_coarse = 1 / torch.sqrt(ivar_coarse)
+        #f.close()
+        noise_coarse = None
 
         return noise_coarse
 
