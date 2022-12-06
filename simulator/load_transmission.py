@@ -26,12 +26,17 @@ class TransmissionTemplates:
         plotAllLuminosities
     '''
 
-    def __init__(self, filepath, dz, interpmethod="linear"):
+    def __init__(self, filepath, dz, interpmethod="linear", nsamp=25000):
 
         assert isinstance(filepath, str)
         assert isinstance(dz, float)
 
-        filename = "{}transmission_templates_dz{}.hdf5".format(filepath, dz)
+        if nsamp == 25000:
+            filename = "{}transmission_templates_dz{}.hdf5".format(filepath, dz)
+        else:
+            filename = "{}transmission_templates_dz{}_nsamp{}.hdf5".format(filepath, dz, nsamp)
+
+        print ("Using file {} for transmission templates.".format(filename))
 
         f = h5py.File(filename, "r")
 

@@ -49,6 +49,8 @@ def loadSynthFile(datapath=None, npca=10, z_qso=None, z_bin_width=0.08, test=Fal
     else:
         raise TypeError("Parameter 'z_qso' should be a list, an array, or None (if z_bin_width is given).")
 
+    print ("Loading file: {}".format(filename))
+
     f = h5py.File(filename, "r")
 
     return f, filename
@@ -63,7 +65,7 @@ class SynthSpectra(Dataset):
 
     # TODO: remove references to coarse-grid attributes
 
-    def __init__(self, datapath=None, npca=10, z_qso=None, z_bin_width=0.08, test=False, set="train"):
+    def __init__(self, datapath=None, npca=10, z_qso=None, z_bin_width=0.08, test=False, set="train", nsamp=25000):
         '''
 
         @param datapath: str
@@ -78,6 +80,8 @@ class SynthSpectra(Dataset):
             If True, loads in a smaller testing-only set. Default is False.
         @param set: str
             Must be one of ["train", "valid", "test"]. Indicates which set to load. Default is "train".
+        @param nsamp: int
+            Number of spectra in the file to load. Default is 25000.
 
         TODO: remove set parameter as it is deprecated; we don't need the separate small set anymore
         '''
@@ -89,7 +93,7 @@ class SynthSpectra(Dataset):
             self.set = set
             self.grp_name = "/{}-data".format(set)
 
-        self.file, self.filename = loadSynthFile(datapath, npca, z_qso, z_bin_width, test)
+        self.file, self.filename = loadSynthFile(datapath, npca, z_qso, z_bin_width, test, nsamp)
 
         # load only the hybrid and coarse wavelength grid, the hybrid input and the hybrid true continua
         self.wave_fine = torch.FloatTensor(self.file["/meta/wave-fine"])
