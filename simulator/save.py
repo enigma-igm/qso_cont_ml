@@ -32,11 +32,11 @@ def construct_simple_file(simulator, filename):
     grp_meta.create_dataset("logLv", data=simulator.logLv_samp)    # logLv of each simulated QSO
     grp_meta.create_dataset("z-mid", data=simulator.Prox.z_qso)    # (float) the redshift of this single simulation
     logLv_mid = np.log10( simulator.Prox.L_rescale_vec * simulator.Prox.L_mid )
-    grp_meta.create_dataset("logLv-mid", logLv_mid)    # array of shape (nL,)
+    grp_meta.create_dataset("logLv-mid", data=logLv_mid)    # array of shape (nL,)
     grp_meta.create_dataset("mean_t_prox0", data=simulator.mean_t_prox0)
 
     # TODO: check what is going wrong with logLv_mid in SimulationFromFile
-    embed()
+    #embed()
 
     # save the wavelength grids
     grp_meta.create_dataset("wave-fine", data=simulator.wave_rest)
