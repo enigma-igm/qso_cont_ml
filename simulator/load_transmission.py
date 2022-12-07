@@ -4,7 +4,7 @@ import torch
 from torch import FloatTensor
 import matplotlib.pyplot as plt
 from matplotlib.ticker import AutoMinorLocator
-from scipy.interpolate import RegularGridInterpolator
+from scipy.interpolate import RegularGridInterpolator, LinearNDInterpolator
 
 class TransmissionTemplates:
     '''
@@ -54,13 +54,20 @@ class TransmissionTemplates:
 
         f.close()
 
+        # try non-regular grid interpolation because the logLv_mids are not equally spaced in log space
+        print ("Using LinearNDInterpolator for transmission templates.")
+        self.interpolator_fine = LinearNDInterpolator((self.z_mids, self.logLv_mids),
+                                                      self.mean_trans_fine.cpu().detach().numpy())
+        self.interpolator_hybrid = LinearNDInterpolator((self.z_mids, self.logLv_mids),
+                                                        self.mean_trans_hybrid.cpu().detach().numpy())
+
         # initialise RegularGridInterpolator instances for each grid
-        self.interpolator_fine = RegularGridInterpolator((self.z_mids, self.logLv_mids),
-                                                         self.mean_trans_fine.cpu().detach().numpy(),
-                                                         method=interpmethod, bounds_error=False, fill_value=None)
-        self.interpolator_hybrid = RegularGridInterpolator((self.z_mids, self.logLv_mids),
-                                                           self.mean_trans_hybrid.cpu().detach().numpy(),
-                                                           method=interpmethod, bounds_error=False, fill_value=None)
+        #self.interpolator_fine = RegularGridInterpolator((self.z_mids, self.logLv_mids),
+        #                                                 self.mean_trans_fine.cpu().detach().numpy(),
+        #                                                 method=interpmethod, bounds_error=False, fill_value=None)
+        #self.interpolator_hybrid = RegularGridInterpolator((self.z_mids, self.logLv_mids),
+        #                                                   self.mean_trans_hybrid.cpu().detach().numpy(),
+        #                                                   method=interpmethod, bounds_error=False, fill_value=None)
         print ("Created interpolators with mode: {}".format(interpmethod))
 
 
