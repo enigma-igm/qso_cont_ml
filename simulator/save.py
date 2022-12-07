@@ -35,6 +35,9 @@ def construct_simple_file(simulator, filename):
     grp_meta.create_dataset("logLv-mid", logLv_mid)    # array of shape (nL,)
     grp_meta.create_dataset("mean_t_prox0", data=simulator.mean_t_prox0)
 
+    # TODO: check what is going wrong with logLv_mid in SimulationFromFile
+    embed()
+
     # save the wavelength grids
     grp_meta.create_dataset("wave-fine", data=simulator.wave_rest)
     grp_meta.create_dataset("wave-hybrid", data=simulator.wave_hybrid)

@@ -10,6 +10,36 @@ from IPython import embed
 
 
 class SimulationFromFile:
+    '''
+    Class for storing the results of a single simulation, without any splitting into training/validation/test sets.
+    To be used in the initialisatoin of a CombinedSimulator object when the given list of simulations if a list of
+    filenames.
+
+    Attributes:
+        fwhm:
+        dvpix:
+        dvpix_red:
+        npca:
+        nskew:
+        wave_split:
+        wave_rest:
+        wave_hybrid:
+        mean_trans:
+        cont:
+        ivar:
+        flux:
+        flux_noiseless:
+        redshifts:
+        logLv_samp:
+        cont_hybrid:
+        flux_hybrid:
+        ivar_hybrid:
+        mean_trans_hybrid:
+        z_mid:
+        logLv_samp:
+        logLv_mid:
+        mean_t_prox0:
+    '''
 
     def __init__(self, filename):
 
@@ -17,6 +47,7 @@ class SimulationFromFile:
 
         f = h5py.File(filename, "r")
 
+        # load metadata
         self.fwhm = f["meta"].attrs["fwhm"]
         self.dvpix = f["meta"].attrs["dv-fine"]
         self.dvpix_red = f["meta"].attrs["dv-coarse"]
@@ -150,12 +181,14 @@ class CombinedSimulations:
 
 
     def _load_from_files(self, file_list):
-        '''Load the data from the files in file_list.'''
+        '''Load the data from the files in file_list. Called in the initialisation of the class if the given file_list
+        is a list of strings.'''
 
         sims_list = []
 
         for f in file_list:
             sims_list.append(SimulationFromFile(f))
+            print ("Loading from file: ", f)
 
         return sims_list
 
