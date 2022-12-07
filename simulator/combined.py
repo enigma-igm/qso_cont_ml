@@ -76,7 +76,7 @@ class SimulationFromFile:
         self.z_mid = np.copy(f["meta"]["z-mid"])
         self.logLv_samp = np.copy(f["meta"]["logLv"])
         self.logLv_mid = np.copy(f["meta"]["logLv-mid"])
-        self.mean_t_prox0 = np.copy(f["meta"]["trans-templates"])
+        self.mean_t_prox0 = np.copy(f["meta"]["mean_t_prox0"])
 
         f.close()
 

@@ -68,6 +68,7 @@ def simulateInRedshiftLoop(nsamp, dz, datapath=None, savepath=None, copy_factor=
         print ("Number of samples to simulate for z = {}: {}".format(np.around(z,2), nsamp_i))
 
         # the code fails in various places if nsamp < 2
+        # TODO: fix bug where z_mids may be a longer list than the list of simulations
         if nsamp_i > 1:
             #logLv_range_i = [logLv_draw[inbin].min(), logLv_draw[inbin].max()]
 
@@ -84,17 +85,23 @@ def simulateInRedshiftLoop(nsamp, dz, datapath=None, savepath=None, copy_factor=
                 # edit logLv_range_i to reflect the actual range of logLv values used
                 logLv_range_i = [logLv_use.min(), logLv_use.max()]
 
-            logLv_ranges.append(logLv_range_i)
+        else:
+            # simulate only two samples for this redshift with sampled luminosities
+            nsamp_i = 2
+            logLv_range_i = [logLv_data.min(), logLv_data.max()]
+            logLv_use = None
 
-            if (z > 3.6) & (z < 3.7):
-                embed()
+        logLv_ranges.append(logLv_range_i)
 
-            # TODO: rewrite such that the single simulator output is saved to a file
-            # TODO: let CombinedSimulations load a list of filenames
-            sim = FullSimulator(nsamp_i, z, logLv_range_i, half_dz=0.05, wave_split=wave_split, logLv_use=logLv_use)
-            file_i = sim.save_simple_file(savepath)
-            sims_filenames_list.append(file_i)
-            #sims_list.append(sim)
+        if (z > 3.6) & (z < 3.7):
+            embed()
+
+        # TODO: rewrite such that the single simulator output is saved to a file
+        # TODO: let CombinedSimulations load a list of filenames
+        sim = FullSimulator(nsamp_i, z, logLv_range_i, half_dz=0.05, wave_split=wave_split, logLv_use=logLv_use)
+        file_i = sim.save_simple_file(savepath)
+        sims_filenames_list.append(file_i)
+        #sims_list.append(sim)
 
     # combine the simulations and save the mock spectra to an HDF5 file
     #combined_sims = CombinedSimulations(sims_list)
