@@ -35,6 +35,8 @@ def simulateInRedshiftLoop(nsamp, dz, datapath=None, savepath=None, copy_factor=
         combined_sims: CombinedSimulations instance
     '''
 
+    # TODO: edit loop such that an equal number of QSOs is generated at each redshift
+
     z_data, logLv_data = loadRedshiftLuminosityFile(datapath)
     ndata = len(z_data)
     #z_copies, logLv_copies = createCopyQSOs(z_data, logLv_data, copy_factor)
@@ -62,7 +64,11 @@ def simulateInRedshiftLoop(nsamp, dz, datapath=None, savepath=None, copy_factor=
         #inbin = (z_draw > z_edges[i]) & (z_draw < z_edges[i+1])
         inbin = (z_data > z_edges[i]) & (z_data < z_edges[i+1])
         ndata_i = int(np.sum(inbin))
-        nsamp_i = int((ndata_i / ndata) * nsamp)
+        #nsamp_i = int((ndata_i / ndata) * nsamp)
+
+        # generate an equal number of QSOs at each redshift
+        # this prevents lower-redshift data from dominating the loss in the network training
+        nsamp_i = int(nsamp / len(z_mids))
 
         print ("Number of samples in data for z = {}: {}".format(np.around(z,2), ndata_i))
         print ("Number of samples to simulate for z = {}: {}".format(np.around(z,2), nsamp_i))
