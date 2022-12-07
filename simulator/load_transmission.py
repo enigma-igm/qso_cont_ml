@@ -90,6 +90,7 @@ class TransmissionTemplates:
     def interpolateTransmission(self, redshifts, logLs, grid="fine"):
         '''
         Interpolate the mean transmission profiles from the templates onto the given redshifts and log-luminosities.
+        The interpolated profiles are clipped to the range [0, 1] to prevent unphysical behaviour.
 
         @param redshifts: float or ndarray of shape (nsamp,)
         @param logLs: float or ndarray of shape (nsamp,)
@@ -113,7 +114,8 @@ class TransmissionTemplates:
         interp_trans = np.zeros((len(_redshifts), nspec))
 
         for i, (z, logLv) in enumerate(zip(_redshifts, _logLs)):
-            interp_trans[i] = interpolator((z, logLv))
+            # clip transmission values to be between 0 and 1
+            interp_trans[i] = np.clip(interpolator((z, logLv)), 0, 1)
 
         return interp_trans
 

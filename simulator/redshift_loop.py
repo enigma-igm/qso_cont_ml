@@ -102,9 +102,6 @@ def simulateInRedshiftLoop(nsamp, dz, datapath=None, savepath=None, copy_factor=
 
         logLv_ranges.append(logLv_range_i)
 
-        if (z > 3.6) & (z < 3.7):
-            embed()
-
         # TODO: rewrite such that the single simulator output is saved to a file
         # TODO: let CombinedSimulations load a list of filenames
         sim = FullSimulator(nsamp_i, z, logLv_range_i, half_dz=0.05, wave_split=wave_split, logLv_use=logLv_use)
