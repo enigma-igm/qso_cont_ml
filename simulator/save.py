@@ -30,7 +30,7 @@ def construct_simple_file(simulator, filename):
     # also store information on redshifts, luminosities and the transmission templates
     grp_meta.create_dataset("redshifts", data=simulator.redshifts)
     grp_meta.create_dataset("logLv", data=simulator.logLv_samp)
-    grp_meta.create_dataset("z-mid", data=simulator.Prox.z_mids)
+    grp_meta.create_dataset("z-mid", data=simulator.Prox.z_qso)
     logLv_mid = np.log10( simulator.Prox.L_rescale_vec * simulator.Prox.L_mid )
     grp_meta.create_dataset("logLv-mid", logLv_mid)
     grp_meta.create_dataset("mean_t_prox0", data=simulator.mean_t_prox0)
