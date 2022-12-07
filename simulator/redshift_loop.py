@@ -54,7 +54,7 @@ def simulateInRedshiftLoop(nsamp, dz, datapath=None, savepath=None, copy_factor=
     # run the simulation for each discrete redshift
     # TODO: remove sims_list
     sims_filenames_list = []
-    sims_list = []
+    #sims_list = []
     logLv_ranges = []
 
     for i, z in enumerate(z_mids):
@@ -94,10 +94,11 @@ def simulateInRedshiftLoop(nsamp, dz, datapath=None, savepath=None, copy_factor=
             sim = FullSimulator(nsamp_i, z, logLv_range_i, half_dz=0.05, wave_split=wave_split, logLv_use=logLv_use)
             file_i = sim.save_simple_file(savepath)
             sims_filenames_list.append(file_i)
-            sims_list.append(sim)
+            #sims_list.append(sim)
 
     # combine the simulations and save the mock spectra to an HDF5 file
-    combined_sims = CombinedSimulations(sims_list)
+    #combined_sims = CombinedSimulations(sims_list)
+    combined_sims = CombinedSimulations(sims_filenames_list)
     combined_sims.saveFile(savepath, dz=dz, train_frac=train_frac)
     combined_sims.saveTransmissionTemplates(savepath, dz=dz)
 
