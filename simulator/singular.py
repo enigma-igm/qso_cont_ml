@@ -133,8 +133,6 @@ class ProximityWrapper(Proximity):
         # get the Onorbe mean transmission and tack it onto the Ly-beta side of the spectrum
         trans_onorbe = F_onorbe(self.z_qso)
         ipix_bluest = ~self.ipix_blu & ~self.ipix_red
-        print ("Mask for ipix_bluest:", ipix_bluest)
-        print ("Number of 'bluest' pixels:", np.sum(ipix_bluest))
 
         # TODO: tack on Onorbe mean flux bluewards of simulated forest
 

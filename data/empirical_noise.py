@@ -34,7 +34,7 @@ def loadSpectraBOSS(zmin, zmax):
 
     # load the wavelength, flux and 1sigma noise vectors, and the redshifts
     wave_obs = np.copy(dset["spec"][grab]["wave"])
-    print ("Shape of wave_obs: {}".format(wave_obs.shape))
+    #print ("Shape of wave_obs: {}".format(wave_obs.shape))
     flux_obs = np.copy(dset["spec"][grab]["flux"])
     sigma = np.copy(dset["spec"][grab]["sig"])
     redshift = np.copy(dset["meta"][grab]["Z_PIPE"])
@@ -123,9 +123,9 @@ def prepNoiseVectors(zmin, zmax):
     # in places where the rest-frame wavelength is listed as 0, sigma is either negative or ~1e10
     # the latter MUST be taken into account in the next steps
 
-    print ("Number of good noise values:", np.sum(gpm))
-    print ("Number of negative noise values:", np.sum(sigma < 0))
-    print ("Number of zero-valued noise values:", np.sum(sigma == 0))
+    #print ("Number of good noise values:", np.sum(gpm))
+    #print ("Number of negative noise values:", np.sum(sigma < 0))
+    #print ("Number of zero-valued noise values:", np.sum(sigma == 0))
 
     # normalise the noise vectors
     flux_norm, sigma_norm = normalise_spectra(wave_rest, flux_obs, sigma)

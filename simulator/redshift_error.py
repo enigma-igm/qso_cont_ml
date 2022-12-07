@@ -90,7 +90,7 @@ def smoothTransmission(wave_rest, mean_trans, dv_sigma=700):
     # convert the standard deviation in velocity space to pixel space
     dloglam_sigma = dv_sigma / (c_light * np.log(10))
     sigma_pix = dloglam_sigma / dloglam_avg
-    print ("sigma_pix: {}".format(sigma_pix))
+    #print ("sigma_pix: {}".format(sigma_pix))
 
 
     mean_trans_smoothed = gaussian_filter1d(mean_trans, sigma_pix, axis=-1)
