@@ -71,16 +71,20 @@ def simulateInRedshiftLoop(nsamp, dz, datapath=None, savepath=None, copy_factor=
         if nsamp_i > 1:
             #logLv_range_i = [logLv_draw[inbin].min(), logLv_draw[inbin].max()]
 
-            # use a single, fixed logLv range to create a "rectangular" (z, logLv) grid with full coverage
-            logLv_range_i = [logLv_data.min(), logLv_data.max()]
-            logLv_ranges.append(logLv_range_i)
-
             # if sampleLv is set to False, use the drawn luminosities to replace the sampled ones in the simulator
             # this is implemented in ProximityWrapper.simulateSpectra
             if sampleLv:
                 logLv_use = None
+
+                # use a single, fixed logLv range to create a "rectangular" (z, logLv) grid with full coverage
+                logLv_range_i = [logLv_data.min(), logLv_data.max()]
             else:
                 logLv_use = inverse_transform_sample1d(logLv_data[inbin], nsamp_i)
+
+                # edit logLv_range_i to reflect the actual range of logLv values used
+                logLv_range_i = [logLv_use.min(), logLv_use.max()]
+
+            logLv_ranges.append(logLv_range_i)
 
             if (z > 3.6) & (z < 3.7):
                 embed()

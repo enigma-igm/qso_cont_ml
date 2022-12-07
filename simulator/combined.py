@@ -2,10 +2,53 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+import h5py
 from simulator.singular import FullSimulator
 from simulator.save import constructFile, constructTransmissionTemplates
 from scipy.interpolate import interp1d
 from IPython import embed
+
+
+class SimulationFromFile:
+
+    def __init__(self, filename):
+
+        print ("Loading simulation from file {}.".format(filename))
+
+        f = h5py.File(filename, "r")
+
+        self.fwhm = f["meta"].attrs["fwhm"]
+        self.dvpix = f["meta"].attrs["dv-fine"]
+        self.dvpix_red = f["meta"].attrs["dv-coarse"]
+        self.npca = f["meta"].attrs["npca"]
+        self.nskew = f["meta"].attrs["nskew"]
+        self.wave_split = f["meta"].attrs["wave-split"]
+
+        self.wave_rest = np.copy(f["meta"]["wave-fine"])
+        self.wave_hybrid = np.copy(f["meta"]["wave-hybrid"])
+
+        self.mean_trans = np.copy(f["fine"]["mean-trans-flux"])
+        self.cont = np.copy(f["fine"]["cont"])
+        self.ivar = np.copy(f["fine"]["ivar"])
+        self.flux = np.copy(f["fine"]["flux"])
+        self.flux_noiseless = np.copy(f["fine"]["flux-noiseless"])
+
+        self.redshifts = np.copy(f["meta"]["redshifts"])
+        self.logLv_samp = np.copy(f["meta"]["logLv"])
+
+        self.cont_hybrid = np.copy(f["hybrid"]["cont"])
+        self.flux_hybrid = np.copy(f["hybrid"]["flux"])
+        self.ivar_hybrid = np.copy(f["hybrid"]["ivar"])
+        self.mean_trans_hybrid = np.copy(f["hybrid"]["mean-trans-flux"])
+
+        # extract the transmission templates
+        self.z_mid = np.copy(f["meta"]["z-mid"])
+        self.logLv_samp = np.copy(f["meta"]["logLv"])
+        self.logLv_mid = np.copy(f["meta"]["logLv-mid"])
+        self.mean_t_prox0 = np.copy(f["meta"]["trans-templates"])
+
+        f.close()
+
 
 class CombinedSimulations:
     '''
@@ -20,7 +63,15 @@ class CombinedSimulations:
     def __init__(self, sims_list):
 
         assert isinstance(sims_list, list)
-        assert isinstance(sims_list[0], FullSimulator)
+
+        if isinstance(sims_list[0], str):
+            # overwrite sims_list with the loaded simulations
+            sims_list = self._load_from_files(sims_list)
+            fromfile = True
+
+        else:
+            assert isinstance(sims_list[0], FullSimulator)
+            fromfile = False
 
         # for metadata, use the values of the first simulator object
         self.fwhm = sims_list[0].fwhm
@@ -31,7 +82,8 @@ class CombinedSimulations:
         self.wave_split = sims_list[0].wave_split
 
         self.wave_rest = sims_list[0].wave_rest
-        self.wave_coarse = sims_list[0].wave_coarse
+        #self.wave_coarse = sims_list[0].wave_coarse
+        self.wave_coarse = None
         self.wave_hybrid = sims_list[0].wave_hybrid
 
         # concatenate the data from all simulators
@@ -63,11 +115,18 @@ class CombinedSimulations:
         # extract the mean transmission templates and 3D grid midpoints (z, logLv, wav)
         self.trans_templates = np.array([sim.mean_t_prox0 for sim in sims_list])
 
-        self.z_mids = np.array([sim.Prox.z_qso for sim in sims_list])
+        if fromfile:
+            self.z_mids = np.array([sim.z_mid for sim in sims_list])
+            self.logLv_mids = np.array([sim.logLv_mid for sim in sims_list])
+        else:
+            self.z_mids = np.array([sim.Prox.z_qso for sim in sims_list])
+            self.logLv_mids = np.log10(np.array(sims_list[0].Prox.L_rescale_vec * sims_list[0].Prox.L_mid))
         #self.logLv_mids = np.log10( np.array( [sim.Prox.L_rescale_vec * sim.Prox.L_mid for sim in sims_list] ) )
 
         # take only the first sims_list entry for the logLv axis on the grid, since we fixed the logLv range
-        self.logLv_mids = np.log10( np.array( sims_list[0].Prox.L_rescale_vec * sims_list[0].Prox.L_mid ) )
+        # TODO: edit this because we're no longer fixing the logLv range
+        #self.logLv_mids = np.array([sim.logLv_mid for sim in sims_list])
+        #self.logLv_mids = np.log10( np.array( sims_list[0].Prox.L_rescale_vec * sims_list[0].Prox.L_mid ) )
         # wavelength grids are already extracted above
 
         # interpolate the transmission templates onto the hybrid grid as well
@@ -88,6 +147,17 @@ class CombinedSimulations:
         test_idcs = np.delete(all_idcs, np.concatenate((train_idcs, valid_idcs)))
 
         return train_idcs, valid_idcs, test_idcs
+
+
+    def _load_from_files(self, file_list):
+        '''Load the data from the files in file_list.'''
+
+        sims_list = []
+
+        for f in file_list:
+            sims_list.append(SimulationFromFile(f))
+
+        return sims_list
 
 
     def saveFile(self, filepath="/net/vdesk/data2/buiten/MRP2/pca-sdss-old/", dz=None, train_frac=0.9):

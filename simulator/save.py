@@ -1,5 +1,6 @@
 import h5py
 from IPython import embed
+import numpy as np
 
 
 def construct_simple_file(simulator, filename):
@@ -25,6 +26,18 @@ def construct_simple_file(simulator, filename):
     grp_meta.attrs["npca"] = simulator.npca
     grp_meta.attrs["nskew"] = simulator.nskew
     grp_meta.attrs["wave-split"] = simulator.wave_split
+
+    # also store information on redshifts, luminosities and the transmission templates
+    grp_meta.create_dataset("redshifts", data=simulator.redshifts)
+    grp_meta.create_dataset("logLv", data=simulator.logLv_samp)
+    grp_meta.create_dataset("z-mid", data=simulator.Prox.z_mids)
+    logLv_mid = np.log10( simulator.Prox.L_rescale_vec * simulator.Prox.L_mid )
+    grp_meta.create_dataset("logLv-mid", logLv_mid)
+    grp_meta.create_dataset("mean_t_prox0", data=simulator.mean_t_prox0)
+
+    embed()
+
+    # TODO: check if this is correct with embed
 
     # save the wavelength grids
     grp_meta.create_dataset("wave-fine", data=simulator.wave_rest)
