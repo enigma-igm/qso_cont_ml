@@ -86,7 +86,10 @@ def simulateInRedshiftLoop(nsamp, dz, datapath=None, savepath=None, copy_factor=
                 # use a single, fixed logLv range to create a "rectangular" (z, logLv) grid with full coverage
                 logLv_range_i = [logLv_data.min(), logLv_data.max()]
             else:
-                logLv_use = inverse_transform_sample1d(logLv_data[inbin], nsamp_i)
+                try:
+                    logLv_use = inverse_transform_sample1d(logLv_data[inbin], nsamp_i)
+                except:
+                    embed()
 
                 # edit logLv_range_i to reflect the actual range of logLv values used
                 logLv_range_i = [logLv_use.min(), logLv_use.max()]
