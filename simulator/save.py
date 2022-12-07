@@ -86,7 +86,7 @@ def constructFile(simulator, filename, train_frac=0.9):
     grp_hybrid_test = grp_testdata.create_group("hybrid-grid")
 
     grp_meta.create_dataset("wave-fine", data=simulator.wave_rest)
-    grp_meta.create_dataset("wave-coarse", data=simulator.wave_coarse)
+    #grp_meta.create_dataset("wave-coarse", data=simulator.wave_coarse)
     grp_meta.create_dataset("wave-hybrid", data=simulator.wave_hybrid)
 
     # add the indexed spectra to the right group

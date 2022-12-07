@@ -98,7 +98,8 @@ class SynthSpectra(Dataset):
         # load only the hybrid and coarse wavelength grid, the hybrid input and the hybrid true continua
         self.wave_fine = torch.FloatTensor(self.file["/meta/wave-fine"])
         self.wave_hybrid = torch.FloatTensor(self.file["/meta/wave-hybrid"])
-        self.wave_coarse = torch.FloatTensor(self.file["/meta/wave-coarse"])
+        #self.wave_coarse = torch.FloatTensor(self.file["/meta/wave-coarse"])
+        self.wave_coarse = None
         self.wave_split = self.file["/meta"].attrs["wave-split"]
 
         self.flux_hybrid = torch.FloatTensor(self.file["{}/hybrid-grid/flux".format(self.grp_name)])
