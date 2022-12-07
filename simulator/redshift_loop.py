@@ -59,6 +59,8 @@ def simulateInRedshiftLoop(nsamp, dz, datapath=None, savepath=None, copy_factor=
     #sims_list = []
     logLv_ranges = []
 
+    inbin_old = np.zeros(ndata, dtype=bool)
+
     for i, z in enumerate(z_mids):
 
         #inbin = (z_draw > z_edges[i]) & (z_draw < z_edges[i+1])
@@ -73,32 +75,33 @@ def simulateInRedshiftLoop(nsamp, dz, datapath=None, savepath=None, copy_factor=
         print ("Number of samples in data for z = {}: {}".format(np.around(z,2), ndata_i))
         print ("Number of samples to simulate for z = {}: {}".format(np.around(z,2), nsamp_i))
 
-        # the code fails in various places if nsamp < 2
-        # TODO: fix bug where z_mids may be a longer list than the list of simulations
-        if nsamp_i > 1:
-            #logLv_range_i = [logLv_draw[inbin].min(), logLv_draw[inbin].max()]
+        #logLv_range_i = [logLv_draw[inbin].min(), logLv_draw[inbin].max()]
 
-            # if sampleLv is set to False, use the drawn luminosities to replace the sampled ones in the simulator
-            # this is implemented in ProximityWrapper.simulateSpectra
-            if sampleLv:
-                logLv_use = None
+        # if sampleLv is set to False, use the drawn luminosities to replace the sampled ones in the simulator
+        # this is implemented in ProximityWrapper.simulateSpectra
+        if sampleLv:
+            logLv_use = None
 
-                # use a single, fixed logLv range to create a "rectangular" (z, logLv) grid with full coverage
-                logLv_range_i = [logLv_data.min(), logLv_data.max()]
-            else:
-                try:
-                    logLv_use = inverse_transform_sample1d(logLv_data[inbin], nsamp_i)
-                except:
-                    embed()
-
-                # edit logLv_range_i to reflect the actual range of logLv values used
-                logLv_range_i = [logLv_use.min(), logLv_use.max()]
+            # use a single, fixed logLv range to create a "rectangular" (z, logLv) grid with full coverage
+            logLv_range_i = [logLv_data.min(), logLv_data.max()]
 
         else:
-            # simulate only two samples for this redshift with sampled luminosities
-            nsamp_i = 2
-            logLv_range_i = [logLv_data.min(), logLv_data.max()]
-            logLv_use = None
+            try:
+                # this fails if there are only two QSOs in the bin in the data
+                # in this case, use the empirical distribution from the previous bin
+                if ndata_i > 2:
+                    logLv_use = inverse_transform_sample1d(logLv_data[inbin], nsamp_i)
+                    # save a reference to the data in this bin in the case where the next bin has < 3 QSOs
+                    # only do this if the current bin has > 2 QSOs such that inbin_old is always "good"
+                    inbin_old = np.copy(inbin)
+                else:
+                    print ("Warning: not enough data in bin to sample luminosities. Using data from previous bin.")
+                    logLv_use = inverse_transform_sample1d(logLv_data[inbin_old], nsamp_i)
+            except:
+                embed()
+
+            # edit logLv_range_i to reflect the actual range of logLv values used
+            logLv_range_i = [logLv_use.min(), logLv_use.max()]
 
         logLv_ranges.append(logLv_range_i)
 
