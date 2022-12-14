@@ -56,17 +56,28 @@ class TransmissionTemplates:
         _z_mids = np.array(f["z-mids"])
         _logLv_mids = np.array(f["logLv-mids"])
 
-        # _z_mids is 1D, but _logLv_mids is 2D because they differ for each redshift bin
-        self.z_mids = np.full((len(_z_mids), _logLv_mids.shape[-1]), _z_mids).ravel()
-        self.logLv_mids = _logLv_mids.ravel()
-
         self.n_zbins = len(_z_mids)
         self.n_logLbins = len(_logLv_mids)
+
+        # _z_mids is 1D, but _logLv_mids is 2D because they differ for each redshift bin
+        self.z_mids = np.zeros(self.n_zbins * self.n_logLbins)
+        self.logLv_mids = np.zeros(self.n_zbins * self.n_logLbins)
+        self.mean_trans_fine = np.zeros((self.n_zbins * self.n_logLbins, len(self.wave_fine)))
+        self.mean_trans_hybrid = np.zeros((self.n_zbins * self.n_logLbins, len(self.wave_hybrid)))
+        for i in range(self.n_zbins):
+            self.z_mids[i*self.n_logLbins:(i+1)*self.n_logLbins] = _z_mids[i]
+            self.logLv_mids[i*self.n_logLbins:(i+1)*self.n_logLbins] = _logLv_mids[i]
+            self.mean_trans_fine[i*self.n_logLbins:(i+1)*self.n_logLbins] = _mean_trans_fine.cpu().detach().numpy()[i]
+            self.mean_trans_hybrid[i*self.n_logLbins:(i+1)*self.n_logLbins] = _mean_trans_hybrid.cpu().detach().numpy()[i]
+
+        #self.z_mids = np.full((len(_z_mids), _logLv_mids.shape[-1]), _z_mids).ravel()
+        #self.logLv_mids = _logLv_mids.ravel()
+
         self.n_zpoints = len(self.z_mids)
         self.n_logLpoints = len(self.logLv_mids)
 
-        self.mean_trans_fine = _mean_trans_fine.cpu().detach().numpy().reshape((self.n_zpoints, len(self.wave_fine)))
-        self.mean_trans_hybrid = _mean_trans_hybrid.cpu().detach().numpy().reshape((self.n_zpoints, len(self.wave_hybrid)))
+        #self.mean_trans_fine = _mean_trans_fine.cpu().detach().numpy().reshape((self.n_zpoints, len(self.wave_fine)))
+        #self.mean_trans_hybrid = _mean_trans_hybrid.cpu().detach().numpy().reshape((self.n_zpoints, len(self.wave_hybrid)))
 
         f.close()
 

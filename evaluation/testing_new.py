@@ -88,9 +88,9 @@ class ModelResults:
                 self.cont_true = None
                 print ("No true continuum found.")
 
-            self.flux = testset.flux_fine.cpu().detach().numpy()
+            self.flux = testset.flux_fine.cpu().detach().numpy() if isinstance(testset.flux_fine, torch.FloatTensor) else testset.flux_fine
             #self.noise = testset.noise_fine.cpu().detach().numpy()
-            self.noise = 1 / np.sqrt(testset.ivar_fine.cpu().detach().numpy())
+            self.noise = 1 / np.sqrt(testset.ivar_fine.cpu().detach().numpy()) if isinstance(testset.ivar_fine, torch.FloatTensor) else 1 / np.sqrt(testset.ivar_fine)
             self.wave_grid = testset.wave_fine
 
         elif gridtype == "hybrid":
@@ -105,8 +105,8 @@ class ModelResults:
                 self.cont_true = None
                 print ("No true continuum found.")
 
-            self.flux = testset.flux_hybrid.cpu().detach().numpy()
-            self.noise = 1 / np.sqrt(testset.ivar_hybrid.cpu().detach().numpy())
+            self.flux = testset.flux_hybrid.cpu().detach().numpy() if isinstance(testset.flux_hybrid, torch.FloatTensor) else testset.flux_hybrid
+            self.noise = 1 / np.sqrt(testset.ivar_hybrid.cpu().detach().numpy()) if isinstance(testset.ivar_hybrid, torch.FloatTensor) else 1 / np.sqrt(testset.ivar_hybrid)
             self.wave_grid = testset.wave_hybrid
 
         else:
