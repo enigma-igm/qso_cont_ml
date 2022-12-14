@@ -204,7 +204,7 @@ class UNetTrainer:
         @return:
         '''
 
-        n_lam = len(self.wave_coarse)
+        n_lam = len(self.wave_hybrid)
         training_loss_avgd = self.training_loss / n_lam
         valid_loss_avgd = self.valid_loss / n_lam
 
