@@ -5,6 +5,7 @@ from torch import FloatTensor
 import matplotlib.pyplot as plt
 from matplotlib.ticker import AutoMinorLocator
 from scipy.interpolate import RegularGridInterpolator, LinearNDInterpolator
+from IPython import embed
 
 class TransmissionTemplates:
     '''
@@ -31,10 +32,7 @@ class TransmissionTemplates:
         assert isinstance(filepath, str)
         assert isinstance(dz, float)
 
-        if nsamp == 25000:
-            filename = "{}transmission_templates_dz{}.hdf5".format(filepath, dz)
-        else:
-            filename = "{}transmission_templates_dz{}_nsamp{}.hdf5".format(filepath, dz, nsamp)
+        filename = "{}transmission_templates_dz{}_nsamp{}.hdf5".format(filepath, dz, nsamp)
 
         print ("Using file {} for transmission templates.".format(filename))
 
@@ -43,23 +41,43 @@ class TransmissionTemplates:
         self.wave_fine = FloatTensor(f["/fine-grid/wave-fine"])
         self.wave_hybrid = FloatTensor(f["/hybrid-grid/wave-hybrid"])
 
-        self.mean_trans_fine = FloatTensor(f["/fine-grid/mean-trans"])
-        self.mean_trans_hybrid = FloatTensor(f["/hybrid-grid/mean-trans"])
+        #self.mean_trans_fine = FloatTensor(f["/fine-grid/mean-trans"])
+        #self.mean_trans_hybrid = FloatTensor(f["/hybrid-grid/mean-trans"])
 
-        self.z_mids = np.array(f["z-mids"])
-        self.logLv_mids = np.array(f["logLv-mids"])
+        #self.z_mids = np.array(f["z-mids"])
+        #self.logLv_mids = np.array(f["logLv-mids"])
 
-        self.n_zbins = len(self.z_mids)
-        self.n_logLbins = len(self.logLv_mids)
+        # for LinearNDInterpolator we need the redshifts and logLvs that make up the grid to be 1D arrays
+        # we need to reshape all of the arrays that go into the interpolator
+
+        _mean_trans_fine = FloatTensor(f["/fine-grid/mean-trans"])
+        _mean_trans_hybrid = FloatTensor(f["/hybrid-grid/mean-trans"])
+
+        _z_mids = np.array(f["z-mids"])
+        _logLv_mids = np.array(f["logLv-mids"])
+
+        # _z_mids is 1D, but _logLv_mids is 2D because they differ for each redshift bin
+        self.z_mids = np.full((len(_z_mids), _logLv_mids.shape[-1]), _z_mids).ravel()
+        self.logLv_mids = _logLv_mids.ravel()
+
+        self.n_zbins = len(_z_mids)
+        self.n_logLbins = len(_logLv_mids)
+        self.n_zpoints = len(self.z_mids)
+        self.n_logLpoints = len(self.logLv_mids)
+
+        self.mean_trans_fine = _mean_trans_fine.cpu().detach().numpy().reshape((self.n_zpoints, len(self.wave_fine)))
+        self.mean_trans_hybrid = _mean_trans_hybrid.cpu().detach().numpy().reshape((self.n_zpoints, len(self.wave_hybrid)))
 
         f.close()
 
         # try non-regular grid interpolation because the logLv_mids are not equally spaced in log space
         print ("Using LinearNDInterpolator for transmission templates.")
-        self.interpolator_fine = LinearNDInterpolator((self.z_mids, self.logLv_mids),
-                                                      self.mean_trans_fine.cpu().detach().numpy())
-        self.interpolator_hybrid = LinearNDInterpolator((self.z_mids, self.logLv_mids),
-                                                        self.mean_trans_hybrid.cpu().detach().numpy())
+
+        try:
+            self.interpolator_fine = LinearNDInterpolator((self.z_mids, self.logLv_mids), self.mean_trans_fine)
+        except:
+            embed()
+        self.interpolator_hybrid = LinearNDInterpolator((self.z_mids, self.logLv_mids), self.mean_trans_hybrid)
 
         # initialise RegularGridInterpolator instances for each grid
         #self.interpolator_fine = RegularGridInterpolator((self.z_mids, self.logLv_mids),
