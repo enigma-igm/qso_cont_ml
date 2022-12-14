@@ -213,7 +213,10 @@ class CombinedSimulations:
         if dz is None:
             filename = "{}transmission_templates_{}sets.hdf5".format(filepath, self.nsets)
         else:
-            filename = "{}transmission_templates_dz{}.hdf5".format(filepath, dz)
+            if self.nsamp == 25000:
+                filename = "{}transmission_templates_dz{}.hdf5".format(filepath, dz)
+            else:
+                filename = "{}transmission_templates_dz{}_nsamp{}.hdf5".format(filepath, dz, self.nsamp)
 
         f = constructTransmissionTemplates(self, filename)
 

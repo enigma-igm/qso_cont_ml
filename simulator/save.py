@@ -104,12 +104,12 @@ def constructFile(simulator, filename, train_frac=0.9):
         grp_fine.create_dataset("noiseless-flux", data=simulator.flux_noiseless[idcs])
 
         #grp_coarse.create_dataset("cont", data=simulator.cont_coarse[idcs])
-        grp_coarse.create_dataset("flux", data=simulator.flux_coarse[idcs])
-        grp_coarse.create_dataset("ivar", data=simulator.ivar_coarse[idcs])
-        try:
-            grp_coarse.create_dataset("mean-trans-flux", data=simulator.mean_trans_coarse[idcs])
-        except:
-            embed()
+        #grp_coarse.create_dataset("flux", data=simulator.flux_coarse[idcs])
+        #grp_coarse.create_dataset("ivar", data=simulator.ivar_coarse[idcs])
+        #try:
+        #    grp_coarse.create_dataset("mean-trans-flux", data=simulator.mean_trans_coarse[idcs])
+        #except:
+        #    embed()
 
         grp_hybrid.create_dataset("cont", data=simulator.cont_hybrid[idcs])
         grp_hybrid.create_dataset("flux", data=simulator.flux_hybrid[idcs])

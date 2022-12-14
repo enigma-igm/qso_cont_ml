@@ -54,7 +54,8 @@ class InputSpectra(Dataset):
 
     def __init__(self, wave_grid, flux, ivar, redshifts, logLv, restframe=True, wave_min=980., wave_max=1970.,
                  dloglam=1e-4, cont=None, wave_split=1260.,
-                 transmission_filepath="/net/vdesk/data2/buiten/MRP2/pca-sdss-old/", transmission_dz=0.08):
+                 transmission_filepath="/net/vdesk/data2/buiten/MRP2/pca-sdss-old/", transmission_dz=0.08,
+                 transmission_nsamp=25000):
 
         '''
 
@@ -181,7 +182,7 @@ class InputSpectra(Dataset):
             self.cont_hybrid = None
 
         # estimate mean transmission profiles
-        trans_templates = TransmissionTemplates(transmission_filepath, transmission_dz)
+        trans_templates = TransmissionTemplates(transmission_filepath, transmission_dz, nsamp=transmission_nsamp)
         self.mean_trans_hybrid = trans_templates.interpolateTransmission(self.redshifts, self.logLv, grid="hybrid")
 
         # make torch tensors of everything that needs to be GPU-compatible
