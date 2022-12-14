@@ -85,10 +85,12 @@ class TransmissionTemplates:
         print ("Using LinearNDInterpolator for transmission templates.")
 
         try:
-            self.interpolator_fine = LinearNDInterpolator((self.z_mids, self.logLv_mids), self.mean_trans_fine)
+            self.interpolator_fine = LinearNDInterpolator((self.z_mids, self.logLv_mids), self.mean_trans_fine,
+                                                          fill_value=1.)
         except:
             embed()
-        self.interpolator_hybrid = LinearNDInterpolator((self.z_mids, self.logLv_mids), self.mean_trans_hybrid)
+        self.interpolator_hybrid = LinearNDInterpolator((self.z_mids, self.logLv_mids), self.mean_trans_hybrid,
+                                                        fill_value=1.)
 
         # initialise RegularGridInterpolator instances for each grid
         #self.interpolator_fine = RegularGridInterpolator((self.z_mids, self.logLv_mids),
